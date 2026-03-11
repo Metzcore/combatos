@@ -158,10 +158,13 @@ export async function trySyncQueue(onComplete) {
         try {
             const res = await fetch(webhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(item.payload)
             })
-            if (res.ok) {
+            // no-cors returns an opaque response (type: 'opaque', res.ok is false, status is 0)
+            // If we don't hit the catch block, the request was successfully sent.
+            if (res.type === 'opaque' || res.ok) {
                 await db.syncQueue.delete(item.id)
             } else {
                 await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
