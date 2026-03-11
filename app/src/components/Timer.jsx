@@ -69,6 +69,11 @@ export default function Timer() {
     const [swRunning, setSwRunning] = useState(false)
     const swInterval = useRef(null)
 
+    // Countdown state
+    const [cdTime, setCdTime] = useState(0) // time left in seconds
+    const [cdRunning, setCdRunning] = useState(false)
+    const cdInterval = useRef(null)
+
     useEffect(() => {
         let start = 0;
         if (swRunning) {
@@ -83,11 +88,6 @@ export default function Timer() {
         }
         return () => clearInterval(swInterval.current)
     }, [swRunning, cdRunning])
-
-    // Countdown state
-    const [cdTime, setCdTime] = useState(0) // time left in seconds
-    const [cdRunning, setCdRunning] = useState(false)
-    const cdInterval = useRef(null)
 
     useEffect(() => {
         if (cdRunning && cdTime > 0) {
