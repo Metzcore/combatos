@@ -744,14 +744,29 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--warn);
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: rgba(255, 170, 0, 0.1);
   border-radius: var(--radius-sm);
   border: 1px solid var(--warn);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  animation: pulse-sync 2s infinite ease-in-out;
+}
+
+@keyframes pulse-sync {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 170, 0, 0.1);
+    border-color: rgba(255, 170, 0, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+    border-color: var(--warn);
+  }
 }
 
 /* ── Utility ───────────────────────────────────── */

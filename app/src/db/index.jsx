@@ -24,7 +24,9 @@ export { db }
 // ─── Default settings ─────────────────────────────────────────────────────────
 const DEFAULTS = {
     currentPhase: 1,
-    webhookUrl: 'https://script.google.com/macros/s/AKfycbxFvHnbZqSjIgQg-_81zk3-HbVwYx3nhsA5lUOo3rOHlKCqiKhYfhi2s2QsioYwuJL7/exec'
+    webhookUrl: 'https://script.google.com/macros/s/AKfycbzXC4ljnffgx1wQd_v7Pstvr8tZpsq1lDS_2kHzb0bb8cdvIrIC6FSUIS5Np1YqWvxP/exec',
+    appName: "Fighter's OS",
+    appSubtitle: "Combat Performance"
 }
 
 async function getSetting(key) {
@@ -44,6 +46,8 @@ const DBContext = createContext(null)
  */
 export function DBProvider({ children }) {
     const [phase, _setPhase] = useState(1)
+    const [appName, _setAppName] = useState(DEFAULTS.appName)
+    const [appSubtitle, _setAppSubtitle] = useState(DEFAULTS.appSubtitle)
     const [pendingSync, setPending] = useState(0)
     const [sessionCount, setCount] = useState({}) // { 1: n, 2: n, 3: n }
     const [ready, setReady] = useState(false)
@@ -53,6 +57,10 @@ export function DBProvider({ children }) {
         async function init() {
             const p = await getSetting('currentPhase')
             _setPhase(Number(p) || 1)
+
+            _setAppName(await getSetting('appName'))
+            _setAppSubtitle(await getSetting('appSubtitle'))
+
             await refreshCounts()
             await refreshPending()
             setReady(true)
@@ -83,6 +91,16 @@ export function DBProvider({ children }) {
         _setPhase(p)
     }, [])
 
+    const setAppName = useCallback(async (name) => {
+        await setSetting('appName', name)
+        _setAppName(name)
+    }, [])
+
+    const setAppSubtitle = useCallback(async (sub) => {
+        await setSetting('appSubtitle', sub)
+        _setAppSubtitle(sub)
+    }, [])
+
     const logSession = useCallback(async (sessionData) => {
         const id = await db.sessions.add(sessionData)
         await db.syncQueue.add({ sessionId: id, attempts: 0, payload: sessionData })
@@ -108,7 +126,12 @@ export function DBProvider({ children }) {
     }
 
     return (
-        <DBContext.Provider value={{ phase, setPhase, sessionCount, pendingSync, logSession, resetSession }}>
+        <DBContext.Provider value={{
+            phase, setPhase,
+            appName, setAppName,
+            appSubtitle, setAppSubtitle,
+            sessionCount, pendingSync, logSession, resetSession
+        }}>
             {children}
         </DBContext.Provider>
     )

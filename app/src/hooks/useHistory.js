@@ -10,11 +10,12 @@
 
 import { useState, useEffect } from 'react'
 import { db } from '../db/index.jsx'
+import { calculateE1RM, calculateTargetWeight } from '../utils/math.js'
 
 const _cache = new Map()
 
-export function useHistory(playbookKey, setNum) {
-    const [history, setHistory] = useState({ lastKg: '', lastReps: '' })
+export function useHistory(playbookKey, setNum, intensityPct = 0.85) {
+    const [history, setHistory] = useState({ lastKg: '', lastReps: '', suggestedKg: '' })
 
     useEffect(() => {
         if (!playbookKey) return
@@ -41,7 +42,21 @@ export function useHistory(playbookKey, setNum) {
                     // sets array is 0-indexed (0 = Set 1)
                     const set = exData.sets[setNum - 1]
                     if (set && (set.kg || set.reps)) {
-                        const result = { lastKg: set.kg || '', lastReps: set.reps || '' }
+                        const kgNum = Number(set.kg)
+                        const repsNum = Number(set.reps)
+
+                        let suggestedKg = ''
+                        if (kgNum > 0 && repsNum > 0) {
+                            const e1rm = calculateE1RM(kgNum, repsNum)
+                            suggestedKg = calculateTargetWeight(e1rm, intensityPct)
+                        }
+
+                        const result = {
+                            lastKg: set.kg || '',
+                            lastReps: set.reps || '',
+                            suggestedKg
+                        }
+
                         _cache.set(cacheKey, result)
                         setHistory(result)
                         return
@@ -49,7 +64,7 @@ export function useHistory(playbookKey, setNum) {
                 }
             })
             .catch(() => { })
-    }, [playbookKey, setNum])
+    }, [playbookKey, setNum, intensityPct])
 
     return history
 }

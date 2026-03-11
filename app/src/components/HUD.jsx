@@ -28,7 +28,7 @@ const HIP_LABELS = ['1 – Critical', '2 – High Alert', '3 – Moderate', '4 �
 const PHASE_UNLOCK_THRESHOLD = 12
 
 export default function HUD() {
-    const { phase, setPhase, sessionCount, pendingSync, logSession, resetSession } = useDB()
+    const { phase, setPhase, sessionCount, pendingSync, logSession, resetSession, appName, appSubtitle } = useDB()
 
     // ── Selectors ────────────────────────────────
     const [day, setDay] = useState(1)
@@ -36,8 +36,7 @@ export default function HUD() {
 
     // ── Workout state ────────────────────────────
     const [mobChecked, setMobChecked] = useState({})   // { slot: bool }
-    const [strSets, setStrSets] = useState({})   // { 'ex1-s1': { kg:'', reps:'' } }
-    const [papChecked, setPapChecked] = useState({})   // { exSlot: bool }
+    const [strSets, setStrSets] = useState({})   // { 'ex1-s1': { kg:'', reps:'', papReps:'' } }
     const [coreSets, setCoreSets] = useState({})       // { 1: {ex, sets, reps}, ...}
     const [clrChecked, setClrChecked] = useState({})   // { slot: bool }
     const [bagRounds, setBagRounds] = useState('')
@@ -45,6 +44,11 @@ export default function HUD() {
     const [bagModules, setBagModules] = useState('')
     const [bagWorkouts, setBagWorkouts] = useState('')
     const [notes, setNotes] = useState('')
+
+    // ── Dynamic Gym Day state ────────────────────
+    const [gymSessionType, setGymSessionType] = useState('Combat')
+    const [altRows, setAltRows] = useState([])
+    const [altDuration, setAltDuration] = useState('')
 
     // ── Playbook data ────────────────────────────
     const workout = usePlaybook(phase, day, hipScore)
@@ -64,9 +68,10 @@ export default function HUD() {
         const strTotal = workout.strSlots.reduce((acc, s) => acc + s.sets * 2, 0)
         let strFilled = 0
         for (const key in strSets) {
-            const { kg, reps } = strSets[key] || {}
+            const { kg, reps, papReps } = strSets[key] || {}
             if (kg && kg !== '') strFilled++
             if (reps && reps !== '') strFilled++
+            if (papReps && papReps !== '') strFilled++
         }
 
         const maxBag = 6
@@ -80,14 +85,22 @@ export default function HUD() {
 
     // ── Log Session ──────────────────────────────
     const handleLog = useCallback(async () => {
-        if (!workout || workout.isFightGymDay) return
+        if (!workout) return
         const pct = completeness()
+
+        const finalSessionType = workout.isFightGymDay ? gymSessionType : 'S&C'
+
+        let altString = ''
+        if (workout.isFightGymDay && gymSessionType !== 'Combat') {
+            altString = altRows.map(r => `${r.name || 'Movement'} — ${r.v1 || ''} | ${r.v2 || ''} | ${r.v3 || ''}`).join('\n')
+        }
+
         const strength = (workout.strSlots || []).map((s, idx) => ({
             ex: idx + 1,
             key: s.key,
             sets: [1, 2, 3, 4].map(setNum => {
                 const entry = strSets[`ex${idx + 1}-s${setNum}`] || {}
-                return { kg: Number(entry.kg) || '', reps: Number(entry.reps) || '' }
+                return { kg: Number(entry.kg) || '', reps: Number(entry.reps) || '', papReps: Number(entry.papReps) || '' }
             })
         }))
         await logSession({
@@ -95,11 +108,14 @@ export default function HUD() {
             day,
             phase,
             hipScore,
+            sessionType: finalSessionType,
             strength,
             core: [1, 2, 3].map(rowNum => {
                 const entry = coreSets[rowNum] || {}
                 return { ex: entry.ex || '', sets: Number(entry.sets) || '', reps: Number(entry.reps) || '' }
             }).filter(c => c.ex !== ''),
+            altSessionDetails: altString,
+            sessionDuration: Number(altDuration) || 0,
             mobDone: Object.values(mobChecked).filter(Boolean).length,
             clrDone: Object.values(clrChecked).filter(Boolean).length,
             bagRounds: Number(bagRounds) || 0,
@@ -117,7 +133,6 @@ export default function HUD() {
         if (!confirm('Clear all inputs for next session? (Day and Phase are kept)')) return
         setMobChecked({})
         setStrSets({})
-        setPapChecked({})
         setCoreSets({})
         setClrChecked({})
         setBagRounds('')
@@ -126,14 +141,17 @@ export default function HUD() {
         setBagWorkouts('')
         setNotes('')
         setHipScore(3)
+        setGymSessionType('Combat')
+        setAltRows([])
+        setAltDuration('')
     }, [])
 
     return (
         <div className="app">
             {/* ── Header ──────────────────────────── */}
             <header className="page-header">
-                <h1>⚔️ Fighter's OS</h1>
-                <div className="subtitle">Combat Performance</div>
+                <h1>⚔️ {appName}</h1>
+                <div className="subtitle">{appSubtitle}</div>
             </header>
 
             <main className="content">
@@ -196,10 +214,16 @@ export default function HUD() {
                 {workout.isFightGymDay ? (
                     <FightGymDay
                         day={day}
-                        notes={notes}
-                        onNotesChange={setNotes}
+                        sessionType={gymSessionType}
+                        onSessionTypeChange={setGymSessionType}
                         bagRounds={bagRounds}
                         onBagRoundsChange={setBagRounds}
+                        altRows={altRows}
+                        onAltRowsChange={setAltRows}
+                        altDuration={altDuration}
+                        onAltDurationChange={setAltDuration}
+                        notes={notes}
+                        onNotesChange={setNotes}
                         onLog={handleLog}
                     />
                 ) : (
@@ -220,11 +244,9 @@ export default function HUD() {
                         <StrengthBlock
                             slots={workout.strSlots}
                             sets={strSets}
-                            papChecked={papChecked}
                             onSetChange={(key, field, val) =>
                                 setStrSets(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }))
                             }
-                            onPapCheck={(slot, val) => setPapChecked(prev => ({ ...prev, [slot]: val }))}
                             phase={phase}
                             day={day}
                         />

@@ -6,13 +6,13 @@
  */
 import { useHistory } from '../hooks/useHistory.js'
 
-function SetRow({ exIdx, setNum, sets, onSetChange, playbookKey }) {
+function SetRow({ exIdx, setNum, sets, onSetChange, playbookKey, hasPap }) {
     const key = `ex${exIdx + 1}-s${setNum}`
     const entry = sets[key] || {}
-    const { lastKg, lastReps } = useHistory(playbookKey, setNum)
+    const { lastKg, lastReps, suggestedKg } = useHistory(playbookKey, setNum)
 
     return (
-        <div className="str-set-row">
+        <div className="str-set-row" style={hasPap ? { gridTemplateColumns: '50px 1fr 1fr 1fr', padding: '6px 8px' } : {}}>
             <span className="str-set-label">Set {setNum}</span>
             <div>
                 <input
@@ -25,8 +25,11 @@ function SetRow({ exIdx, setNum, sets, onSetChange, playbookKey }) {
                     onChange={e => onSetChange(key, 'kg', e.target.value)}
                     aria-label={`Exercise ${exIdx + 1} set ${setNum} weight in kg`}
                 />
-                {lastKg && (
-                    <div className="history-badge">Last: {lastKg}kg</div>
+                {(lastKg || suggestedKg) && (
+                    <div className="history-badge">
+                        {lastKg && <span>Last: {lastKg}kg </span>}
+                        {suggestedKg && <span style={{ color: 'var(--blue)', fontWeight: 700 }}>| TGT: ~{suggestedKg}kg</span>}
+                    </div>
                 )}
             </div>
             <div>
@@ -44,12 +47,27 @@ function SetRow({ exIdx, setNum, sets, onSetChange, playbookKey }) {
                     <div className="history-badge">Last: {lastReps}</div>
                 )}
             </div>
+            {hasPap && (
+                <div>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="pap"
+                        min="0"
+                        step="1"
+                        value={entry.papReps ?? ''}
+                        onChange={e => onSetChange(key, 'papReps', e.target.value)}
+                        aria-label={`Exercise ${exIdx + 1} set ${setNum} PAP reps`}
+                    />
+                </div>
+            )}
         </div>
     )
 }
 
-function ExerciseCard({ slot, exIdx, sets, papChecked, onSetChange, onPapCheck }) {
+function ExerciseCard({ slot, exIdx, sets, onSetChange }) {
     const numSets = slot.sets || 4
+    const hasPap = !!slot.pap?.exercise
 
     return (
         <div className="str-card">
@@ -65,10 +83,19 @@ function ExerciseCard({ slot, exIdx, sets, papChecked, onSetChange, onPapCheck }
                 </div>
             </div>
 
-            <div className="str-set-header">
+            {hasPap && (
+                <div style={{ padding: '8px 14px', background: 'rgba(255, 170, 0, 0.05)', borderBottom: '1px solid var(--divider)', borderTop: '1px solid var(--warn)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--warn)', textTransform: 'uppercase' }}>
+                        ⚡ PAP: {slot.pap.exercise} {slot.pap.sets && `(${slot.pap.sets}×${slot.pap.reps})`}
+                    </div>
+                </div>
+            )}
+
+            <div className="str-set-header" style={hasPap ? { gridTemplateColumns: '50px 1fr 1fr 1fr', padding: '6px 8px' } : {}}>
                 <span>Set</span>
-                <span>Load (kg)</span>
+                <span>Load</span>
                 <span>Reps</span>
+                {hasPap && <span>PAP</span>}
             </div>
 
             {Array.from({ length: numSets }, (_, i) => (
@@ -79,28 +106,14 @@ function ExerciseCard({ slot, exIdx, sets, papChecked, onSetChange, onPapCheck }
                     sets={sets}
                     onSetChange={onSetChange}
                     playbookKey={slot.key}
+                    hasPap={hasPap}
                 />
             ))}
-
-            {slot.pap?.exercise && (
-                <div className="pap-row">
-                    <input
-                        type="checkbox"
-                        checked={!!papChecked[slot.slot]}
-                        onChange={e => onPapCheck(slot.slot, e.target.checked)}
-                        aria-label={`PAP ${slot.pap.exercise} done`}
-                    />
-                    <span className="pap-text">
-                        ⚡ PAP: {slot.pap.exercise}
-                        {slot.pap.sets && ` (${slot.pap.sets}×${slot.pap.reps})`}
-                    </span>
-                </div>
-            )}
         </div>
     )
 }
 
-export default function StrengthBlock({ slots, sets, papChecked, onSetChange, onPapCheck }) {
+export default function StrengthBlock({ slots, sets, onSetChange }) {
     if (!slots || slots.length === 0) return null
 
     return (
@@ -112,9 +125,7 @@ export default function StrengthBlock({ slots, sets, papChecked, onSetChange, on
                     slot={slot}
                     exIdx={idx}
                     sets={sets}
-                    papChecked={papChecked}
                     onSetChange={onSetChange}
-                    onPapCheck={onPapCheck}
                 />
             ))}
         </div>

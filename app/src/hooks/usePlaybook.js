@@ -61,7 +61,7 @@ function hipAwareLookup(phase, day, block, slot, hipScore) {
 
 // ─── Main workout builder ─────────────────────────────────────────────────────
 
-function getDailyFocus(day) {
+export function getDailyFocus(day) {
     const focusMap = {
         1: "Lower Body Heavy & Vertical Power",
         3: "Upper Body Push & Rotational Power",
