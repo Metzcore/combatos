@@ -130,7 +130,8 @@ export function DBProvider({ children }) {
             phase, setPhase,
             appName, setAppName,
             appSubtitle, setAppSubtitle,
-            sessionCount, pendingSync, logSession, resetSession
+            sessionCount, pendingSync, logSession, resetSession,
+            refreshCounts, refreshPending
         }}>
             {children}
         </DBContext.Provider>

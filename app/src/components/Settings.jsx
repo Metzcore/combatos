@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useDB, db } from '../db/index.jsx'
 
 export default function Settings() {
-    const { appName, setAppName, appSubtitle, setAppSubtitle } = useDB()
+    const { appName, setAppName, appSubtitle, setAppSubtitle, refreshCounts, refreshPending } = useDB()
     const [nameInput, setNameInput] = useState(appName || '')
     const [subInput, setSubInput] = useState(appSubtitle || '')
 
@@ -13,9 +13,12 @@ export default function Settings() {
     }
 
     const handleWipe = async () => {
-        if (confirm('⚠️ WARNING: This will permanently delete all local history in the Calendar tab. Your Google Sheet will NOT be affected. Proceed?')) {
+        if (confirm('⚠️ WARNING: This will permanently delete all local history in the Calendar tab and clear any pending syncs. Your Google Sheet will NOT be affected. Proceed?')) {
             await db.sessions.clear()
-            alert('Local history wiped.')
+            await db.syncQueue.clear()
+            if (refreshCounts) await refreshCounts()
+            if (refreshPending) await refreshPending()
+            alert('Local history and pending sync queue wiped.')
         }
     }
 
