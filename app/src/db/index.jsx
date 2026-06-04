@@ -31,7 +31,8 @@ const DEFAULTS = {
     currentPhase: 1,
     webhookUrl: 'https://script.google.com/macros/s/AKfycbzXC4ljnffgx1wQd_v7Pstvr8tZpsq1lDS_2kHzb0bb8cdvIrIC6FSUIS5Np1YqWvxP/exec',
     appName: "Fighter's OS",
-    appSubtitle: "Combat Performance"
+    appSubtitle: "Combat Performance",
+    dailyIgnitionEnabled: true
 }
 
 async function getSetting(key) {
@@ -73,6 +74,9 @@ export function DBProvider({ children }) {
     const [phase, _setPhase] = useState(1)
     const [appName, _setAppName] = useState(DEFAULTS.appName)
     const [appSubtitle, _setAppSubtitle] = useState(DEFAULTS.appSubtitle)
+    const [dailyIgnitionEnabled, _setDailyIgnitionEnabled] = useState(DEFAULTS.dailyIgnitionEnabled)
+    const [bookmarkedIgnitions, setBookmarkedIgnitions] = useState([])
+    const [ignitionHasShown, setIgnitionHasShown] = useState(false)
     const [pendingSync, setPending] = useState(0)
     const [sessionCount, setCount] = useState({}) // { 1: n, 2: n, 3: n }
     const [ready, setReady] = useState(false)
@@ -334,6 +338,10 @@ export function DBProvider({ children }) {
 
             _setAppName(await getSetting('appName'))
             _setAppSubtitle(await getSetting('appSubtitle'))
+            _setDailyIgnitionEnabled(await getSetting('dailyIgnitionEnabled'))
+            
+            const bookmarks = await getSetting('bookmarkedIgnitions')
+            if (Array.isArray(bookmarks)) setBookmarkedIgnitions(bookmarks)
             
             const setups = await getSetting('savedRoundsTimers')
             if (Array.isArray(setups)) {
@@ -380,6 +388,19 @@ export function DBProvider({ children }) {
         _setAppSubtitle(sub)
     }, [])
 
+    const setDailyIgnitionEnabled = useCallback(async (val) => {
+        await setSetting('dailyIgnitionEnabled', val)
+        _setDailyIgnitionEnabled(val)
+    }, [])
+
+    const toggleIgnitionBookmark = useCallback(async (id) => {
+        setBookmarkedIgnitions(prev => {
+            const newBookmarks = prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id];
+            setSetting('bookmarkedIgnitions', newBookmarks).catch(console.error);
+            return newBookmarks;
+        });
+    }, []);
+
     const logSession = useCallback(async (sessionData) => {
         const id = await db.sessions.add(sessionData)
         await db.syncQueue.add({ sessionId: id, attempts: 0, payload: sessionData })
@@ -412,6 +433,9 @@ export function DBProvider({ children }) {
             phase, setPhase,
             appName, setAppName,
             appSubtitle, setAppSubtitle,
+            dailyIgnitionEnabled, setDailyIgnitionEnabled,
+            bookmarkedIgnitions, toggleIgnitionBookmark,
+            ignitionHasShown, setIgnitionHasShown,
             sessionCount, pendingSync, logSession, resetSession,
             refreshCounts, refreshPending,
 

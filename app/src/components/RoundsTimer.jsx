@@ -91,15 +91,15 @@ export default function RoundsTimer() {
                     <div className="section-header amber" style={{ margin: '-20px -20px 20px -20px' }}>
                         💾 Saved Setups
                     </div>
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                         <input 
                             type="text" 
                             placeholder="Setup Name..." 
                             value={setupName}
                             onChange={e => setSetupName(e.target.value)}
-                            style={{ flex: 1, padding: 10, background: 'rgba(0,0,0,0.3)', color: '#ffffff', border: '1px solid var(--border)', borderRadius: 4, outline: 'none' }} 
+                            style={{ width: '100%', padding: '12px 10px', fontSize: '1rem', color: '#ffffff', opacity: 1, WebkitTextFillColor: '#ffffff', caretColor: '#ffffff' }} 
                         />
-                        <button className="btn-secondary" onClick={handleSave}>SAVE</button>
+                        <button className="btn-secondary" onClick={handleSave} style={{ width: '100%' }}>SAVE</button>
                     </div>
 
                     {savedRoundsSetups.length > 0 ? (

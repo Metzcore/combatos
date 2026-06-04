@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import { useDB, db } from '../db/index.jsx'
+import { IGNITION_QUOTES } from '../data/ignition.js'
 
 export default function Settings() {
-    const { appName, setAppName, appSubtitle, setAppSubtitle, refreshCounts, refreshPending } = useDB()
+    const { 
+        appName, setAppName, 
+        appSubtitle, setAppSubtitle, 
+        dailyIgnitionEnabled, setDailyIgnitionEnabled,
+        bookmarkedIgnitions, toggleIgnitionBookmark,
+        refreshCounts, refreshPending 
+    } = useDB()
     const [nameInput, setNameInput] = useState(appName || '')
     const [subInput, setSubInput] = useState(appSubtitle || '')
 
@@ -51,7 +58,57 @@ export default function Settings() {
                                 style={{ width: '100%', padding: '10px' }}
                             />
                         </div>
+                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input 
+                                type="checkbox" 
+                                id="ignitionToggle"
+                                checked={dailyIgnitionEnabled}
+                                onChange={e => setDailyIgnitionEnabled(e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="ignitionToggle" style={{ fontSize: '0.9rem', color: 'var(--text)', cursor: 'pointer' }}>
+                                Enable Daily Ignition Splash
+                            </label>
+                        </div>
                         <button className="btn-primary" onClick={handleSave} style={{ marginTop: 8 }}>SAVE CHANGES</button>
+                    </div>
+                </div>
+
+                <div className="card" style={{ marginTop: 20 }}>
+                    <div className="section-header green">🔖 Saved Ignitions</div>
+                    <div style={{ padding: 14 }}>
+                        {bookmarkedIgnitions.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--dim)', fontStyle: 'italic' }}>
+                                No ignitions bookmarked yet.
+                            </p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {bookmarkedIgnitions.map(id => {
+                                    const quote = IGNITION_QUOTES.find(q => q.id === id)
+                                    if (!quote) return null;
+                                    return (
+                                        <div key={id} style={{ 
+                                            background: 'rgba(255,255,255,0.05)', 
+                                            padding: '12px', 
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'flex-start',
+                                            gap: '12px'
+                                        }}>
+                                            <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.4, fontStyle: 'italic' }}>"{quote.text}"</p>
+                                            <button 
+                                                onClick={() => toggleIgnitionBookmark(id)}
+                                                style={{ background: 'none', border: 'none', color: 'var(--alert)', fontSize: '1.2rem', cursor: 'pointer' }}
+                                                title="Remove bookmark"
+                                            >
+                                                ★
+                                            </button>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
