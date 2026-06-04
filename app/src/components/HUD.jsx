@@ -15,7 +15,7 @@
  * remain presentational and receive props as before.
  */
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { useDB } from '../db/index.jsx'
 import MobilityBlock from './MobilityBlock.jsx'
@@ -50,6 +50,7 @@ export default function HUD() {
         gymSessionType, setGymSessionType,
         altRows, setAltRows, addAltRow, updateAltRow, removeAltRow,
         altDuration, setAltDuration,
+        hudScrollY, setHudScrollY,
         resetActiveWorkout
     } = useDB()
 
@@ -140,6 +141,36 @@ export default function HUD() {
         if (!confirm('Clear all inputs for next session? (Day and Phase are kept)')) return
         resetActiveWorkout()
     }, [resetActiveWorkout])
+
+    // ── Scroll Restoration ────────────────────────
+    const scrollRef = useRef(hudScrollY)
+
+    // Track scroll and save on unmount
+    useEffect(() => {
+        let ticking = false
+        const handleScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    scrollRef.current = window.scrollY
+                    ticking = false
+                })
+                ticking = true
+            }
+        }
+        window.addEventListener('scroll', handleScroll, { passive: true })
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            setHudScrollY(scrollRef.current)
+        }
+    }, [setHudScrollY])
+
+    // Restore scroll on mount
+    useLayoutEffect(() => {
+        if (hudScrollY > 0) {
+            window.scrollTo(0, hudScrollY)
+        }
+    }, [hudScrollY])
 
     return (
         <div className="app">

@@ -46,6 +46,7 @@ async function setSetting(key, value) {
 const WORKOUT_DEFAULTS = {
     day: 1,
     hipScore: 3,
+    hudScrollY: 0,
     mobChecked: {},
     strSets: {},
     coreSets: {},
@@ -78,6 +79,7 @@ export function DBProvider({ children }) {
     // ── In-memory active workout state (not persisted to Dexie) ───────────────
     const [day, setDay] = useState(WORKOUT_DEFAULTS.day)
     const [hipScore, setHipScore] = useState(WORKOUT_DEFAULTS.hipScore)
+    const [hudScrollY, setHudScrollY] = useState(WORKOUT_DEFAULTS.hudScrollY)
     const [mobChecked, setMobChecked] = useState(WORKOUT_DEFAULTS.mobChecked)
     const [strSets, setStrSets] = useState(WORKOUT_DEFAULTS.strSets)
     const [coreSets, setCoreSets] = useState(WORKOUT_DEFAULTS.coreSets)
@@ -248,6 +250,7 @@ export function DBProvider({ children }) {
      */
     const resetActiveWorkout = useCallback(() => {
         setHipScore(WORKOUT_DEFAULTS.hipScore)
+        setHudScrollY(WORKOUT_DEFAULTS.hudScrollY)
         setMobChecked(WORKOUT_DEFAULTS.mobChecked)
         setStrSets(WORKOUT_DEFAULTS.strSets)
         setCoreSets(WORKOUT_DEFAULTS.coreSets)
@@ -361,6 +364,7 @@ export function DBProvider({ children }) {
             gymSessionType, setGymSessionType,
             altRows, setAltRows, addAltRow, updateAltRow, removeAltRow,
             altDuration, setAltDuration,
+            hudScrollY, setHudScrollY,
             resetActiveWorkout,
 
             // ── Timer state ──
