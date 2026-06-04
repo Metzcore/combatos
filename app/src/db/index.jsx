@@ -13,6 +13,7 @@
 
 import Dexie from 'dexie'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
+import useRoundsTimer from '../hooks/useRoundsTimer.js'
 
 // ─── Database definition ──────────────────────────────────────────────────────
 const db = new Dexie('FightersOS')
@@ -98,18 +99,29 @@ export function DBProvider({ children }) {
     const [swRunning, setSwRunning] = useState(false)
     const [cdTime, setCdTime] = useState(0)
     const [cdRunning, setCdRunning] = useState(false)
-    const [isFlashing, setIsFlashing] = useState(false)
+    const [alertState, setAlertState] = useState('none')
 
     // Refs for intervals and audio — not React state, no serialisation needed
     const swIntervalRef = useRef(null)
     const swStartRef = useRef(0)       // timestamp anchor for accurate elapsed ms
     const cdIntervalRef = useRef(null)
     const audioRef = useRef(null)
+    const interimAudioRef = useRef(null)
     const wakeLockRef = useRef(null)
 
     // ── Preload bell audio once at provider mount ─────────────────────────────
     useEffect(() => {
         audioRef.current = new Audio('/bell.mp3')
+        interimAudioRef.current = new Audio('/bell-interim.mp3')
+        
+        // Optional: unlock audio on first document click
+        const unlockAudio = () => {
+            if (audioRef.current) { audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {}); }
+            if (interimAudioRef.current) { interimAudioRef.current.play().then(() => interimAudioRef.current.pause()).catch(() => {}); }
+            document.removeEventListener('click', unlockAudio)
+        }
+        document.addEventListener('click', unlockAudio)
+        return () => document.removeEventListener('click', unlockAudio)
     }, [])
 
     // ── WakeLock helpers ──────────────────────────────────────────────────────
@@ -143,9 +155,55 @@ export function DBProvider({ children }) {
         } catch (e) {
             console.warn('Vibration not supported', e)
         }
-        setIsFlashing(true)
-        setTimeout(() => setIsFlashing(false), 2000)
+        setAlertState('main')
+        setTimeout(() => setAlertState(prev => prev === 'main' ? 'none' : prev), 800)
     }, [])
+
+    const triggerInterimAlarm = useCallback(() => {
+        if (interimAudioRef.current) {
+            interimAudioRef.current.currentTime = 0
+            interimAudioRef.current.play().catch(console.error)
+        }
+        try {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                navigator.vibrate([200]) // Short vibrate for interim
+            }
+        } catch (e) {
+            console.warn('Vibration not supported', e)
+        }
+        setAlertState('interim')
+        setTimeout(() => setAlertState(prev => prev === 'interim' ? 'none' : prev), 400)
+    }, [])
+
+    // ── Custom Rounds Timer ───────────────────────────────────────────────────
+    const roundsTimer = useRoundsTimer({
+        triggerMainAlarm: triggerAlarm,
+        triggerInterimAlarm: triggerInterimAlarm,
+        requestWakeLock,
+        releaseWakeLock
+    })
+
+    const [savedRoundsSetups, setSavedRoundsSetups] = useState([])
+
+    const saveRoundsSetup = useCallback(async (setup) => {
+        setSavedRoundsSetups(prev => {
+            if (prev.length >= 10) {
+                alert("Maximum 10 saved setups reached. Please delete one first.");
+                return prev;
+            }
+            const newSetups = [...prev, { ...setup, id: Date.now() }];
+            setSetting('savedRoundsTimers', newSetups).catch(console.error);
+            return newSetups;
+        });
+    }, []);
+
+    const deleteRoundsSetup = useCallback(async (id) => {
+        setSavedRoundsSetups(prev => {
+            const newSetups = prev.filter(s => s.id !== id);
+            setSetting('savedRoundsTimers', newSetups).catch(console.error);
+            return newSetups;
+        });
+    }, []);
 
     // ── Stopwatch interval — runs in provider, survives tab unmount ───────────
     useEffect(() => {
@@ -273,6 +331,11 @@ export function DBProvider({ children }) {
 
             _setAppName(await getSetting('appName'))
             _setAppSubtitle(await getSetting('appSubtitle'))
+            
+            const setups = await getSetting('savedRoundsTimers')
+            if (Array.isArray(setups)) {
+                setSavedRoundsSetups(setups)
+            }
 
             await refreshCounts()
             await refreshPending()
@@ -370,7 +433,11 @@ export function DBProvider({ children }) {
             // ── Timer state ──
             swTime, swRunning, toggleStopwatch, resetStopwatch,
             cdTime, cdRunning, startCountdown, toggleCountdown, cancelCountdown, addCountdownTime,
-            isFlashing
+            alertState,
+            
+            // ── Custom Rounds Timer ──
+            roundsTimer,
+            savedRoundsSetups, saveRoundsSetup, deleteRoundsSetup
         }}>
             {children}
         </DBContext.Provider>
