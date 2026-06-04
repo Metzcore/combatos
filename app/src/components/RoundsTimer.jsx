@@ -15,17 +15,25 @@ export default function RoundsTimer() {
     const [setupName, setSetupName] = useState('')
 
     const updateConfig = (key, val) => {
-        setConfig(prev => ({ ...prev, [key]: Number(val) || 0 }))
+        setConfig(prev => ({ ...prev, [key]: val === '' ? '' : (Number(val) || 0) }))
     }
 
     const updateRoundMin = (val) => {
+        if (val === '') {
+            updateConfig('round', typeof config.round === 'number' ? config.round % 60 : 0);
+            return;
+        }
         const m = Number(val) || 0;
-        const s = config.round % 60;
+        const s = typeof config.round === 'number' ? config.round % 60 : 0;
         updateConfig('round', m * 60 + s);
     }
 
     const updateRoundSec = (val) => {
-        const m = Math.floor(config.round / 60);
+        if (val === '') {
+            updateConfig('round', Math.floor((typeof config.round === 'number' ? config.round : 0) / 60) * 60);
+            return;
+        }
+        const m = Math.floor((typeof config.round === 'number' ? config.round : 0) / 60);
         const s = Number(val) || 0;
         updateConfig('round', m * 60 + s);
     }
@@ -50,27 +58,27 @@ export default function RoundsTimer() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
                         <div>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Prep (sec)</label>
-                            <input type="number" value={config.prep} onChange={e => updateConfig('prep', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.prep} onChange={e => updateConfig('prep', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Rounds</label>
-                            <input type="number" value={config.rounds} onChange={e => updateConfig('rounds', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.rounds} onChange={e => updateConfig('rounds', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Round (min)</label>
-                            <input type="number" value={Math.floor(config.round / 60)} onChange={e => updateRoundMin(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : Math.floor(config.round / 60)} onChange={e => updateRoundMin(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Round (sec)</label>
-                            <input type="number" value={config.round % 60} onChange={e => updateRoundSec(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : config.round % 60} onChange={e => updateRoundSec(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Rest (sec)</label>
-                            <input type="number" value={config.rest} onChange={e => updateConfig('rest', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.rest} onChange={e => updateConfig('rest', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                         <div style={{ gridColumn: '1 / -1' }}>
                             <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Interim Bell Interval (sec, 0 to disable)</label>
-                            <input type="number" value={config.interim} onChange={e => updateConfig('interim', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                            <input type="number" onFocus={e => e.target.select()} value={config.interim} onChange={e => updateConfig('interim', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
                         </div>
                     </div>
 
@@ -89,7 +97,7 @@ export default function RoundsTimer() {
                             placeholder="Setup Name..." 
                             value={setupName}
                             onChange={e => setSetupName(e.target.value)}
-                            style={{ flex: 1, padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} 
+                            style={{ flex: 1, padding: 10, background: 'rgba(0,0,0,0.3)', color: '#ffffff', border: '1px solid var(--border)', borderRadius: 4, outline: 'none' }} 
                         />
                         <button className="btn-secondary" onClick={handleSave}>SAVE</button>
                     </div>
@@ -98,12 +106,12 @@ export default function RoundsTimer() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {savedRoundsSetups.map(setup => (
                                 <div key={setup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px 15px', borderRadius: 8 }}>
-                                    <div onClick={() => loadSetup(setup)} style={{ flex: 1, cursor: 'pointer' }}>
+                                    <button onClick={() => loadSetup(setup)} style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, margin: 0 }}>
                                         <strong style={{ color: 'var(--blue)' }}>{setup.name}</strong>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--dim)', marginTop: 4 }}>
                                             {setup.rounds}x {Math.floor(setup.round / 60)}:{String(setup.round % 60).padStart(2, '0')} (Rest: {setup.rest}s)
                                         </div>
-                                    </div>
+                                    </button>
                                     <button className="btn-ghost" onClick={() => deleteRoundsSetup(setup.id)} style={{ padding: '5px 10px', color: 'var(--alert)' }}>
                                         ✕
                                     </button>

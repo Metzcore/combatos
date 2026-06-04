@@ -270,7 +270,10 @@ export function DBProvider({ children }) {
 
     const addCountdownTime = useCallback((seconds) => {
         setCdTime(prev => prev + seconds)
-    }, [])
+        if (cdTime === 0) {
+            setCdRunning(true)
+        }
+    }, [cdTime])
 
     // ── Active workout actions ────────────────────────────────────────────────
 
