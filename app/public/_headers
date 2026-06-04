@@ -1,0 +1,13 @@
+# Cloudflare Pages custom headers
+
+# Ensure the web app manifest is served with the correct MIME type
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+
+# Ensure service worker is never cached by the browser
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Ensure registerSW script is never cached
+/registerSW.js
+  Cache-Control: no-cache, no-store, must-revalidate

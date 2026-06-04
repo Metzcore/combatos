@@ -12,27 +12,35 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'icons/*.png'],
+            includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
             manifest: {
                 name: "Fighter's OS",
                 short_name: 'FighterOS',
                 description: 'Combat Performance Training System',
-                theme_color: '#e63946',
+                theme_color: '#0a0a14',
                 background_color: '#0a0a14',
                 display: 'standalone',
                 orientation: 'portrait',
                 start_url: '/',
+                scope: '/',
                 icons: [
                     {
-                        src: 'icons/icon-192.png',
+                        src: 'icon-192.png',
                         sizes: '192x192',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     },
                     {
-                        src: 'icons/icon-512.png',
+                        src: 'icon-512.png',
                         sizes: '512x512',
                         type: 'image/png',
-                        purpose: 'any maskable'
+                        purpose: 'any'
+                    },
+                    {
+                        src: 'icon-512-maskable.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
                     }
                 ]
             },
