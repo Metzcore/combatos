@@ -127,8 +127,22 @@ export default function RoundsTimer() {
     }
 
     // Active View
-    const phaseColor = phase === 'work' ? 'var(--blue)' : phase === 'rest' ? 'var(--warn)' : phase === 'prep' ? 'var(--dim)' : 'var(--green)';
-    const phaseLabel = phase === 'work' ? 'WORK' : phase === 'rest' ? 'REST' : phase === 'prep' ? 'PREPARE' : 'DONE';
+    const phaseColor =
+        phase === 'work'  ? 'var(--alert)' :    // Red-orange = push hard
+        phase === 'rest'  ? 'var(--primary)' :  // Green = recover
+        phase === 'prep'  ? 'var(--dim)' :      // Grey = get ready
+        'var(--warn)';                           // Amber = done
+
+    const phaseBg =
+        phase === 'work'  ? 'rgba(255,17,0,0.08)' :
+        phase === 'rest'  ? 'rgba(0,255,102,0.08)' :
+        phase === 'prep'  ? 'rgba(255,255,255,0.03)' :
+        'rgba(232,160,32,0.08)';
+
+    const phaseLabel =
+        phase === 'work'  ? 'WORK' :
+        phase === 'rest'  ? 'REST' :
+        phase === 'prep'  ? 'PREPARE' : 'DONE';
 
     const roundMin = Math.floor(config.round / 60);
     const roundSec = (config.round % 60).toString().padStart(2, '0');
@@ -136,31 +150,68 @@ export default function RoundsTimer() {
 
     return (
         <main className="content">
-            <div className={`card ${alertState === 'main' ? 'alert-main' : alertState === 'interim' ? 'alert-interim' : ''}`} style={{ padding: 20, textAlign: 'center', minHeight: '50vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--dim)', marginBottom: 20, padding: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
-                    <div>Rounds: {config.rounds}</div>
-                    <div>Work: {roundMin}:{roundSec}</div>
-                    <div>Rest: {config.rest}s</div>
-                    <div>Prep: {config.prep}s</div>
-                    <div>Interim: {config.interim > 0 ? `${config.interim}s` : 'Off'}</div>
+            <div
+                className={`card ${alertState === 'main' ? 'alert-main' : alertState === 'interim' ? 'alert-interim' : ''}`}
+                style={{
+                    padding: 20,
+                    textAlign: 'center',
+                    minHeight: '50vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    background: phaseBg,
+                    border: `1px solid ${phaseColor}`,
+                    transition: 'background 0.5s ease, border-color 0.5s ease'
+                }}
+            >
+                {/* Config summary bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 20, padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
+                    <div>{config.rounds} rounds</div>
+                    <div>Work {roundMin}:{roundSec}</div>
+                    <div>Rest {config.rest}s</div>
+                    {config.interim > 0 && <div>Bell /{config.interim}s</div>}
                 </div>
 
-                <div className="section-header" style={{ margin: '-20px -20px 20px -20px', color: phaseColor, marginTop: 0 }}>
+                {/* Phase Banner */}
+                <div style={{
+                    fontSize: '1.8rem',
+                    fontWeight: '900',
+                    letterSpacing: '0.15em',
+                    color: phaseColor,
+                    textShadow: `0 0 20px ${phaseColor}`,
+                    marginBottom: 8,
+                    transition: 'color 0.4s ease'
+                }}>
                     {phaseLabel}
                 </div>
-                
-                <div style={{ fontSize: '1.2rem', color: 'var(--dim)', marginBottom: 10, fontWeight: 'bold' }}>
+
+                {/* Round counter */}
+                <div style={{ fontSize: '1rem', color: 'var(--dim)', marginBottom: 16, fontWeight: 'bold', letterSpacing: '0.1em' }}>
                     ROUND {currentRound} OF {config.rounds}
                 </div>
 
-                <div style={{ fontSize: '5rem', fontFamily: 'Courier New', fontWeight: 800, color: phaseColor, marginBottom: 10, lineHeight: 1 }}>
+                {/* Big clock */}
+                <div style={{
+                    fontSize: '5.5rem',
+                    fontFamily: 'Courier New',
+                    fontWeight: 800,
+                    color: phaseColor,
+                    marginBottom: 12,
+                    lineHeight: 1,
+                    textShadow: `0 0 30px ${phaseColor}66`,
+                    transition: 'color 0.4s ease'
+                }}>
                     {formatTime(timeRemaining)}
                 </div>
 
-                <div style={{ fontSize: '0.9rem', color: 'var(--dim)', height: 20 }}>
-                    {phase === 'work' && config.interim > 0 && nextInterimTarget > 0 ? `Next bell in ${timeToNextInterim}s` : ''}
+                {/* Interim bell countdown */}
+                <div style={{ fontSize: '0.85rem', color: 'var(--warn)', height: 22, fontWeight: '600', letterSpacing: '0.05em' }}>
+                    {phase === 'work' && config.interim > 0 && nextInterimTarget > 0
+                        ? `⚡ BELL IN ${timeToNextInterim}s`
+                        : ''}
                 </div>
 
+                {/* Action buttons */}
                 <div className="actions-bar" style={{ marginTop: 30 }}>
                     {status === 'done' ? (
                         <button className="btn-primary" onClick={reset} style={{ width: '100%', padding: 15 }}>
@@ -168,9 +219,16 @@ export default function RoundsTimer() {
                         </button>
                     ) : (
                         <>
-                            <button 
-                                className="btn-primary" 
-                                style={{ background: `rgba(0, 238, 255, 0.1)`, color: 'var(--blue)', borderColor: 'var(--blue)', flex: 1, padding: 15 }} 
+                            <button
+                                className="btn-primary"
+                                style={{
+                                    background: `${phaseColor}1A`,
+                                    color: phaseColor,
+                                    borderColor: phaseColor,
+                                    flex: 1,
+                                    padding: 15,
+                                    transition: 'background 0.4s ease, color 0.4s ease, border-color 0.4s ease'
+                                }}
                                 onClick={status === 'running' ? pause : start}
                             >
                                 {status === 'running' ? 'PAUSE' : 'RESUME'}

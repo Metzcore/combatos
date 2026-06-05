@@ -8,7 +8,7 @@ export default function Settings() {
         appSubtitle, setAppSubtitle, 
         dailyIgnitionEnabled, setDailyIgnitionEnabled,
         bookmarkedIgnitions, toggleIgnitionBookmark,
-        refreshCounts, refreshPending 
+        refreshCounts, refreshPending, deleteLastSession 
     } = useDB()
     const [nameInput, setNameInput] = useState(appName || '')
     const [subInput, setSubInput] = useState(appSubtitle || '')
@@ -17,6 +17,22 @@ export default function Settings() {
         setAppName(nameInput)
         setAppSubtitle(subInput)
         alert('Settings saved!')
+    }
+
+    const handleRemoveLastDay = async () => {
+        const lastSession = await db.sessions.orderBy('id').reverse().limit(1).first()
+        if (!lastSession) {
+            alert('No recent session found to delete.')
+            return
+        }
+        
+        const confirmed = confirm(`Are you sure you want to remove Day ${lastSession.day} Phase ${lastSession.phase}?\n\nThis will remove it locally and mark it CANCELLED in Google Sheets.`)
+        if (confirmed) {
+            const success = await deleteLastSession()
+            if (success) {
+                alert(`Day ${lastSession.day} removed successfully.`)
+            }
+        }
     }
 
     const handleWipe = async () => {
@@ -116,11 +132,10 @@ export default function Settings() {
                     <div className="section-header red">⚠️ Danger Zone</div>
                     <div style={{ padding: 14 }}>
                         <p style={{ fontSize: '0.85rem', color: 'var(--dim)', marginBottom: 16, lineHeight: 1.4 }}>
-                            If you are starting a new fight camp and want a clean slate, you can wipe the local session history shown in the Calendar tab.
-                            <strong> Your actual Google Sheet log will not be affected.</strong>
+                            If you made a mistake on your most recent log, you can remove it here. It will be removed locally and marked as cancelled in the Google Sheet.
                         </p>
-                        <button className="btn-secondary" onClick={handleWipe} style={{ color: 'var(--alert)', borderColor: 'rgba(255,50,50,0.3)', background: 'rgba(255,0,0,0.05)' }}>
-                            WIPE LOCAL HISTORY
+                        <button className="btn-secondary" onClick={handleRemoveLastDay} style={{ color: 'var(--alert)', borderColor: 'rgba(255,50,50,0.3)', background: 'rgba(255,0,0,0.05)', width: '100%' }}>
+                            Remove Last Logged Day
                         </button>
                     </div>
                 </div>

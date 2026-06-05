@@ -15,9 +15,9 @@
  * remain presentational and receive props as before.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePlaybook } from '../hooks/usePlaybook.js'
-import { useDB } from '../db/index.jsx'
+import { db, useDB } from '../db/index.jsx'
 import MobilityBlock from './MobilityBlock.jsx'
 import StrengthBlock from './StrengthBlock.jsx'
 import BagBlock from './BagBlock.jsx'
@@ -61,6 +61,26 @@ export default function HUD() {
     const gymSessionsThisPhase = sessionCount[phase] || 0
     const phaseUnlocked = gymSessionsThisPhase >= PHASE_UNLOCK_THRESHOLD && phase < 3
 
+    // ── Progress Summary ──────────────────────────
+    const [progressSummary, setProgressSummary] = useState(null)
+    
+    useEffect(() => {
+        async function loadProgress() {
+            try {
+                const lastSession = await db.sessions.orderBy('id').reverse().limit(1).first()
+                if (lastSession) {
+                    const nextDay = (lastSession.day % 6) + 1
+                    setProgressSummary(`NEXT: DAY ${nextDay}`)
+                } else {
+                    setProgressSummary("START: DAY 1")
+                }
+            } catch (err) {
+                console.error(err)
+            }
+        }
+        loadProgress()
+    }, [sessionCount])
+
     // ── Completeness calculation ─────────────────
     const completeness = useCallback(() => {
         if (!workout || workout.isFightGymDay) return 0
@@ -101,12 +121,14 @@ export default function HUD() {
             altString = altRows.map(r => `${r.name || 'Movement'} — ${r.v1 || ''} | ${r.v2 || ''} | ${r.v3 || ''}`).join('\n')
         }
 
+        const parseNum = (val) => (val === '' || val == null || isNaN(val)) ? '' : Number(val)
+
         const strength = (workout.strSlots || []).map((s, idx) => ({
             ex: idx + 1,
             key: s.key,
             sets: [1, 2, 3, 4].map(setNum => {
                 const entry = strSets[`ex${idx + 1}-s${setNum}`] || {}
-                return { kg: Number(entry.kg) || '', reps: Number(entry.reps) || '', papReps: Number(entry.papReps) || '' }
+                return { kg: parseNum(entry.kg), reps: parseNum(entry.reps), papReps: parseNum(entry.papReps) }
             })
         }))
 
@@ -119,13 +141,13 @@ export default function HUD() {
             strength,
             core: [1, 2, 3].map(rowNum => {
                 const entry = coreSets[rowNum] || {}
-                return { ex: entry.ex || '', sets: Number(entry.sets) || '', reps: Number(entry.reps) || '' }
+                return { ex: entry.ex || '', sets: parseNum(entry.sets), reps: parseNum(entry.reps) }
             }).filter(c => c.ex !== ''),
             altSessionDetails: altString,
-            sessionDuration: Number(altDuration) || 0,
+            sessionDuration: parseNum(altDuration),
             mobDone: Object.values(mobChecked).filter(Boolean).length,
             clrDone: Object.values(clrChecked).filter(Boolean).length,
-            bagRounds: Number(bagRounds) || 0,
+            bagRounds: parseNum(bagRounds),
             bagCourse,
             bagModules,
             bagWorkouts,
@@ -192,6 +214,7 @@ export default function HUD() {
                 )}
 
                 {/* ── Selector row ───────────────────── */}
+
                 <div className="selector-row">
                     <div className="selector-group">
                         <label>Day</label>
@@ -218,6 +241,26 @@ export default function HUD() {
                         </select>
                     </div>
                 </div>
+
+                {/* ── Next Day indicator ──────────────── */}
+                {progressSummary && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(255,165,0,0.12) 0%, rgba(255,100,0,0.08) 100%)',
+                        border: '1px solid rgba(255,165,0,0.25)',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        marginTop: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                    }}>
+                        <span style={{ fontSize: '1.2rem' }}>📅</span>
+                        <div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,165,0,0.7)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Next Up</div>
+                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#FFA500', letterSpacing: '1px' }}>{progressSummary}</div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Hip score status ────────────────── */}
                 {hipScore <= 2 && (

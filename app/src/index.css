@@ -11,11 +11,11 @@
   --divider: #1b331b;
 
   --primary: #00ff66;
-  --accent: #00eeff;
-  /* Holographic Cyan */
+  --accent: #E8A020;
+  /* Tactical Amber — Mil-Spec HUD */
   --alert: #ff1100;
   --warn: #ffaa00;
-  --blue: #00eeff;
+  --blue: #E8A020;
 
   --text: #e0ffe0;
   --dim: #5c8a5c;
@@ -156,7 +156,7 @@ input[type="number"]:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(0, 238, 255, 0.2);
+  box-shadow: 0 0 8px rgba(232, 160, 32, 0.2);
 }
 
 select option {

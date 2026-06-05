@@ -29,7 +29,7 @@ export { db }
 // ─── Default settings ─────────────────────────────────────────────────────────
 const DEFAULTS = {
     currentPhase: 1,
-    webhookUrl: 'https://script.google.com/macros/s/AKfycbzXC4ljnffgx1wQd_v7Pstvr8tZpsq1lDS_2kHzb0bb8cdvIrIC6FSUIS5Np1YqWvxP/exec',
+    webhookUrl: 'https://script.google.com/macros/s/AKfycbx420QcMFL2zsMYJBPSEp-ZQYHovr-V9lvQvPXcZnibv_iyOmW44IqOCwSAP89It0eG/exec',
     appName: "Fighter's OS",
     appSubtitle: "Combat Performance",
     dailyIgnitionEnabled: true
@@ -116,12 +116,14 @@ export function DBProvider({ children }) {
     // ── Preload bell audio once at provider mount ─────────────────────────────
     useEffect(() => {
         audioRef.current = new Audio('/bell.mp3')
+        audioRef.current.volume = 1.0
         interimAudioRef.current = new Audio('/bell-interim.mp3')
-        
+        interimAudioRef.current.volume = 1.0
+
         // Optional: unlock audio on first document click
         const unlockAudio = () => {
-            if (audioRef.current) { audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {}); }
-            if (interimAudioRef.current) { interimAudioRef.current.play().then(() => interimAudioRef.current.pause()).catch(() => {}); }
+            if (audioRef.current) { audioRef.current.play().then(() => audioRef.current.pause()).catch(() => { }); }
+            if (interimAudioRef.current) { interimAudioRef.current.play().then(() => interimAudioRef.current.pause()).catch(() => { }); }
             document.removeEventListener('click', unlockAudio)
         }
         document.addEventListener('click', unlockAudio)
@@ -339,10 +341,10 @@ export function DBProvider({ children }) {
             _setAppName(await getSetting('appName'))
             _setAppSubtitle(await getSetting('appSubtitle'))
             _setDailyIgnitionEnabled(await getSetting('dailyIgnitionEnabled'))
-            
+
             const bookmarks = await getSetting('bookmarkedIgnitions')
             if (Array.isArray(bookmarks)) setBookmarkedIgnitions(bookmarks)
-            
+
             const setups = await getSetting('savedRoundsTimers')
             if (Array.isArray(setups)) {
                 setSavedRoundsSetups(setups)
@@ -402,8 +404,18 @@ export function DBProvider({ children }) {
     }, []);
 
     const logSession = useCallback(async (sessionData) => {
+        // Generate UUID for remote sheet soft-deletes
+        const sessionId = typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+        sessionData.sessionId = sessionId
         const id = await db.sessions.add(sessionData)
-        await db.syncQueue.add({ sessionId: id, attempts: 0, payload: sessionData })
+
+        // Wrap payload in action envelope
+        const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
+        await db.syncQueue.add({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+
         await refreshCounts()
         await refreshPending()
         // Reset in-progress workout state after successful log
@@ -415,6 +427,39 @@ export function DBProvider({ children }) {
     const resetSession = useCallback(() => {
         resetActiveWorkout()
     }, [resetActiveWorkout])
+
+    const deleteLastSession = useCallback(async () => {
+        const lastSession = await db.sessions.orderBy('id').reverse().limit(1).first()
+        if (!lastSession) {
+            alert('No recent session found to delete.')
+            return false
+        }
+
+        try {
+            // Delete the local session record
+            await db.sessions.delete(lastSession.id)
+
+            // Queue the delete action to ensure it reaches the webhook reliably.
+            // If the original log is still in the queue, it will be processed first,
+            // followed immediately by this delete action, preventing race conditions.
+            if (lastSession.sessionId) {
+                const payloadEnvelope = { action: 'delete', sessionId: lastSession.sessionId }
+                await db.syncQueue.add({ sessionId: lastSession.id, attempts: 0, payload: payloadEnvelope })
+            }
+
+            await refreshCounts()
+            await refreshPending()
+
+            // Trigger sync queue to push the delete
+            trySyncQueue(refreshPending)
+
+            return true
+        } catch (err) {
+            console.error('Failed to delete session:', err)
+            alert('Failed to delete session.')
+            return false
+        }
+    }, [refreshCounts, refreshPending])
 
     if (!ready) {
         return (
@@ -436,7 +481,7 @@ export function DBProvider({ children }) {
             dailyIgnitionEnabled, setDailyIgnitionEnabled,
             bookmarkedIgnitions, toggleIgnitionBookmark,
             ignitionHasShown, setIgnitionHasShown,
-            sessionCount, pendingSync, logSession, resetSession,
+            sessionCount, pendingSync, logSession, resetSession, deleteLastSession,
             refreshCounts, refreshPending,
 
             // ── Active workout state ──
@@ -461,7 +506,7 @@ export function DBProvider({ children }) {
             swTime, swRunning, toggleStopwatch, resetStopwatch,
             cdTime, cdRunning, startCountdown, toggleCountdown, cancelCountdown, addCountdownTime,
             alertState,
-            
+
             // ── Custom Rounds Timer ──
             roundsTimer,
             savedRoundsSetups, saveRoundsSetup, deleteRoundsSetup
@@ -480,34 +525,41 @@ export function useDB() {
 // ─── Sync to Google Sheets webhook ────────────────────────────────────────────
 
 const MAX_ATTEMPTS = 5
+let _syncInFlight = false  // prevent concurrent sync runs
 
 export async function trySyncQueue(onComplete) {
+    if (_syncInFlight) return  // already running — bail out
     if (!navigator.onLine) return
     const webhookUrl = await getSetting('webhookUrl')
     if (!webhookUrl) return  // webhook not configured yet
 
-    const pending = await db.syncQueue.toArray()
-    for (const item of pending) {
-        if (item.attempts >= MAX_ATTEMPTS) continue
-        try {
-            const res = await fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(item.payload)
-            })
-            // no-cors returns an opaque response (type: 'opaque', res.ok is false, status is 0)
-            // If we don't hit the catch block, the request was successfully sent.
-            if (res.type === 'opaque' || res.ok) {
-                await db.syncQueue.delete(item.id)
-            } else {
+    _syncInFlight = true
+    try {
+        const pending = await db.syncQueue.toArray()
+        for (const item of pending) {
+            if (item.attempts >= MAX_ATTEMPTS) continue
+            try {
+                const res = await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(item.payload)
+                })
+                // no-cors returns an opaque response (type: 'opaque', res.ok is false, status is 0)
+                // If we don't hit the catch block, the request was successfully sent.
+                if (res.type === 'opaque' || res.ok) {
+                    await db.syncQueue.delete(item.id)
+                } else {
+                    await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
+                }
+            } catch {
                 await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
             }
-        } catch {
-            await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
         }
+    } finally {
+        _syncInFlight = false
+        if (onComplete) onComplete()
     }
-    if (onComplete) onComplete()
 }
 
 // Auto-sync on tab focus and online event
