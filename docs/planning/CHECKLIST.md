@@ -1,5 +1,13 @@
 # APEX PROTOCOL / COMBATOS CHECKLIST
 
+> **STATUS NOTE (2026-07-10):** This file is a **historical record**, superseded for active
+> sequencing by `docs/planning/roadmap/ROADMAP.md`. Project A below is complete and shipped
+> (including two later backports that landed in commit `3caf4ca`, after this file was written).
+> **Project B (Apex Protocol) is a SEPARATE, not-yet-started project**: it will be built by
+> duplicating a stable copy of this repo into its own repo with its own deployment — no work in
+> this repo modifies the Apex/Emmanuel app, and nothing from Apex may be imported here (see
+> `AGENTS.md` rule 3). Project B kickoff is gated in ROADMAP.md Phase 5.
+
 ## Project A — current app hardening
 - [x] A1. State management bug fix completed.
 - [x] Manual localhost test passed for HUD/tab-switch persistence.

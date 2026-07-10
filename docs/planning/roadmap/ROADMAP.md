@@ -8,20 +8,20 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 ---
 
 ## Phase 0 — Truth-up (no code; do first)
-- [ ] 0.1 **HUMAN:** Read `OPEN-DECISIONS.md` and rule on D1 (delete semantics) and D2 (next-day semantics). Only W16/W17 block on this — everything else can proceed.
-- [ ] 0.2 **HUMAN:** Open the Google Sheet for the first time. Sanity-check the FightLog tab against `docs/reference/fight-log-schema.md`: are months of rows actually there, well-formed, with sessionIds in the last column? 15 minutes. This de-risks everything downstream (stats view, delete semantics, Supabase talk) and is the cheapest possible first payment on the feedback-loop gap.
-- [ ] 0.3 Update `STATUS.md` / `docs/handoff.md` / `docs/planning/CHECKLIST.md` to record that both backports shipped in `3caf4ca` (the goodnight skill at the end of THIS session can cover STATUS/handoff; CHECKLIST needs a one-line addendum).
+- [x] 0.1 **HUMAN:** Read `OPEN-DECISIONS.md` and rule on D1 (delete semantics) and D2 (next-day semantics). _Done 2026-07-10 — all seven decisions ruled; see the RULED lines in OPEN-DECISIONS.md._
+- [x] 0.2 **HUMAN:** Open the Google Sheet for the first time. Sanity-check the FightLog tab against `docs/reference/fight-log-schema.md`. _Done 2026-07-10 — developer reviewed the Sheet; data confirmed present and well-formed._
+- [~] 0.3 Update `STATUS.md` / `docs/handoff.md` / `docs/planning/CHECKLIST.md` to record that both backports shipped in `3caf4ca`. _CHECKLIST addendum done in this commit; STATUS/handoff handled by the goodnight skill at session close._
 
-## Phase 1 — Repo hygiene (small, safe, high value)
-- [ ] W1 · **FAST** · Git hygiene: commit the pending `.gitignore` fix, untrack `app/build_error.log` (+ ignore `*.log`), remove unused `papaparse` dependency. → `prompts/W01-git-hygiene.md`
-- [ ] W2 · **FAST** · Legacy consolidation: `git mv` the 4 legacy spreadsheet-system files into `archive/legacy-spreadsheet-system/`; delete duplicate `.gs` files in `scripts/`; delete redundant `app/src/data/playbook.csv`. → `prompts/W02-legacy-archive.md`
-- [ ] W3 · **FAST** · Stale-comment truth-up: fix `webhook.gs` header (wrong delete description, dead `src/sync/syncQueue.js` pointer) and `usePlaybook.js` header ("parses CSV" — it doesn't). Comments only, zero logic. → `prompts/W03-stale-comments.md`
-- [ ] W4 · **IMPL**, then **REVIEW** · Create `README.md`, `AGENTS.md`, `ARCHITECTURE.md` for real (recover drafts if the developer can find them; otherwise write from the live repo). → `prompts/W04-core-docs.md`
-- [ ] W5 · **FAST** · Place the GitHub starter kit: `.github/` issue templates, PR template, CI build-check workflow (`npm run build` on push/PR). → `prompts/W05-github-kit.md`
-- [ ] W6 · **IMPL** (read-only) · Directory-reorg diagnostic: the drafted-but-never-run pass; produces a report + proposed moves, feeds decision D5 (should the planning layer be tracked?). No changes without approval. → `prompts/W06-reorg-diagnostic.md`
+## Phase 1 — Repo hygiene (small, safe, high value) — ✅ COMPLETE 2026-07-10 (PRs #1–#4)
+- [x] W1 · **FAST** · Git hygiene: `.gitignore` fix, untrack `app/build_error.log`, remove unused `papaparse`. _Shipped in PR #2 (Haiku batch)._
+- [x] W2 · **FAST** · Legacy consolidation into `archive/legacy-spreadsheet-system/`; duplicate `.gs` and redundant `playbook.csv` removed. _Shipped in PR #2 (Haiku batch)._
+- [x] W3 · **FAST** · Stale-comment truth-up in `webhook.gs` and `usePlaybook.js` headers. _Shipped in PR #2 (Haiku batch)._
+- [x] W4 · **IMPL**, then **REVIEW** · `README.md`, `AGENTS.md`, `ARCHITECTURE.md` created from the live repo. _Shipped in PR #4 (Sonnet; reviewed by Fable)._
+- [x] W5 · **FAST** · GitHub starter kit: `.github/` templates + CI build-check workflow. _Shipped in PR #1 (Haiku)._
+- [x] W6 · **IMPL** (read-only) · Directory-reorg diagnostic → report at `W06-REORG-REPORT.md`; executed as the D5 reorg in PR #3 (Sonnet).
 
 ## Phase 2 — Structural debt (ordered so tests protect the refactor)
-- [ ] W7 · **IMPL** · Test bootstrap: Vitest + fake-indexeddb; first unit tests around pure logic (next-day calc, playbook key lookup / hip-routing, syncQueue enqueue behavior). Small, permanent safety net — deliberately BEFORE the sync refactor. → `prompts/W07-test-bootstrap.md`
+- [~] W7 · **IMPL** · Test bootstrap: Vitest + fake-indexeddb; first unit tests around pure logic (next-day calc, playbook key lookup / hip-routing, syncQueue enqueue behavior). Small, permanent safety net — deliberately BEFORE the sync refactor. → `prompts/W07-test-bootstrap.md` _In progress 2026-07-10 (Sonnet, branch `chore/test-bootstrap`)._
 - [ ] W8 · **IMPL**, then **REVIEW** · Finish the half-done sync refactor: extract queue/sync logic from `db/index.jsx` into `app/src/sync/syncQueue.js` with zero payload/behavior change. Diagnostic-first. → `prompts/W08-sync-refactor.md`
 
 ## Phase 3 — Close the feedback loop (biggest identified value gap)
@@ -34,7 +34,7 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md`
 - [ ] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
 - [ ] W15 · **IMPL** · Timers page: drag-and-drop reordering of stopwatch/rest-timer blocks, order persisted in settings. → `prompts/W15-timer-reorder.md`
-- [ ] W16 · **IMPL** · ⛔ gated on **D2** · Next-day semantics rework (only if D2 ≠ "current behavior is fine"). → `prompts/W16-next-day-semantics.md`
+- [ ] W16 · **IMPL**, then **REVIEW** · Day-7 cycle extension (re-scoped per D2 ruling): keep sequential day counting, extend the cycle 6→7 with Day 7 as an optional/custom gym day (cardio/mobility/free-form notes — `FightGymDay.jsx` already supports these session types). Diagnostic-first. → `prompts/W16-next-day-semantics.md` (rewritten 2026-07-10)
 - [ ] W17 · **IMPL**, then **REVIEW** · ⛔ gated on **D1** · Delete semantics rework (only if D1 = soft delete): webhook.gs v3 with status column + local tombstone. The one item where the "do not touch webhooks" guardrail is deliberately lifted. → `prompts/W17-soft-delete.md`
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
