@@ -14,6 +14,11 @@
 import Dexie from 'dexie'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import useRoundsTimer from '../hooks/useRoundsTimer.js'
+import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
+
+// Re-export for backward compatibility (syncQueue.test.js and any external
+// consumer importing trySyncQueue from db/index.jsx keep working unchanged).
+export { trySyncQueue }
 
 // ─── Database definition ──────────────────────────────────────────────────────
 const db = new Dexie('FightersOS')
@@ -35,7 +40,7 @@ const DEFAULTS = {
     dailyIgnitionEnabled: true
 }
 
-async function getSetting(key) {
+export async function getSetting(key) {
     const row = await db.settings.get(key)
     return row ? row.value : DEFAULTS[key]
 }
@@ -414,7 +419,7 @@ export function DBProvider({ children }) {
 
         // Wrap payload in action envelope
         const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
-        await db.syncQueue.add({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+        await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
 
         await refreshCounts()
         await refreshPending()
@@ -444,7 +449,7 @@ export function DBProvider({ children }) {
             // followed immediately by this delete action, preventing race conditions.
             if (lastSession.sessionId) {
                 const payloadEnvelope = { action: 'delete', sessionId: lastSession.sessionId }
-                await db.syncQueue.add({ sessionId: lastSession.id, attempts: 0, payload: payloadEnvelope })
+                await enqueueSync({ sessionId: lastSession.id, attempts: 0, payload: payloadEnvelope })
             }
 
             await refreshCounts()
@@ -523,47 +528,7 @@ export function useDB() {
 }
 
 // ─── Sync to Google Sheets webhook ────────────────────────────────────────────
-
-const MAX_ATTEMPTS = 5
-let _syncInFlight = false  // prevent concurrent sync runs
-
-export async function trySyncQueue(onComplete) {
-    if (_syncInFlight) return  // already running — bail out
-    if (!navigator.onLine) return
-    const webhookUrl = await getSetting('webhookUrl')
-    if (!webhookUrl) return  // webhook not configured yet
-
-    _syncInFlight = true
-    try {
-        const pending = await db.syncQueue.toArray()
-        for (const item of pending) {
-            if (item.attempts >= MAX_ATTEMPTS) continue
-            try {
-                const res = await fetch(webhookUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(item.payload)
-                })
-                // no-cors returns an opaque response (type: 'opaque', res.ok is false, status is 0)
-                // If we don't hit the catch block, the request was successfully sent.
-                if (res.type === 'opaque' || res.ok) {
-                    await db.syncQueue.delete(item.id)
-                } else {
-                    await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
-                }
-            } catch {
-                await db.syncQueue.update(item.id, { attempts: item.attempts + 1 })
-            }
-        }
-    } finally {
-        _syncInFlight = false
-        if (onComplete) onComplete()
-    }
-}
-
-// Auto-sync on tab focus and online event
-if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => trySyncQueue())
-    window.addEventListener('focus', () => trySyncQueue())
-}
+// Implementation lives in ../sync/syncQueue.js (extracted in W8, no behavior
+// change). Auto-sync listener registration happens here at module-eval time,
+// matching the pre-refactor timing exactly.
+initSyncListeners()
