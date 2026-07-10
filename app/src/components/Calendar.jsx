@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/index.jsx'
 import { getDailyFocus } from '../hooks/usePlaybook.js'
+import WeeklyStats from './WeeklyStats.jsx'
 
 export default function Calendar() {
     const [sessions, setSessions] = useState([])
     const [loading, setLoading] = useState(true)
+    const [view, setView] = useState('log') // 'log' | 'stats'
 
     useEffect(() => {
         const loadSessions = async () => {
@@ -19,14 +21,33 @@ export default function Calendar() {
 
     return (
         <div className="app">
-            <header className="page-header">
+            <header className="page-header" style={{ paddingBottom: 10 }}>
                 <h1>📅 Fight Log</h1>
                 <div className="subtitle">Session History</div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
+                    <button
+                        className={view === 'log' ? 'btn-primary' : 'btn-secondary'}
+                        style={{ flex: 1, padding: '10px 0', fontSize: '0.9rem' }}
+                        onClick={() => setView('log')}
+                    >
+                        Log
+                    </button>
+                    <button
+                        className={view === 'stats' ? 'btn-primary' : 'btn-secondary'}
+                        style={{ flex: 1, padding: '10px 0', fontSize: '0.9rem' }}
+                        onClick={() => setView('stats')}
+                    >
+                        Stats
+                    </button>
+                </div>
             </header>
 
             <main className="content" style={{ paddingBottom: 100 }}>
                 {loading ? (
                     <div className="text-center text-dim mt-8">Loading history...</div>
+                ) : view === 'stats' ? (
+                    <WeeklyStats sessions={sessions} />
                 ) : sessions.length === 0 ? (
                     <div className="text-center text-dim mt-8">
                         <div style={{ fontSize: '2rem', marginBottom: 10 }}>📭</div>
