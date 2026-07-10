@@ -15,7 +15,11 @@ import { db, getSetting } from '../db/index.jsx'
 
 const MAX_ATTEMPTS = 5
 let _syncInFlight = false  // prevent concurrent sync runs
-let _listenersInitialized = false  // guard against accidental double-registration
+// `var` (not `let`): initSyncListeners() runs at db/index.jsx module-eval time,
+// which can execute mid-cycle before this module's top level finishes if a
+// future module imports sync/syncQueue.js first — var hoists to undefined
+// (falsy, correct) instead of throwing a TDZ ReferenceError.
+var _listenersInitialized = false  // guard against accidental double-registration
 
 /**
  * enqueueSync — add a pending webhook envelope to the syncQueue table.
