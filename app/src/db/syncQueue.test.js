@@ -20,10 +20,11 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { db, trySyncQueue } from './index.jsx'
 
-// trySyncQueue bails immediately unless navigator.onLine is true, and Node's
-// built-in `navigator` global has no `onLine` property (always undefined).
-// Stub it here, once, for this file — no production code is touched.
-Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
+// trySyncQueue bails immediately unless navigator.onLine is true. Node only
+// gained a `navigator` global in v21 (and it has no `onLine` even then), so
+// stub the whole global via vitest — works on any Node version, and no
+// production code is touched.
+vi.stubGlobal('navigator', { onLine: true })
 
 beforeEach(async () => {
     await db.sessions.clear()
