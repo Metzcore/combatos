@@ -1,6 +1,13 @@
 # W19 — Navigation IA Redesign Proposal (ARCH deliverable, decision D3)
 _Written by the Fable 5 architect, 2026-07-10. This is a DESIGN DOC — no code. It resolves decision D3 (nav capacity / layered-nav paradigm) and decides where D4's notepad lives. It requires the developer's sign-off; the "Your decisions" section at the end lists exactly what to approve or overrule._
 
+> **✅ SIGNED OFF 2026-07-10 (evening session) — see §6 for the rulings.** Two changes against
+> the text below, driven by studying the live TRW **native Android app** (10 screenshots +
+> findings at `docs/reference/therealworld-app-references/android-app-observations.md`):
+> **slot 4 leads with Checklist, not Notes** (hub name: CHECKLIST; Notes deferred), and the
+> checklist's primary action is a **pinned quick-add input, not a FAB**. W20/W21 prompts are
+> written accordingly; W21 below reads "Notes hub v1" but shipped scope is **Checklist hub v1**.
+
 **Inputs:** `docs/reference/therealworld-app-references/mobile_app_architecture_spec.md` (the TRW/Discord layered paradigm), `docs/reference/therealworld-app-references/checklist_ui_specification.md` (checklist UI reference), the live codebase as of PR #8, and the developer's rulings: adopt PARADIGMS not styling; CombatOS keeps its own tactical-amber identity; 6 flat tabs was tried and felt cluttered.
 
 ---
@@ -66,3 +73,31 @@ Why this shape:
 5. Anything in the adopted/rejected lists you'd flip.
 
 On sign-off: W20 and W21 get written as diagnostic-first worker prompts in the standard format and enter the roadmap as active items.
+
+## 6. RULINGS — developer sign-off, 2026-07-10 evening session
+
+Informed by direct study of the live TRW native Android app (screenshots + analysis in
+`docs/reference/therealworld-app-references/android-app-observations.md`), which confirmed the
+5-hub bottom-bar paradigm on real mobile and revealed the pinned-quick-add pattern.
+
+1. **Playbook moves inside Train — APPROVED.**
+2. **Slot 4 — CHANGED: Checklist/habit-tracker takes it, not Notes.** The checklist spec's
+   recurrence + streaks make it a habit tracker — closer to the daily training loop than a
+   notepad. Notes is **deferred**: when built, it lands either as a second top tab in the
+   Checklist hub or behind a TRW-style "More" overflow — decided when it's actually built,
+   alongside the future Hermes connector. (This supersedes the Notes-first sequencing implied
+   by D4; the D4 notepad shape itself is unchanged, just later.)
+3. **Hub names — slot 4 is "CHECKLIST"** (☑️-style icon in CombatOS's own visual language);
+   other names/icons approved as proposed.
+4. **FAB — SUPERSEDED by a pinned quick-add input** on the Checklist tab ("describe your task"
+   field fixed above the bottom nav), matching the live TRW app rather than the spec doc's FAB
+   recommendation. Capture must cost zero navigation. No global FAB.
+5. **Flips to §2 lists (ruled by the architect at the developer's delegation):**
+   **streaks come INTO v1** — they're the habit-tracker's core loop, not gamification garnish.
+   The Schedule day-calendar view (seen live as the Checklist hub's second top tab) stays OUT
+   of v1 — candidate for a later top tab. Everything else in §2 stands as written.
+
+**Consequences:** W20 = nav shell (TopTabs, Playbook→Train, Checklist placeholder in slot 4).
+W21 = Checklist hub v1 (groups, daily-recurring tasks, streaks, pinned quick-add, bottom-sheet
+row actions; local-only Dexie store). Prompts: `prompts/W20-nav-shell.md`,
+`prompts/W21-checklist-hub.md`.
