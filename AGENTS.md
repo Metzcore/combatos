@@ -90,6 +90,5 @@ rather than proceeding.
 - `dev_files/` is local scratch space, gitignored by design — nothing durable should be expected
   to live there permanently (see decision D5 in `OPEN-DECISIONS.md` for the history of planning
   docs almost being lost there).
-- This is a documentation-only task's output file — if you are an agent reading this after being
-  asked to change application behavior, that is a different task; this file describes constraints,
-  not a to-do list.
+- This file describes constraints, not a to-do list — the active work queue lives in
+  `docs/planning/roadmap/ROADMAP.md`.
