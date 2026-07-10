@@ -1,0 +1,943 @@
+/* ══════════════════════════════════════════════════════
+   Apex Protocol — Global Design System
+   ══════════════════════════════════════════════════════ */
+
+/* Design tokens */
+:root {
+  --bg: #030503;
+  --panel: #0a100a;
+  --input: #111c11;
+  --header: #060a06;
+  --divider: #1b331b;
+
+  --primary: #00ff66;
+  --accent: #E8A020;
+  /* Tactical Amber — Mil-Spec HUD */
+  --alert: #ff1100;
+  --warn: #ffaa00;
+  --blue: #E8A020;
+
+  --text: #e0ffe0;
+  --dim: #5c8a5c;
+  --label: #85c285;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Safe area for notch/home indicator */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Base reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Typography ────────────────────────────────── */
+h1,
+h2,
+h3 {
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ── Buttons ────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  font-family: var(--font);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.btn-primary {
+  background: rgba(0, 255, 102, 0.1);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  font-size: 1rem;
+  padding: 14px 24px;
+  width: 100%;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.15) inset;
+}
+
+.btn-secondary {
+  background: var(--panel);
+  color: var(--label);
+  border: 1px solid var(--divider);
+  font-size: 0.9rem;
+  padding: 12px 20px;
+  width: 100%;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--label);
+  font-size: 0.75rem;
+  padding: 8px 12px;
+  border: 1px solid var(--divider);
+}
+
+/* ── Inputs ────────────────────────────────────── */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  background: rgba(0, 255, 102, 0.03);
+  color: var(--primary);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  font-family: 'Courier New', Courier, monospace;
+  /* Monospace for HUD feel */
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  width: 100%;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 238, 255, 0.2);
+}
+
+select option {
+  background: var(--bg);
+  color: var(--primary);
+}
+
+input[type="number"] {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Custom select arrow */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a0a8cc' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Cards & Panels ─────────────────────────────── */
+.card {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--divider);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bg);
+}
+
+.section-header.red {
+  background: var(--accent);
+}
+
+.section-header.amber {
+  background: var(--warn);
+  color: var(--bg);
+}
+
+.section-header.blue {
+  background: var(--blue);
+  color: var(--bg);
+}
+
+.section-header.green {
+  background: var(--primary);
+  color: var(--bg);
+}
+
+/* ── Badges ─────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  gap: 3px;
+}
+
+.badge-red {
+  background: rgba(255, 85, 0, 0.2);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.badge-gold {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warn);
+  border: 1px solid var(--warn);
+}
+
+.badge-green {
+  background: rgba(0, 255, 102, 0.2);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.badge-amber {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warn);
+  border: 1px solid var(--warn);
+}
+
+.badge-dim {
+  background: var(--divider);
+  color: var(--dim);
+}
+
+/* ── Progress bar ───────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+  transition: width 0.4s ease;
+}
+
+/* ── Dividers ───────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 0;
+}
+
+/* ── Layout ─────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(85px + var(--safe-bottom));
+}
+
+.page-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--primary);
+  padding: 16px 16px 12px;
+  text-align: center;
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 50;
+  box-shadow: 0 4px 20px rgba(0, 255, 102, 0.1);
+}
+
+.page-header h1 {
+  font-size: 1.25rem;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  text-transform: uppercase;
+}
+
+.page-header .subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.content {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Selector row ───────────────────────────────── */
+.selector-row {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--divider);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.selector-group label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--label);
+  margin-bottom: 5px;
+}
+
+/* ── Hip alert banner ───────────────────────────── */
+.hip-alert-banner {
+  background: rgba(255, 17, 0, 0.1);
+  border: 1px solid var(--alert);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--alert);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse-alert 2s infinite;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes pulse-alert {
+
+  0%,
+  100% {
+    border-color: var(--alert);
+    box-shadow: 0 0 5px rgba(255, 17, 0, 0);
+  }
+
+  50% {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 17, 0, 0.4);
+  }
+}
+
+/* ── Fight gym day banner ───────────────────────── */
+.fight-gym-banner {
+  background: #0a1f2a;
+  border: 1px solid var(--blue);
+  border-radius: var(--radius-lg);
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.fight-gym-banner .icon {
+  font-size: 3rem;
+}
+
+.fight-gym-banner h2 {
+  color: var(--blue);
+  font-size: 1.2rem;
+}
+
+.fight-gym-banner p {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+/* ── Mobility / Cooldown row ────────────────────── */
+.mob-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.mob-row:last-child {
+  border-bottom: none;
+}
+
+.mob-row.done {
+  background: rgba(0, 255, 102, 0.05);
+}
+
+
+
+.mob-row__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.mob-row__meta {
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+.mob-row__cue {
+  font-size: 0.72rem;
+  color: var(--warn);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+/* ── Strength card ──────────────────────────────── */
+.str-card {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--divider);
+  overflow: hidden;
+}
+
+.str-card__header {
+  background: var(--input);
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.str-card__name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.str-card__target {
+  font-size: 0.7rem;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+.str-card__cue {
+  font-size: 0.72rem;
+  color: var(--warn);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+.str-card__sets {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  gap: 0;
+}
+
+.str-set-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  padding: 6px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+}
+
+.str-set-header span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label);
+  text-align: center;
+}
+
+.str-set-header span:first-child {
+  text-align: left;
+}
+
+.str-set-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  padding: 6px 14px;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--divider);
+}
+
+.str-set-row:last-child {
+  border-bottom: none;
+}
+
+.str-set-label {
+  font-size: 0.72rem;
+  color: var(--label);
+}
+
+.str-set-row input {
+  padding: 7px 4px;
+  font-size: 0.95rem;
+}
+
+.history-badge {
+  font-size: 0.62rem;
+  color: var(--dim);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.pap-row {
+  background: rgba(255, 170, 0, 0.05);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--warn);
+}
+
+.pap-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--warn);
+}
+
+.pap-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--warn);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Bag section ───────────────────────────────── */
+.bag-info {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.bag-info__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.bag-info__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.bag-info__value {
+  font-size: 0.85rem;
+  color: var(--body);
+  text-align: right;
+  flex: 1;
+}
+
+.bag-rounds-row {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bag-rounds-row label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--label);
+  white-space: nowrap;
+}
+
+.bag-rounds-row input {
+  max-width: 80px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Notes ────────────────────────────────────── */
+.notes-section {
+  padding: 10px 14px;
+}
+
+.notes-section label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.notes-section textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-size: 0.85rem;
+  padding: 10px;
+}
+
+/* ── Completeness block ─────────────────────────── */
+.completeness-block {
+  background: var(--panel);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--divider);
+  padding: 14px;
+}
+
+.completeness-block .pct {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: color 0.3s, text-shadow 0.3s;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.completeness-block .pct.high {
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
+}
+
+.completeness-block .pct.mid {
+  color: var(--warn);
+  text-shadow: 0 0 10px rgba(255, 170, 0, 0.4);
+}
+
+.completeness-block .pct.low {
+  color: var(--alert);
+  text-shadow: 0 0 10px rgba(255, 17, 0, 0.4);
+}
+
+.pct-label {
+  font-size: 0.72rem;
+  color: var(--label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+/* ── Phase banner ───────────────────────────────── */
+.phase-unlock-banner {
+  background: rgba(0, 255, 102, 0.05);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  animation: glow-primary 1.5s infinite alternate;
+}
+
+@keyframes glow-primary {
+  from {
+    box-shadow: 0 0 8px rgba(0, 255, 102, 0.2);
+  }
+
+  to {
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.5);
+  }
+}
+
+.phase-unlock-banner h3 {
+  color: var(--primary);
+  font-size: 1rem;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.phase-unlock-banner p {
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+.phase-unlock-banner button {
+  margin-top: 10px;
+  background: var(--green);
+  color: var(--bg);
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  width: auto;
+}
+
+/* ── Action buttons bar ─────────────────────────── */
+.actions-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Sync badge ────────────────────────────────── */
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--warn);
+  padding: 8px 14px;
+  background: rgba(255, 170, 0, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--warn);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: pulse-sync 2s infinite ease-in-out;
+}
+
+@keyframes pulse-sync {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 170, 0, 0.1);
+    border-color: rgba(255, 170, 0, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+    border-color: var(--warn);
+  }
+}
+
+/* ── Utility ───────────────────────────────────── */
+.text-gold {
+  color: var(--warn);
+}
+
+.text-red {
+  color: var(--alert);
+}
+
+.text-green {
+  color: var(--primary);
+}
+
+.text-amber {
+  color: var(--warn);
+}
+
+.text-dim {
+  color: var(--dim);
+}
+
+.text-label {
+  color: var(--label);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-sm {
+  font-size: 0.8rem;
+}
+
+.text-xs {
+  font-size: 0.7rem;
+}
+
+.fw-bold {
+  font-weight: 700;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+/* ── APEX Tab Consistency ──────────────────────── */
+.apex-detail-wrapper {
+  /* Extra bottom padding to ensure the final card is fully visible above the fixed bottom nav */
+  padding-bottom: 120px;
+}
+
+.apex-card-title {
+  color: var(--label);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 8px;
+}
+
+.apex-body {
+  color: var(--dim);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  text-align: justify;
+  margin-bottom: 12px;
+}
+
+.apex-body:last-child {
+  margin-bottom: 0;
+}
+
+.apex-list {
+  color: var(--dim);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  padding-left: 18px;
+  margin: 0;
+}
+
+.apex-list li {
+  margin-bottom: 6px;
+}
+.apex-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Bottom Navigation ─────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--panel);
+  border-top: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 1000;
+  padding-bottom: calc(10px + var(--safe-bottom));
+}
+
+.bottom-nav button {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  color: var(--dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  min-width: 0;
+  padding: 0 2px;
+}
+
+.bottom-nav button.active {
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+.bottom-nav__icon {
+  font-size: 1.4rem;
+  margin-bottom: 2px;
+}
+
+/* ── Desktop ────────────────────────────────────── */
+@media (min-width: 641px) {
+  .app {
+    padding: 20px;
+    padding-bottom: calc(85px + var(--safe-bottom));
+  }
+
+  .page-header {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    position: relative;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+}
+/* -- Timer Alerts --------------------------------- */
+.alert-main {
+  animation: pulse-alert-main 0.8s ease-out;
+}
+
+@keyframes pulse-alert-main {
+  0% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
+  10% { box-shadow: 0 0 30px rgba(0, 255, 102, 0.8); border-color: var(--primary); }
+  100% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
+}
+
+.alert-interim {
+  animation: pulse-alert-interim 0.4s ease-out;
+}
+
+@keyframes pulse-alert-interim {
+  0% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
+  10% { box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); border-color: var(--warn); }
+  100% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
+}
+
