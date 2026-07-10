@@ -7,11 +7,11 @@
  *   Execute as: Me
  *   Who has access: Anyone (no sign-in required)
  *
- * Copy the Web App URL and set it as WEBHOOK_URL in the PWA's
- * src/sync/syncQueue.js file.
+ * The webhook URL lives as the `webhookUrl` default in app/src/db/index.jsx (settings store).
  *
  * The PWA sends a POST request with a JSON body.
- * This script appends one row to the FightLog sheet, or strikes it through on delete.
+ * This script appends one row to the FightLog sheet, or on action:'delete' HARD-DELETES the matching row (log.deleteRow).
+ * Functional changes to this file require manually redeploying the Apps Script; comment-only changes do not.
  */
 
 var LOG_SHEET_NAME = 'FightLog';

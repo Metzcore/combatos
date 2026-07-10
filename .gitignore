@@ -5,4 +5,6 @@ dist/
 .DS_Store
 .gemini/
 dev_files/
-
+SCRATCH-NOTEPAD.md
+dev_files/NOTEPAD
+*.log

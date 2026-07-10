@@ -1,8 +1,8 @@
 /**
  * usePlaybook — Fighter's OS Core Data Hook
  * ─────────────────────────────────────────
- * Parses the bundled playbook.csv and returns a structured
- * workout object for any given Phase + Day + HipScore combination.
+ * Imports pre-generated ../data/playbook.js (built by scripts/csv_to_js.py from root playbook.csv)
+ * and returns a structured workout object for any given Phase + Day + HipScore combination.
  *
  * Key lookup system mirrors the Google Sheets formula:
  *   Key = "P" + phase + "-D" + day + "-" + block + "-" + slot + "-" + variant
