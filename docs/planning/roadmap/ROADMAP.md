@@ -20,22 +20,28 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [x] W5 · **FAST** · GitHub starter kit: `.github/` templates + CI build-check workflow. _Shipped in PR #1 (Haiku)._
 - [x] W6 · **IMPL** (read-only) · Directory-reorg diagnostic → report at `W06-REORG-REPORT.md`; executed as the D5 reorg in PR #3 (Sonnet).
 
-## Phase 2 — Structural debt (ordered so tests protect the refactor)
-- [~] W7 · **IMPL** · Test bootstrap: Vitest + fake-indexeddb; first unit tests around pure logic (next-day calc, playbook key lookup / hip-routing, syncQueue enqueue behavior). Small, permanent safety net — deliberately BEFORE the sync refactor. → `prompts/W07-test-bootstrap.md` _In progress 2026-07-10 (Sonnet, branch `chore/test-bootstrap`)._
-- [ ] W8 · **IMPL**, then **REVIEW** · Finish the half-done sync refactor: extract queue/sync logic from `db/index.jsx` into `app/src/sync/syncQueue.js` with zero payload/behavior change. Diagnostic-first. → `prompts/W08-sync-refactor.md`
+## Phase 2 — Structural debt — ✅ COMPLETE 2026-07-10 (PRs #6, #7, #9)
+- [x] W7 · **IMPL** · Test bootstrap: Vitest + fake-indexeddb; 25 unit tests (next-day calc, playbook lookup/hip-routing, syncQueue mechanics); test step added to CI. _Shipped in PR #6 (Sonnet)._
+- [x] W8 · **IMPL**, then **REVIEW** · Sync refactor completed: queue/sync logic extracted to `app/src/sync/syncQueue.js`, zero behavior change, tests passed unmodified. _Shipped in PR #7 (Sonnet, diagnostic reviewed+approved by Fable, TDZ hardening added in review)._
+- [x] **CI incident (post-#6):** two "passes-locally, fails-on-Linux" bugs — Windows-generated lockfile missing Linux-only optional deps (broke `npm ci` on CI AND Cloudflare deploys), and a Node-20 `navigator` crash in the test stub. Fixed in PR #9 (lockfile regenerated from scratch; `vi.stubGlobal`). **Standing policy going forward: agents install deps via `npm ci`; lockfile-changing installs require a from-scratch lockfile regen + clean `npm ci` verification; browser globals in tests via `vi.stubGlobal`.**
 
-## Phase 3 — Close the feedback loop (biggest identified value gap)
-- [ ] W9 · **IMPL**, then **REVIEW** · Weekly-stats view inside the existing Log tab (sessions/week, completeness trend, phase/day coverage, hip-score trend — from local Dexie, no backend). Diagnostic-first. Deliberately BEFORE any Supabase talk: proves what feedback is actually wanted. → `prompts/W09-weekly-stats.md`
+## Phase 3 — Close the feedback loop — ✅ COMPLETE 2026-07-10 (PR #8)
+- [x] W9 · **IMPL**, then **REVIEW** · Weekly-stats view in the Log tab: `[Log|Stats]` toggle, 8-week cards (S&C/Fight split, S&C-only completeness avg, hip-score dots, day/phase coverage, honest empty weeks), 35 new unit tests. _Shipped in PR #8 (Sonnet, math reviewed by Fable); verified on-device by the developer._
 
 ## Phase 4 — UX feature work (one surgical change per session; any order within phase)
 - [ ] W10 · **IMPL**, then **REVIEW** · HUD visual hierarchy + collapsible bag-work and core/accessory blocks (auto-expand when logged). Diagnostic-first — HUD is the largest, most-used component. → `prompts/W10-hud-hierarchy.md`
-- [ ] W11 · **IMPL** · Playbook tab overhaul: collapse/group by phase→day→block instead of flat layout. → `prompts/W11-playbook-overhaul.md`
+- [ ] W11 · **IMPL** · Playbook tab overhaul: collapse/group by phase→day→block. ⚠️ _Per the W19 proposal, this is absorbed into the Playbook rebuild inside the Train hub — run AFTER W20, using a revised prompt; the standalone `prompts/W11-playbook-overhaul.md` is superseded pending W19 sign-off._
 - [ ] W12 · **IMPL**, then **REVIEW** · Reusable exercise picker: save custom core/accessory/cooldown exercises once, pick from dropdown after (new Dexie store — schema version bump, handle with care). → `prompts/W12-exercise-picker.md`
 - [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md`
 - [ ] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
 - [ ] W15 · **IMPL** · Timers page: drag-and-drop reordering of stopwatch/rest-timer blocks, order persisted in settings. → `prompts/W15-timer-reorder.md`
 - [ ] W16 · **IMPL**, then **REVIEW** · Day-7 cycle extension (re-scoped per D2 ruling): keep sequential day counting, extend the cycle 6→7 with Day 7 as an optional/custom gym day (cardio/mobility/free-form notes — `FightGymDay.jsx` already supports these session types). Diagnostic-first. → `prompts/W16-next-day-semantics.md` (rewritten 2026-07-10)
 - [ ] W17 · **IMPL**, then **REVIEW** · ⛔ gated on **D1** · Delete semantics rework (only if D1 = soft delete): webhook.gs v3 with status column + local tombstone. The one item where the "do not touch webhooks" guardrail is deliberately lifted. → `prompts/W17-soft-delete.md`
+
+## Phase 4.5 — Navigation redesign (per decision D3; see `W19-NAV-IA-PROPOSAL.md`)
+- [x] W19 · **ARCH** · Nav-IA redesign proposal written (Fable, 2026-07-10): 5 hubs (Train/Timer/Log/Notes/Settings), Playbook moves inside Train, Notes takes the freed slot, explicit adopted/rejected list vs the TRW specs, keep/restyle/rebuild verdict per screen. → `W19-NAV-IA-PROPOSAL.md` — **⛔ awaiting developer sign-off (5 decisions listed in §5 of the doc).**
+- [ ] W20 · **IMPL**, then **REVIEW** · ⛔ gated on W19 sign-off · Nav shell restructure: shared TopTabs component, Playbook → Train top tab, Notes placeholder in slot 4. Smallest structural PR. Prompt written after sign-off.
+- [ ] W21 · **IMPL**, then **REVIEW** · ⛔ gated on W20 · Notes hub v1 (D4 notepad MVP): folders/tags/5-star, FAB, bottom-sheet actions, connector-ready data shape. New Dexie store (schema bump care). Node-connectors explicitly deferred past v1. Prompt written after sign-off.
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
 - [ ] W18 · **ARCH** · Custom Claude skills (3–4 max: PWA/offline-first, mobile UX, personal-analytics viz, CombatOS conventions). Low risk, can run parallel to Phase 4 whenever wanted. → `prompts/W18-custom-skills.md`
