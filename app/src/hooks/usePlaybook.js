@@ -38,7 +38,7 @@ function getIndex() {
  * If variant is not provided, looks up key without suffix (e.g. P1-D1-STR-1)
  * Returns null if not found.
  */
-function lookup(phase, day, block, slot, variant) {
+export function lookup(phase, day, block, slot, variant) {
     const key = variant
         ? `P${phase}-D${day}-${block}-${slot}-${variant}`
         : `P${phase}-D${day}-${block}-${slot}`
@@ -49,7 +49,7 @@ function lookup(phase, day, block, slot, variant) {
  * Hip-aware lookup for a given block + slot.
  * Returns { row, isHighAlert }
  */
-function hipAwareLookup(phase, day, block, slot, hipScore) {
+export function hipAwareLookup(phase, day, block, slot, hipScore) {
     const highAlert = Number(hipScore) <= 2
     if (highAlert) {
         const haRow = lookup(phase, day, block, slot, 'HA')
