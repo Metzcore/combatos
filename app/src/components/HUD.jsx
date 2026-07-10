@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
+import { nextDay } from '../utils/nextDay.js'
 import MobilityBlock from './MobilityBlock.jsx'
 import StrengthBlock from './StrengthBlock.jsx'
 import BagBlock from './BagBlock.jsx'
@@ -69,8 +70,7 @@ export default function HUD() {
             try {
                 const lastSession = await db.sessions.orderBy('id').reverse().limit(1).first()
                 if (lastSession) {
-                    const nextDay = (lastSession.day % 6) + 1
-                    setProgressSummary(`NEXT: DAY ${nextDay}`)
+                    setProgressSummary(`NEXT: DAY ${nextDay(lastSession.day)}`)
                 } else {
                     setProgressSummary("START: DAY 1")
                 }
