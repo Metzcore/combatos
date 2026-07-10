@@ -4,7 +4,9 @@ dist/
 .env.local
 .DS_Store
 .gemini/
+*.log
 dev_files/
 SCRATCH-NOTEPAD.md
 dev_files/NOTEPAD
-*.log
+terminals/
+mcps/
