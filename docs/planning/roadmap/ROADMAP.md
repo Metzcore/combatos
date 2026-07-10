@@ -39,15 +39,15 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [ ] W17 · **IMPL**, then **REVIEW** · ⛔ gated on **D1** · Delete semantics rework (only if D1 = soft delete): webhook.gs v3 with status column + local tombstone. The one item where the "do not touch webhooks" guardrail is deliberately lifted. → `prompts/W17-soft-delete.md`
 
 ## Phase 4.5 — Navigation redesign (per decision D3; see `W19-NAV-IA-PROPOSAL.md`)
-- [x] W19 · **ARCH** · Nav-IA redesign proposal written (Fable, 2026-07-10): 5 hubs (Train/Timer/Log/Notes/Settings), Playbook moves inside Train, Notes takes the freed slot, explicit adopted/rejected list vs the TRW specs, keep/restyle/rebuild verdict per screen. → `W19-NAV-IA-PROPOSAL.md` — **⛔ awaiting developer sign-off (5 decisions listed in §5 of the doc).**
-- [ ] W20 · **IMPL**, then **REVIEW** · ⛔ gated on W19 sign-off · Nav shell restructure: shared TopTabs component, Playbook → Train top tab, Notes placeholder in slot 4. Smallest structural PR. Prompt written after sign-off.
-- [ ] W21 · **IMPL**, then **REVIEW** · ⛔ gated on W20 · Notes hub v1 (D4 notepad MVP): folders/tags/5-star, FAB, bottom-sheet actions, connector-ready data shape. New Dexie store (schema bump care). Node-connectors explicitly deferred past v1. Prompt written after sign-off.
+- [x] W19 · **ARCH** · Nav-IA redesign proposal written (Fable, 2026-07-10) and **SIGNED OFF same day (evening)** — rulings in the proposal's §6, informed by live study of the TRW native Android app (`docs/reference/therealworld-app-references/android-app-observations.md`). Final shape: 5 hubs **Train / Timer / Log / Checklist / Settings**; Playbook moves inside Train; **slot 4 = Checklist hub** (habit-tracker; Notes deferred); pinned quick-add input instead of a FAB; streaks in v1.
+- [ ] W20 · **IMPL**, then **REVIEW** · Nav shell restructure: shared TopTabs component, Playbook → Train top tab, Checklist placeholder in slot 4. Smallest structural PR; no feature content. → `prompts/W20-nav-shell.md`
+- [ ] W21 · **IMPL**, then **REVIEW** · ⛔ gated on W20 · Checklist hub v1 (habit tracker): groups, daily-recurring tasks with scheduled times, streaks, pinned quick-add, bottom-sheet row actions. Local-only (NO webhook/Sheet involvement). New Dexie store (schema bump care). Notes/Schedule-view/reminders explicitly deferred past v1. → `prompts/W21-checklist-hub.md`
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
 - [ ] W18 · **ARCH** · Custom Claude skills (3–4 max: PWA/offline-first, mobile UX, personal-analytics viz, CombatOS conventions). Low risk, can run parallel to Phase 4 whenever wanted. → `prompts/W18-custom-skills.md`
 - [ ] ⛔ **Supabase migration** — gated on: research prompt 3 results (free-tier pausing), the 0.2 data review, and W9 proving what feedback matters. n8n keep-alive is the working theory for the pause guardrail; n8n stack itself is untouchable. Decision D7.
 - [ ] ⛔ **Audio-ducking bug** — gated on research prompt 3 results (Android audio focus / Media Session API). Reproducible, documented, not urgent.
-- [ ] ⛔ **Notepad/capture + Hermes connector** — gated on decision D4. Architecture theory (capture → connector → Personal-OS) is unvalidated by the developer's own admission.
+- [ ] ⛔ **Notepad/capture + Hermes connector** — D4 shape ruled (folders/tags/5-star, connector-ready), but **deferred at W19 sign-off**: the nav slot went to the Checklist hub. When built, lands as a second top tab in the Checklist hub or behind a "More" overflow — decided then, together with Hermes.
 - [ ] ⛔ **Project B (Apex Protocol kickoff)** — downstream of this roadmap stabilizing, per STATUS.md. Sequencing lives in `docs/planning/CHECKLIST.md` Project B section.
 - [ ] ⛔ **Sell-as-product** — parked by the developer; demand validation deliberately deferred. Nothing to do.
 
