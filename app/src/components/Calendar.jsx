@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import { db } from '../db/index.jsx'
 import { getDailyFocus } from '../hooks/usePlaybook.js'
 import WeeklyStats from './WeeklyStats.jsx'
+import TopTabs from './TopTabs.jsx'
+import { HUB_TOP_TABS } from '../utils/navState.js'
 
-export default function Calendar() {
+// view/onViewChange are owned by AppShell (W20) so the Log/Stats selection
+// survives hub switches. Everything else in this component is unchanged.
+export default function Calendar({ view, onViewChange }) {
     const [sessions, setSessions] = useState([])
     const [loading, setLoading] = useState(true)
-    const [view, setView] = useState('log') // 'log' | 'stats'
 
     useEffect(() => {
         const loadSessions = async () => {
@@ -25,22 +28,11 @@ export default function Calendar() {
                 <h1>📅 Fight Log</h1>
                 <div className="subtitle">Session History</div>
 
-                <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
-                    <button
-                        className={view === 'log' ? 'btn-primary' : 'btn-secondary'}
-                        style={{ flex: 1, padding: '10px 0', fontSize: '0.9rem' }}
-                        onClick={() => setView('log')}
-                    >
-                        Log
-                    </button>
-                    <button
-                        className={view === 'stats' ? 'btn-primary' : 'btn-secondary'}
-                        style={{ flex: 1, padding: '10px 0', fontSize: '0.9rem' }}
-                        onClick={() => setView('stats')}
-                    >
-                        Stats
-                    </button>
-                </div>
+                <TopTabs
+                    tabs={HUB_TOP_TABS.log}
+                    active={view}
+                    onChange={onViewChange}
+                />
             </header>
 
             <main className="content" style={{ paddingBottom: 100 }}>

@@ -1,41 +1,25 @@
-export default function BottomNav({ activeTab, onChange }) {
+// Bottom-nav hub buttons, in slot order (W19 §6 rulings / W20 shell).
+const HUB_BUTTONS = [
+    { key: 'train', icon: '⚔️', label: 'Train' },
+    { key: 'timer', icon: '⏱️', label: 'Timer' },
+    { key: 'log', icon: '📅', label: 'Log' },
+    { key: 'checklist', icon: '☑️', label: 'Checklist' },
+    { key: 'settings', icon: '⚙️', label: 'Settings' }
+]
+
+export default function BottomNav({ activeHub, onChange }) {
     return (
         <nav className="bottom-nav" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}>
-            <button
-                className={activeTab === 'hud' ? 'active' : ''}
-                onClick={() => onChange('hud')}
-            >
-                <span className="bottom-nav__icon">⚔️</span>
-                <span>HUD</span>
-            </button>
-            <button
-                className={activeTab === 'timer' ? 'active' : ''}
-                onClick={() => onChange('timer')}
-            >
-                <span className="bottom-nav__icon">⏱️</span>
-                <span>Timer</span>
-            </button>
-            <button
-                className={activeTab === 'calendar' ? 'active' : ''}
-                onClick={() => onChange('calendar')}
-            >
-                <span className="bottom-nav__icon">📅</span>
-                <span>Log</span>
-            </button>
-            <button
-                className={activeTab === 'playbook' ? 'active' : ''}
-                onClick={() => onChange('playbook')}
-            >
-                <span className="bottom-nav__icon">📖</span>
-                <span>Playbook</span>
-            </button>
-            <button
-                className={activeTab === 'settings' ? 'active' : ''}
-                onClick={() => onChange('settings')}
-            >
-                <span className="bottom-nav__icon">⚙️</span>
-                <span>Settings</span>
-            </button>
+            {HUB_BUTTONS.map(b => (
+                <button
+                    key={b.key}
+                    className={activeHub === b.key ? 'active' : ''}
+                    onClick={() => onChange(b.key)}
+                >
+                    <span className="bottom-nav__icon">{b.icon}</span>
+                    <span>{b.label}</span>
+                </button>
+            ))}
         </nav>
     )
 }

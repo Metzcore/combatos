@@ -855,6 +855,52 @@ input[type="checkbox"] {
   margin-bottom: 2px;
 }
 
+/* ── Top tabs — shared Layer-2 hub tab bar (W20) ── */
+.top-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.top-tabs__tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 0 8px;
+  margin-bottom: -1px; /* underline sits on the bar's own border */
+}
+
+.top-tabs__tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 8px rgba(232, 160, 32, 0.35);
+}
+
+/* Standalone tab bar above a hub's screens (Train). The screens below it
+   (HUD / PlaybookViewer render their own .app) already pad for the notch,
+   so the bar takes over that job and the sibling .app drops its top pad. */
+.hub-tabs-bar {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--safe-top) 12px 0;
+}
+
+.hub-tabs-bar .top-tabs {
+  margin-top: 4px;
+}
+
+.hub-tabs-bar + .app {
+  padding-top: 0;
+}
+
 /* ── Desktop ────────────────────────────────────── */
 @media (min-width: 641px) {
   .app {
