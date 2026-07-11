@@ -1,17 +1,64 @@
-import { useState } from 'react'
-import { useDB, db } from '../db/index.jsx'
+import { useState, useEffect } from 'react'
+import { useDB, db, getSetting } from '../db/index.jsx'
 import { IGNITION_QUOTES } from '../data/ignition.js'
+import { exportFullBackup } from '../db/backup.js'
+import { shareOrDownloadJson } from '../utils/checklistShare.js'
+import { localDateStr } from '../utils/checklistDate.js'
+
+// W23.5 — settings-store key for the last DELIVERED full backup. Read and
+// written only here (DBProvider never touches it) — same single-consumer
+// discipline as checklistResetTime in db/checklist.js.
+const LAST_BACKUP_KEY = 'lastFullBackupAt'
+
+/** "never" / "today" / "1 day ago" / "N days ago" from an ISO timestamp. */
+function formatLastBackup(iso) {
+    if (!iso) return 'never'
+    const then = new Date(iso)
+    if (isNaN(then.getTime())) return 'never'
+    // Compare LOCAL calendar dates, not raw ms — a backup at 23:50 read at
+    // 00:10 is "1 day ago", matching how a human counts days.
+    const days = Math.round(
+        (new Date(localDateStr()) - new Date(localDateStr(then))) / 86400000
+    )
+    if (days <= 0) return 'today'
+    if (days === 1) return '1 day ago'
+    return `${days} days ago`
+}
 
 export default function Settings() {
-    const { 
-        appName, setAppName, 
-        appSubtitle, setAppSubtitle, 
+    const {
+        appName, setAppName,
+        appSubtitle, setAppSubtitle,
         dailyIgnitionEnabled, setDailyIgnitionEnabled,
         bookmarkedIgnitions, toggleIgnitionBookmark,
-        refreshCounts, refreshPending, deleteLastSession 
+        refreshCounts, refreshPending, deleteLastSession,
+        storagePersisted
     } = useDB()
     const [nameInput, setNameInput] = useState(appName || '')
     const [subInput, setSubInput] = useState(appSubtitle || '')
+    const [lastBackupAt, setLastBackupAt] = useState(null)
+
+    useEffect(() => {
+        getSetting(LAST_BACKUP_KEY).then(v => {
+            if (typeof v === 'string' && v) setLastBackupAt(v)
+        }).catch(console.error)
+    }, [])
+
+    const handleBackup = async () => {
+        const data = await exportFullBackup()
+        const filename = `combatos-backup-${localDateStr()}.json`
+        const result = await shareOrDownloadJson(data, filename, 'CombatOS Full Backup')
+        // Only a TRUE delivery updates the timestamp — a completed share
+        // sheet or a plain download counts; user-cancel does not.
+        if (result !== 'cancelled') {
+            const ts = new Date().toISOString()
+            await db.settings.put({ key: LAST_BACKUP_KEY, value: ts })
+            setLastBackupAt(ts)
+            // The share sheet is its own confirmation; only the silent
+            // download fallback gets an alert (reviewer ruling, 2026-07-12).
+            if (result === 'downloaded') alert(`Backup downloaded: ${filename}`)
+        }
+    }
 
     const handleSave = () => {
         setAppName(nameInput)
@@ -125,6 +172,28 @@ export default function Settings() {
                                 })}
                             </div>
                         )}
+                    </div>
+                </div>
+
+                <div className="card" style={{ marginTop: 20 }}>
+                    <div className="section-header amber">💾 Data Backup</div>
+                    <div style={{ padding: 14 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4 }}>
+                            {storagePersisted === null
+                                ? 'Storage: checking…'
+                                : storagePersisted
+                                    ? 'Storage: PERSISTENT'
+                                    : 'Storage: BEST-EFFORT — export backups regularly'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 12 }}>
+                            Last full backup: {formatLastBackup(lastBackupAt)}
+                        </div>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--dim)', marginBottom: 16, lineHeight: 1.4 }}>
+                            Exports everything stored on this device (sessions, settings, checklist) as one JSON file. Workout history in Google Sheets is unaffected.
+                        </p>
+                        <button className="btn-primary" onClick={handleBackup} style={{ width: '100%' }}>
+                            EXPORT FULL BACKUP
+                        </button>
                     </div>
                 </div>
 

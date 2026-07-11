@@ -99,6 +99,9 @@ export function DBProvider({ children }) {
     const [pendingSync, setPending] = useState(0)
     const [sessionCount, setCount] = useState({}) // { 1: n, 2: n, 3: n }
     const [ready, setReady] = useState(false)
+    // W23.5 — persistent-storage status: null = unknown/checking,
+    // true = PERSISTENT granted, false = best-effort (or API unavailable).
+    const [storagePersisted, setStoragePersisted] = useState(null)
 
     // ── In-memory active workout state (not persisted to Dexie) ───────────────
     const [day, setDay] = useState(WORKOUT_DEFAULTS.day)
@@ -351,6 +354,32 @@ export function DBProvider({ children }) {
         setAltDuration(WORKOUT_DEFAULTS.altDuration)
     }, [])
 
+    // ── Persistent-storage request (W23.5) ────────────────────────────────────
+    // Deliberately a SEPARATE effect from init(): it must never gate `ready`
+    // or delay first paint. `navigator.storage.persist()` never throws per
+    // spec, but the whole call is feature-detected and try/caught anyway.
+    // Browser realities: Chromium decides silently from engagement
+    // heuristics; Firefox may prompt; iOS Safari is known to evict
+    // IndexedDB after ~7 days of app disuse REGARDLESS of what persist()
+    // reports — on iOS the full-backup export is the real mitigation, this
+    // call is best-effort only.
+    useEffect(() => {
+        (async () => {
+            try {
+                if (typeof navigator !== 'undefined' && navigator.storage
+                    && typeof navigator.storage.persist === 'function') {
+                    const granted = await navigator.storage.persist()
+                    setStoragePersisted(granted === true)
+                } else {
+                    setStoragePersisted(false) // API unavailable — best-effort
+                }
+            } catch (err) {
+                console.warn('storage.persist() failed:', err)
+                setStoragePersisted(false)
+            }
+        })()
+    }, [])
+
     // ── Load settings on mount ────────────────────────────────────────────────
     useEffect(() => {
         async function init() {
@@ -502,6 +531,7 @@ export function DBProvider({ children }) {
             ignitionHasShown, setIgnitionHasShown,
             sessionCount, pendingSync, logSession, resetSession, deleteLastSession,
             refreshCounts, refreshPending,
+            storagePersisted,
 
             // ── Active workout state ──
             day, setDay,
