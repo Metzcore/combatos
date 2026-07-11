@@ -12,39 +12,16 @@
  * math independent of the runtime's timezone.
  *
  * Week convention: ISO week, Monday start (Mon..Sun).
+ *
+ * The generic date-string arithmetic (parseDateParts / addDays and friends)
+ * was extracted VERBATIM to utils/dateMath.js in W21 so other features can
+ * use it without importing this stats-scoped module. It is imported and
+ * re-exported here so this module's public API is unchanged.
  */
 
-const DAY_MS = 86400000
+import { DAY_MS, parseDateParts, toEpochMs, epochMsToStr, addDays } from './dateMath.js'
 
-/**
- * Parse a strict `YYYY-MM-DD` string into { y, m, d } integers.
- * Returns null for anything malformed or an impossible calendar date
- * (e.g. '2026-02-30').
- */
-export function parseDateParts(dateStr) {
-    if (typeof dateStr !== 'string') return null
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
-    if (!match) return null
-    const y = Number(match[1])
-    const m = Number(match[2])
-    const d = Number(match[3])
-    // Round-trip through Date.UTC to reject impossible dates (2026-02-30 etc.)
-    const dt = new Date(Date.UTC(y, m - 1, d))
-    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) {
-        return null
-    }
-    return { y, m, d }
-}
-
-function toEpochMs({ y, m, d }) {
-    return Date.UTC(y, m - 1, d)
-}
-
-function epochMsToStr(ms) {
-    const dt = new Date(ms)
-    const pad = n => String(n).padStart(2, '0')
-    return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`
-}
+export { parseDateParts, addDays }
 
 /**
  * Returns the `YYYY-MM-DD` string of the Monday of the ISO week containing
@@ -57,16 +34,6 @@ export function mondayOfWeek(dateStr) {
     const dow = new Date(ms).getUTCDay() // 0 = Sunday .. 6 = Saturday
     const daysSinceMonday = (dow + 6) % 7 // Monday -> 0, Sunday -> 6
     return epochMsToStr(ms - daysSinceMonday * DAY_MS)
-}
-
-/**
- * Adds `days` calendar days to a `YYYY-MM-DD` string. Returns null on
- * invalid input.
- */
-export function addDays(dateStr, days) {
-    const parts = parseDateParts(dateStr)
-    if (!parts) return null
-    return epochMsToStr(toEpochMs(parts) + days * DAY_MS)
 }
 
 /**
