@@ -17,7 +17,8 @@ import {
     DEFAULT_GROUP_NAME,
     createGroup, ensureDefaultGroup, renameGroup, moveGroup, deleteGroup,
     createTask, quickAddTask, updateTask, stopRepeating, moveTask, softDeleteTask,
-    setCompletion, getGroupsWithTasks, exportChecklist
+    setCompletion, getGroupsWithTasks, exportChecklist,
+    getResetTime, setResetTime
 } from './checklist.js'
 
 // db/index.jsx registers sync listeners at module-eval time and trySyncQueue
@@ -329,5 +330,43 @@ describe('exportChecklist — plain-JSON shape stability', () => {
 
         // Round-trips through JSON without loss (plain data only)
         expect(JSON.parse(JSON.stringify(out))).toEqual(out)
+    })
+})
+
+// ─── Reset-time setting (W22) ─────────────────────────────────────────────────
+
+describe('reset-time setting — key-value store, no schema involvement', () => {
+    beforeEach(async () => {
+        // Scoped cleanup: the file-level beforeEach only clears the three
+        // checklist tables; this key lives in `settings`.
+        await db.settings.delete('checklistResetTime')
+    })
+
+    it('defaults to 00:00 (midnight — W21 behavior) when unset', async () => {
+        expect(await getResetTime()).toBe('00:00')
+    })
+
+    it('round-trips through setResetTime', async () => {
+        await setResetTime('04:30')
+        expect(await getResetTime()).toBe('04:30')
+        await setResetTime('23:15') // overwrite, no duplicate rows
+        expect(await getResetTime()).toBe('23:15')
+        expect(await db.settings.where('key').equals('checklistResetTime').count()).toBe(1)
+    })
+
+    it('degrades corrupt stored values to the default instead of propagating them', async () => {
+        await db.settings.put({ key: 'checklistResetTime', value: '' })
+        expect(await getResetTime()).toBe('00:00')
+        await db.settings.put({ key: 'checklistResetTime', value: 123 })
+        expect(await getResetTime()).toBe('00:00')
+    })
+
+    it('never touches the three checklist tables (schema stays version 2)', async () => {
+        await setResetTime('06:00')
+        await getResetTime()
+        expect(db.verno).toBe(2)
+        expect(await db.checklistGroups.count()).toBe(0)
+        expect(await db.checklistTasks.count()).toBe(0)
+        expect(await db.checklistCompletions.count()).toBe(0)
     })
 })
