@@ -19,9 +19,9 @@
  * - exportChecklist() returns the documented plain-JSON export shape
  */
 
-import { db } from './index.jsx'
+import { db, getSetting } from './index.jsx'
 import { computeStreak } from '../utils/checklistStreak.js'
-import { localDateStr } from '../utils/checklistDate.js'
+import { logicalDateStr, DEFAULT_RESET_TIME } from '../utils/checklistDate.js'
 
 export const DEFAULT_GROUP_NAME = 'General'
 
@@ -33,6 +33,22 @@ function newId() {
 
 function nowIso() {
     return new Date().toISOString()
+}
+
+// ─── Reset-time setting (W22) ─────────────────────────────────────────────────
+// Lives in the EXISTING key-value `settings` store (no Dexie schema bump).
+// DBProvider never reads this key, so the checklist hook is its only
+// consumer — keep it that way, or two in-memory copies could go stale.
+
+const RESET_TIME_KEY = 'checklistResetTime'
+
+export async function getResetTime() {
+    const v = await getSetting(RESET_TIME_KEY)
+    return typeof v === 'string' && v ? v : DEFAULT_RESET_TIME
+}
+
+export async function setResetTime(value) {
+    await db.settings.put({ key: RESET_TIME_KEY, value })
 }
 
 // ─── Groups ───────────────────────────────────────────────────────────────────
@@ -189,10 +205,12 @@ export async function setCompletion(taskId, dateStr, done) {
  * One-off (non-repeating) tasks with ANY completion are hidden from the
  * view (kept in data), per the W21 scope.
  *
- * @param {string} [todayStr] - injectable for tests; defaults to the local
- *   "today" (recomputed on every call — never cached across midnight).
+ * @param {string} [todayStr] - injectable for tests; defaults to the
+ *   default-midnight logical "today" (recomputed on every call — never
+ *   cached across midnight). useChecklist.js always passes the reset-aware
+ *   value explicitly: `logicalDateStr(new Date(), resetTime)`.
  */
-export async function getGroupsWithTasks(todayStr = localDateStr()) {
+export async function getGroupsWithTasks(todayStr = logicalDateStr()) {
     const groups = await activeGroups()
     const allTasks = await db.checklistTasks.toArray()
     const allCompletions = await db.checklistCompletions.toArray()
