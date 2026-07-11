@@ -29,6 +29,20 @@ db.version(1).stores({
     settings: 'key'
 })
 
+// W21 — Checklist hub stores. ADDITIVE ONLY: the v1 tables are restated
+// verbatim (Dexie requires the full schema at each version; omitting a table
+// would drop it and destroy real data). No .upgrade() callback is needed —
+// unchanged tables are untouched by Dexie's migration. The checklist is
+// LOCAL-ONLY: nothing here ever reaches syncQueue or the webhook.
+db.version(2).stores({
+    sessions: '++id, date, day, phase, hipScore',
+    syncQueue: '++id, sessionId, attempts',
+    settings: 'key',
+    checklistGroups: 'id, order',
+    checklistTasks: 'id, groupId, [groupId+order], deletedAt',
+    checklistCompletions: '[taskId+date], taskId'
+})
+
 export { db }
 
 // ─── Default settings ─────────────────────────────────────────────────────────
