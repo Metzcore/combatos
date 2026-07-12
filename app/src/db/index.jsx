@@ -43,6 +43,23 @@ db.version(2).stores({
     checklistCompletions: '[taskId+date], taskId'
 })
 
+// W23 — Notes hub stores. ADDITIVE ONLY, same discipline as v2: every prior
+// table restated verbatim (omitting one would drop it and destroy real
+// data), no .upgrade() callback needed — unchanged tables are untouched by
+// Dexie's migration. `*tags` is a multiEntry index over the per-note tags
+// array (the app-wide normalized-tag convention). Notes are LOCAL-ONLY:
+// nothing here ever reaches syncQueue or the webhook.
+db.version(3).stores({
+    sessions: '++id, date, day, phase, hipScore',
+    syncQueue: '++id, sessionId, attempts',
+    settings: 'key',
+    checklistGroups: 'id, order',
+    checklistTasks: 'id, groupId, [groupId+order], deletedAt',
+    checklistCompletions: '[taskId+date], taskId',
+    noteGroups: 'id, order',
+    notes: 'id, groupId, deletedAt, *tags'
+})
+
 export { db }
 
 // ─── Default settings ─────────────────────────────────────────────────────────

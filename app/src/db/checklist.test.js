@@ -35,9 +35,11 @@ beforeEach(async () => {
 
 // ─── Schema / upgrade safety ──────────────────────────────────────────────────
 
-describe('schema — version 2 wiring on the real db instance', () => {
-    it('is at version 2 with the three checklist tables present', () => {
-        expect(db.verno).toBe(2)
+describe('schema — checklist wiring on the real db instance', () => {
+    it('is at version 2 or later with the three checklist tables present', () => {
+        // Checklist tables arrived in v2; later features bump further (W23 → v3).
+        // The exact current version is pinned by the newest feature's own tests.
+        expect(db.verno).toBeGreaterThanOrEqual(2)
         const names = db.tables.map(t => t.name)
         expect(names).toContain('checklistGroups')
         expect(names).toContain('checklistTasks')
@@ -361,10 +363,11 @@ describe('reset-time setting — key-value store, no schema involvement', () => 
         expect(await getResetTime()).toBe('00:00')
     })
 
-    it('never touches the three checklist tables (schema stays version 2)', async () => {
+    it('never touches the three checklist tables (no schema involvement)', async () => {
+        const vernoBefore = db.verno
         await setResetTime('06:00')
         await getResetTime()
-        expect(db.verno).toBe(2)
+        expect(db.verno).toBe(vernoBefore)
         expect(await db.checklistGroups.count()).toBe(0)
         expect(await db.checklistTasks.count()).toBe(0)
         expect(await db.checklistCompletions.count()).toBe(0)

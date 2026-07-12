@@ -84,9 +84,10 @@ describe('exportFullBackup — combatos-full-backup shape stability', () => {
 
     it('is read-only — exporting mutates nothing', async () => {
         await db.sessions.add({ date: '2026-07-01', day: 1, phase: 1, hipScore: 3 })
+        const vernoBefore = db.verno
         await exportFullBackup()
         await exportFullBackup() // twice, for good measure
         expect(await db.sessions.count()).toBe(1)
-        expect(db.verno).toBe(2)
+        expect(db.verno).toBe(vernoBefore)
     })
 })

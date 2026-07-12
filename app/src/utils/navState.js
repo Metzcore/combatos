@@ -17,9 +17,11 @@ export const HUBS = ['train', 'timer', 'log', 'checklist', 'settings']
 
 export const DEFAULT_HUB = 'train'
 
-// Layer-2 top-tab definitions per hub. Hubs absent here (checklist for now,
-// settings) have no top tabs. Labels match the pre-W20 control labels exactly
-// where a control already existed (Timer's "Custom Rounds", Log's "Log"/"Stats").
+// Layer-2 top-tab definitions per hub. Hubs absent here (settings) have no
+// top tabs. Labels match the pre-W20 control labels exactly where a control
+// already existed (Timer's "Custom Rounds", Log's "Log"/"Stats"). W23 adds
+// the checklist hub's [Checklist | Notes] pair — first-tab key equals the
+// hub key, same precedent as `log`.
 export const HUB_TOP_TABS = {
     train: [
         { key: 'workout', label: 'Workout' },
@@ -32,12 +34,16 @@ export const HUB_TOP_TABS = {
     log: [
         { key: 'log', label: 'Log' },
         { key: 'stats', label: 'Stats' }
+    ],
+    checklist: [
+        { key: 'checklist', label: 'Checklist' },
+        { key: 'notes', label: 'Notes' }
     ]
 }
 
 /**
  * Initial Layer-2 selection: the first tab of every hub that has top tabs.
- * { train: 'workout', timer: 'basic', log: 'log' }
+ * { train: 'workout', timer: 'basic', log: 'log', checklist: 'checklist' }
  */
 export function initialTopTabs() {
     const out = {}

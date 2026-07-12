@@ -1300,3 +1300,227 @@ input[type="checkbox"] {
   color: var(--dim);
 }
 
+/* ── Notes tab (W23) ────────────────────────────── */
+/* Additive only. Group cards, sheets, quick-add bar, and empty states
+   reuse the existing .checklist-* / .sheet-* / .quick-add-bar classes;
+   below is only what is genuinely new: note rows, tag chips, the search
+   field, and the full-screen editor. Tactical-amber tokens throughout. */
+
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.notes-toolbar .checklist-toolbar__actions {
+  flex-shrink: 0;
+}
+
+/* type="search" isn't covered by the global input selectors — mirror
+   them here, scoped, without touching the global rules. */
+.notes-search {
+  background: rgba(0, 255, 102, 0.03);
+  color: var(--primary);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+.notes-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(232, 160, 32, 0.2);
+}
+
+/* ── Tag chips ── */
+.tag-chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--input);
+  color: var(--label);
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  line-height: 1.2;
+}
+
+.tag-chip.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(232, 160, 32, 0.08);
+}
+
+.tag-chip--static {
+  padding: 2px 8px;
+}
+
+.tag-chip__count {
+  color: var(--dim);
+  font-size: 0.65rem;
+}
+
+.tag-chip__remove {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-size: 0.7rem;
+  padding: 0 0 0 2px;
+  line-height: 1;
+}
+
+/* ── Note rows (inside a group card) ── */
+.note-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.note-card:last-child {
+  border-bottom: none;
+}
+
+.note-card__main {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 0;
+}
+
+.note-card__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-card__meta {
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.note-card__more {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── Full-screen note editor ── */
+.note-editor__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+.note-editor__bar .btn-ghost {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+}
+
+.note-editor__mode {
+  color: var(--accent);
+}
+
+.note-editor__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-editor__title-input {
+  font-weight: 700;
+}
+
+.note-editor__body {
+  min-height: 45vh;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.note-editor__title {
+  font-size: 1.05rem;
+}
+
+.note-editor__view {
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.note-line {
+  min-height: 1.4em;
+  white-space: pre-wrap;
+}
+
+.note-line--checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 3px 0;
+}
+
+.note-line--checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.note-line--checkbox.done .note-line__text {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.note-editor__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* input.note-editor__tag-input ties the global input[type="text"] rule's
+   specificity, so source order lets these narrower values win — no
+   !important needed. */
+input.note-editor__tag-input {
+  width: 90px;
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
