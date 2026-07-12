@@ -12,7 +12,8 @@
  *   If hipScore <= 2 AND an HA variant exists → return HA row (flagged with isHighAlert)
  *   Otherwise → return STD row
  *
- * Fight Gym Days (Day 2 and Day 4) have no Playbook entries.
+ * Fight Gym Days (Day 2 and Day 4) and the optional/custom gym Day 7
+ * (decision D2 / W16) have no Playbook entries.
  * The hook returns { isFightGymDay: true } for these.
  */
 
@@ -75,7 +76,7 @@ export function getDailyFocus(day) {
  * Build the full workout object for a given phase/day/hipScore.
  *
  * @param {number|string} phase  - 1, 2, or 3
- * @param {number|string} day    - 1 through 6
+ * @param {number|string} day    - 1 through 7
  * @param {number|string} hipScore - 1 through 5
  * @returns {WorkoutObject}
  */
@@ -85,9 +86,12 @@ export function getWorkout(phase, day, hipScore = 3) {
     const h = Number(hipScore)
     const dailyFocus = getDailyFocus(d)
 
-    // Fight Gym Days — no S&C programming
-    if (d === 2 || d === 4) {
-        return { isFightGymDay: true, day: d, phase: p, hipScore: h, dailyFocus: "Fight Gym Day — Skills & Sparring" }
+    // Fight Gym Days (2, 4) and the optional/custom gym Day 7 — no S&C programming (D2 / W16)
+    if (d === 2 || d === 4 || d === 7) {
+        return {
+            isFightGymDay: true, day: d, phase: p, hipScore: h,
+            dailyFocus: d === 7 ? "Day 7 — Optional / Custom Gym Day" : "Fight Gym Day — Skills & Sparring"
+        }
     }
 
     // ── Mobility (up to 5 slots, hip-aware) ──────────────────────────────────

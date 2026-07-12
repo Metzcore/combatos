@@ -9,7 +9,7 @@ Tab name: `FightLog`
 | Column | Header | Type | Notes |
 |--------|--------|------|-------|
 | A | Date | Date | ISO 8601, set by webhook |
-| B | Day | Number | 1–6 (rolling day) |
+| B | Day | Number | 1–7 (rolling day) |
 | C | Phase | Number | 1, 2, or 3 |
 | D | Hip_Score | Number | 1–5 |
 | E | Session_Type | Text | e.g. "Combat", "S&C", "Cardio", "Mobility" |

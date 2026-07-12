@@ -77,6 +77,12 @@ describe('getWorkout — fight-gym-day synthesis', () => {
         expect(workout.isFightGymDay).toBe(true)
     })
 
+    it('returns isFightGymDay: true for day 7 — optional/custom gym day (D2 / W16)', () => {
+        const workout = getWorkout(1, 7, 3)
+        expect(workout.isFightGymDay).toBe(true)
+        expect(workout.dailyFocus).toBe('Day 7 — Optional / Custom Gym Day')
+    })
+
     it('returns isFightGymDay: false for a normal S&C day (day 1)', () => {
         const workout = getWorkout(1, 1, 3)
         expect(workout.isFightGymDay).toBe(false)
