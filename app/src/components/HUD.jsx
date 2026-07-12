@@ -28,7 +28,7 @@ import CompletenessBar from './CompletenessBar.jsx'
 import FightGymDay from './FightGymDay.jsx'
 import PhaseUnlockBanner from './PhaseUnlockBanner.jsx'
 
-const DAY_LABELS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6']
+const DAY_LABELS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7']
 const HIP_LABELS = ['1 – Critical', '2 – High Alert', '3 – Moderate', '4 – Good', '5 – Excellent']
 const PHASE_UNLOCK_THRESHOLD = 12
 
@@ -57,6 +57,19 @@ export default function HUD() {
 
     // ── Playbook data ────────────────────────────
     const workout = usePlaybook(phase, day, hipScore)
+
+    // ── Day-7 default session type (D2 / W16) ─────
+    // Day 7 is the optional/custom gym day — default the Session Type to
+    // Cardio only on the transition INTO day 7 (tracked via a ref), so a
+    // manual re-selection while already on day 7 is never clobbered.
+    // Days 2/4 keep the existing 'Combat' default behavior.
+    const prevDayRef = useRef(day)
+    useEffect(() => {
+        if (day === 7 && prevDayRef.current !== 7) {
+            setGymSessionType('Cardio')
+        }
+        prevDayRef.current = day
+    }, [day, setGymSessionType])
 
     // ── Phase unlock check ────────────────────────
     const gymSessionsThisPhase = sessionCount[phase] || 0

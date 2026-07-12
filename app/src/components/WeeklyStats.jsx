@@ -16,7 +16,7 @@ function hipColor(score) {
     return 'var(--primary)'
 }
 
-const ALL_DAYS = [1, 2, 3, 4, 5, 6]
+const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7]
 
 export default function WeeklyStats({ sessions }) {
     const weeks = useMemo(() => buildWeeklyStats(sessions), [sessions])

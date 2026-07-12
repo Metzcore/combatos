@@ -135,9 +135,10 @@ intervals are explicitly described in the file's own header comment as being des
 and from the HUD's manual "RESET HUD" button) but intentionally does **not** reset `day` — the
 code comment notes this matches prior behavior ("Day and Phase are kept").
 
-## Day structure: 3 phases × 6-day cycle
+## Day structure: 3 phases × 7-day cycle
 
-The program is organized as 3 phases, each phase cycling through 6 days. `getDailyFocus(day)` in
+The program is organized as 3 phases, each phase cycling through 7 days (extended from 6 by
+decision D2 / roadmap item W16 — strictly sequential 1→…→7→1). `getDailyFocus(day)` in
 `usePlaybook.js` names the S&C-focused days:
 
 | Day | Focus |
@@ -147,17 +148,20 @@ The program is organized as 3 phases, each phase cycling through 6 days. `getDai
 | 5 | Lower Body Hinge & Horizontal Power |
 | 6 | Upper Body Pull & Posterior Chain |
 
-**Days 2 and 4 are Fight Gym days.** `playbook.csv` has no rows for these day slots — there is
-no Mobility/Strength/Bag/Cooldown programming for them. `getWorkout(phase, day, hipScore)`
-detects `d === 2 || d === 4` and short-circuits to `{ isFightGymDay: true, ... }` before doing
-any Playbook lookups. `HUD.jsx` uses this flag to render `FightGymDay.jsx` instead of the normal
-block sequence. `FightGymDay.jsx` supports three session types (Combat / Cardio / Mobility), the
-latter two using free-form "movement rows" instead of the fixed Playbook structure.
+**Days 2 and 4 are Fight Gym days; Day 7 is an optional/custom gym day.** `playbook.csv` has no
+rows for these day slots — there is no Mobility/Strength/Bag/Cooldown programming for them.
+`getWorkout(phase, day, hipScore)` detects `d === 2 || d === 4 || d === 7` and short-circuits to
+`{ isFightGymDay: true, ... }` before doing any Playbook lookups. `HUD.jsx` uses this flag to
+render `FightGymDay.jsx` instead of the normal block sequence. `FightGymDay.jsx` supports three
+session types (Combat / Cardio / Mobility), the latter two using free-form "movement rows"
+instead of the fixed Playbook structure. Day 7 reuses this machinery unchanged, but the HUD
+defaults its Session Type to Cardio (rather than Combat) on the transition into day 7.
 
-Session counting for phase-unlock explicitly **excludes** fight-gym days: `refreshCounts()` in
-`db/index.jsx` only increments a phase's counter `if (s.day !== 2 && s.day !== 4)`. The unlock
-threshold is `PHASE_UNLOCK_THRESHOLD = 12` S&C sessions in the current phase (constant in
-`HUD.jsx`), gating advancement past Phase 1 or 2 (not Phase 3 — `phase < 3` in the unlock check).
+Session counting for phase-unlock explicitly **excludes** fight-gym days and Day 7:
+`refreshCounts()` in `db/index.jsx` only increments a phase's counter
+`if (s.day !== 2 && s.day !== 4 && s.day !== 7)`. The unlock threshold is
+`PHASE_UNLOCK_THRESHOLD = 12` S&C sessions in the current phase (constant in `HUD.jsx`), gating
+advancement past Phase 1 or 2 (not Phase 3 — `phase < 3` in the unlock check).
 
 ### Hip-score routing
 

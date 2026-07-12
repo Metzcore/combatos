@@ -426,8 +426,9 @@ export function DBProvider({ children }) {
         const sessions = await db.sessions.toArray()
         const counts = { 1: 0, 2: 0, 3: 0 }
         for (const s of sessions) {
-            // Only count S&C days (not fight gym days 2 and 4)
-            if (s.day !== 2 && s.day !== 4) {
+            // Only count S&C days toward phase unlock — exclude fight gym
+            // days 2/4 and the optional/custom gym Day 7 (D2 / W16)
+            if (s.day !== 2 && s.day !== 4 && s.day !== 7) {
                 const p = Number(s.phase)
                 if (counts[p] !== undefined) counts[p]++
             }
