@@ -2,7 +2,7 @@ import { useState } from 'react'
 import TrainHub from './TrainHub.jsx'
 import Timer from './Timer.jsx'
 import Calendar from './Calendar.jsx'
-import Checklist from './Checklist.jsx'
+import ChecklistHub from './ChecklistHub.jsx'
 import Settings from './Settings.jsx'
 import BottomNav from './BottomNav.jsx'
 import { DEFAULT_HUB, initialTopTabs, setHubTab } from '../utils/navState.js'
@@ -38,7 +38,12 @@ export default function AppShell() {
                     onViewChange={t => selectHubTab('log', t)}
                 />
             )}
-            {activeHub === 'checklist' && <Checklist />}
+            {activeHub === 'checklist' && (
+                <ChecklistHub
+                    activeTab={topTabs.checklist}
+                    onTabChange={t => selectHubTab('checklist', t)}
+                />
+            )}
             {activeHub === 'settings' && <Settings />}
 
             <BottomNav

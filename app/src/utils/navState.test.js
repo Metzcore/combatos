@@ -24,8 +24,8 @@ describe('hub definitions (W19 §6 rulings)', () => {
         expect(HUBS).toContain(DEFAULT_HUB)
     })
 
-    it('defines top tabs only for train, timer, and log', () => {
-        expect(Object.keys(HUB_TOP_TABS).sort()).toEqual(['log', 'timer', 'train'])
+    it('defines top tabs only for train, timer, log, and checklist (W23)', () => {
+        expect(Object.keys(HUB_TOP_TABS).sort()).toEqual(['checklist', 'log', 'timer', 'train'])
     })
 
     it('every hub with top tabs has at least two, each with key and label', () => {
@@ -46,7 +46,8 @@ describe('initialTopTabs', () => {
         expect(initialTopTabs()).toEqual({
             train: 'workout',
             timer: 'basic',
-            log: 'log'
+            log: 'log',
+            checklist: 'checklist'
         })
     })
 
@@ -62,12 +63,16 @@ describe('setHubTab', () => {
     })
 
     it('leaves every other hub selection untouched', () => {
-        // Simulate: user is on Rounds in Timer and Stats in Log, then flips Train
+        // Simulate: user is on Rounds in Timer, Stats in Log, and Notes in
+        // Checklist, then flips Train
         let state = initialTopTabs()
         state = setHubTab(state, 'timer', 'rounds')
         state = setHubTab(state, 'log', 'stats')
+        state = setHubTab(state, 'checklist', 'notes')
         state = setHubTab(state, 'train', 'playbook')
-        expect(state).toEqual({ train: 'playbook', timer: 'rounds', log: 'stats' })
+        expect(state).toEqual({
+            train: 'playbook', timer: 'rounds', log: 'stats', checklist: 'notes'
+        })
     })
 
     it('does not mutate the input state', () => {
@@ -83,8 +88,10 @@ describe('setHubTab', () => {
     })
 
     it('returns the same reference for an unknown hub', () => {
+        // W23 note: `checklist` used to be the "unknown hub" example here;
+        // it now HAS top tabs, so the case uses genuinely unknown keys.
         const state = initialTopTabs()
-        expect(setHubTab(state, 'checklist', 'anything')).toBe(state)
+        expect(setHubTab(state, 'settings', 'anything')).toBe(state)
         expect(setHubTab(state, 'nope', 'workout')).toBe(state)
     })
 
@@ -92,6 +99,9 @@ describe('setHubTab', () => {
         const state = initialTopTabs()
         expect(setHubTab(state, 'train', 'rounds')).toBe(state)
         expect(setHubTab(state, 'log', 'workout')).toBe(state)
+        // Cross-hub tab-name confusion (W23): another hub's tab key is
+        // rejected by identity too.
+        expect(setHubTab(state, 'checklist', 'workout')).toBe(state)
     })
 
     it('round-trips: hub switch away and back preserves the selection', () => {

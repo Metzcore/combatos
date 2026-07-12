@@ -10,3 +10,6 @@ SCRATCH-NOTEPAD.md
 dev_files/NOTEPAD
 terminals/
 mcps/
+
+# Personal data exports — never commit backups
+combatos-backup-*.json
