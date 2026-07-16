@@ -157,6 +157,11 @@ session types (Combat / Cardio / Mobility), the latter two using free-form "move
 instead of the fixed Playbook structure. Day 7 reuses this machinery unchanged, but the HUD
 defaults its Session Type to Cardio (rather than Combat) on the transition into day 7.
 
+**Known quirk (accepted, won't-fix — developer ruling 2026-07-16):** after logging a day-7
+session while remaining on day 7, `resetActiveWorkout()` restores the Combat default and the
+transition guard (which only fires on entering day 7) does not re-apply Cardio. The next action
+is switching days anyway, so this was reviewed post-deploy and deliberately left as-is.
+
 Session counting for phase-unlock explicitly **excludes** fight-gym days and Day 7:
 `refreshCounts()` in `db/index.jsx` only increments a phase's counter
 `if (s.day !== 2 && s.day !== 4 && s.day !== 7)`. The unlock threshold is
