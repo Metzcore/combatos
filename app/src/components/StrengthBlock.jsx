@@ -68,12 +68,21 @@ function SetRow({ exIdx, setNum, sets, onSetChange, playbookKey, hasPap }) {
 function ExerciseCard({ slot, exIdx, sets, onSetChange }) {
     const numSets = slot.sets || 4
     const hasPap = !!slot.pap?.exercise
+    // W10 Option C — gym-standard superset notation: main lift = A1, its PAP
+    // pairing = A2 (same letter). Unpaired lifts show the bare letter.
+    const letter = String.fromCharCode(65 + exIdx) // A, B, C, D
 
     return (
-        <div className="str-card">
+        <div className={`str-card${hasPap ? ' str-card--paired' : ''}`}>
             <div className="str-card__header">
                 <div>
-                    <div className="str-card__name">{slot.label} {slot.exercise}</div>
+                    <div className="str-card__eyebrow">
+                        <span className={`superset-badge${hasPap ? ' superset-badge--paired' : ''}`}>
+                            {hasPap ? `${letter}1` : letter}
+                        </span>
+                        {hasPap && <span className="str-card__eyebrow-label">Superset · PAP pairing</span>}
+                    </div>
+                    <div className="str-card__name">{slot.exercise}</div>
                     {slot.targetReps && (
                         <div className="str-card__target">Target: {slot.targetReps} {slot.loadNote && `| ${slot.loadNote}`}</div>
                     )}
@@ -84,8 +93,9 @@ function ExerciseCard({ slot, exIdx, sets, onSetChange }) {
             </div>
 
             {hasPap && (
-                <div style={{ padding: '8px 14px', background: 'rgba(255, 170, 0, 0.05)', borderBottom: '1px solid var(--divider)', borderTop: '1px solid var(--warn)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--warn)', textTransform: 'uppercase' }}>
+                <div className="pap-pair-row">
+                    <span className="superset-badge superset-badge--paired">{letter}2</span>
+                    <div className="pap-pair-row__text">
                         ⚡ PAP: {slot.pap.exercise} {slot.pap.sets && `(${slot.pap.sets}×${slot.pap.reps})`}
                     </div>
                 </div>
