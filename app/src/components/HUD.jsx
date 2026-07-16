@@ -52,6 +52,8 @@ export default function HUD() {
         altRows, setAltRows, addAltRow, updateAltRow, removeAltRow,
         altDuration, setAltDuration,
         hudScrollY, setHudScrollY,
+        bagBlockOpen, setBagBlockOpen,
+        coreBlockOpen, setCoreBlockOpen,
         resetActiveWorkout
     } = useDB()
 
@@ -70,6 +72,26 @@ export default function HUD() {
         }
         prevDayRef.current = day
     }, [day, setGymSessionType])
+
+    // ── W10: auto-expand collapsed blocks on first data ──
+    // UI-only. Fires ONLY on the empty→non-empty transition (tracked via
+    // refs, same idiom as prevDayRef above), so a manual re-collapse while
+    // data exists sticks — the effect never fights the user.
+    const bagHasData = bagRounds !== '' || bagCourse !== '' || bagModules !== '' || bagWorkouts !== ''
+    const prevBagHasDataRef = useRef(bagHasData)
+    useEffect(() => {
+        if (bagHasData && !prevBagHasDataRef.current) setBagBlockOpen(true)
+        prevBagHasDataRef.current = bagHasData
+    }, [bagHasData, setBagBlockOpen])
+
+    const coreHasData = Object.values(coreSets).some(
+        e => e && ((e.ex && e.ex !== '') || (e.sets && e.sets !== '') || (e.reps && e.reps !== ''))
+    )
+    const prevCoreHasDataRef = useRef(coreHasData)
+    useEffect(() => {
+        if (coreHasData && !prevCoreHasDataRef.current) setCoreBlockOpen(true)
+        prevCoreHasDataRef.current = coreHasData
+    }, [coreHasData, setCoreBlockOpen])
 
     // ── Phase unlock check ────────────────────────
     const gymSessionsThisPhase = sessionCount[phase] || 0
@@ -334,6 +356,8 @@ export default function HUD() {
                         {/* ── Bag Work ───────────────────── */}
                         <BagBlock
                             slot={workout.bagSlot}
+                            open={bagBlockOpen}
+                            onToggle={() => setBagBlockOpen(!bagBlockOpen)}
                             bagRounds={bagRounds}
                             onBagRoundsChange={setBagRounds}
                             bagCourse={bagCourse}
@@ -350,6 +374,8 @@ export default function HUD() {
                         <CoreBlock
                             sets={coreSets}
                             onSetChange={updateCoreSet}
+                            open={coreBlockOpen}
+                            onToggle={() => setCoreBlockOpen(!coreBlockOpen)}
                         />
 
                         {/* ── Cooldown ───────────────────── */}

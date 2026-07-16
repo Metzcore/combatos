@@ -1524,3 +1524,132 @@ input.note-editor__tag-input {
   border-radius: 999px;
 }
 
+/* ══════════════════════════════════════════════════════
+   W10 — HUD visual hierarchy + collapsible blocks
+   New classes only; mobile-portrait single layout (no
+   media queries, matching the rest of this file).
+   ══════════════════════════════════════════════════════ */
+
+/* ── Collapsible card (Bag Work, Core & Accessories) ── */
+/* .card__toggle rides on .section-header for its color band; these rules
+   only undo <button> defaults and lay out summary + chevron. */
+.card--collapsible .card__toggle {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+.card--collapsible .card__toggle:active {
+  /* override global button:active scale — a shrinking header reads as a bug */
+  transform: none;
+  opacity: 1;
+}
+
+.card__summary {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.card__chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: rotate(-90deg);
+  transition: transform 0.25s ease;
+}
+
+.card__summary + .card__chevron {
+  margin-left: 8px;
+}
+
+.card--collapsible.open .card__chevron {
+  transform: rotate(0deg);
+}
+
+.card__body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+}
+
+.card--collapsible.open .card__body {
+  max-height: 1500px;
+  opacity: 1;
+  visibility: visible;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+/* ── Strength hierarchy: eyebrow tier (slot letter above name) ── */
+.str-card__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.str-card__eyebrow-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* ── Superset / PAP pairing (Option C: A1/A2 notation) ── */
+.superset-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--label);
+  border: 1px solid var(--divider);
+  background: var(--bg);
+}
+
+.superset-badge--paired {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: rgba(255, 170, 0, 0.08);
+}
+
+/* Shared left-edge accent bar "staples" main lift + PAP row together */
+.str-card--paired {
+  border-left: 3px solid var(--warn);
+}
+
+.pap-pair-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 170, 0, 0.05);
+  border-top: 1px solid var(--warn);
+  border-bottom: 1px solid var(--divider);
+}
+
+.pap-pair-row__text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--warn);
+  text-transform: uppercase;
+}
+

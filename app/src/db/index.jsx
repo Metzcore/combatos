@@ -96,7 +96,13 @@ const WORKOUT_DEFAULTS = {
     notes: '',
     gymSessionType: 'Combat',
     altRows: [],
-    altDuration: ''
+    altDuration: '',
+    // W10 — UI-only collapse state for the collapsible HUD blocks.
+    // Lives here (not in HUD/BagBlock/CoreBlock) so it survives the full
+    // unmount HUD goes through on tab/hub switches, exactly like hudScrollY.
+    // Never read by logSession/completeness — cannot reach the webhook payload.
+    bagBlockOpen: false,
+    coreBlockOpen: false
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -136,6 +142,9 @@ export function DBProvider({ children }) {
     const [gymSessionType, setGymSessionType] = useState(WORKOUT_DEFAULTS.gymSessionType)
     const [altRows, setAltRows] = useState(WORKOUT_DEFAULTS.altRows)
     const [altDuration, setAltDuration] = useState(WORKOUT_DEFAULTS.altDuration)
+    // W10 — UI-only collapse state (see WORKOUT_DEFAULTS note)
+    const [bagBlockOpen, setBagBlockOpen] = useState(WORKOUT_DEFAULTS.bagBlockOpen)
+    const [coreBlockOpen, setCoreBlockOpen] = useState(WORKOUT_DEFAULTS.coreBlockOpen)
 
     // ── In-memory timer state (not persisted to Dexie) ────────────────────────
     const [swTime, setSwTime] = useState(0)
@@ -369,6 +378,9 @@ export function DBProvider({ children }) {
         setGymSessionType(WORKOUT_DEFAULTS.gymSessionType)
         setAltRows(WORKOUT_DEFAULTS.altRows)
         setAltDuration(WORKOUT_DEFAULTS.altDuration)
+        // W10 — new session starts with bag/core collapsed again
+        setBagBlockOpen(WORKOUT_DEFAULTS.bagBlockOpen)
+        setCoreBlockOpen(WORKOUT_DEFAULTS.coreBlockOpen)
     }, [])
 
     // ── Persistent-storage request (W23.5) ────────────────────────────────────
@@ -567,6 +579,8 @@ export function DBProvider({ children }) {
             altRows, setAltRows, addAltRow, updateAltRow, removeAltRow,
             altDuration, setAltDuration,
             hudScrollY, setHudScrollY,
+            bagBlockOpen, setBagBlockOpen,
+            coreBlockOpen, setCoreBlockOpen,
             resetActiveWorkout,
 
             // ── Timer state ──
