@@ -41,3 +41,38 @@ Both were reported "drafted/created" but neither exists in the repo. If the draf
 ## D7 — Supabase migration: go/no-go and when
 Explicitly deferred by the roadmap until (1) you've actually looked at the Sheet data (0.2), (2) research prompt 3 answers the free-tier pausing question, (3) W9 shows what feedback you actually use. The migration is real but is currently a solution ahead of its evidence. No action now — just don't let it jump the queue.
 **RULED (2026-07-10): leaning go** — given the scope now on the table (notepad data layer, day-structure extension, future Hermes connector), a real backend probably becomes necessary. Developer can create the Supabase project and hold env keys locally at any point. Still gated behind the three conditions above; the gates stand, the direction is noted.
+
+## D8 — W24 Tracking: standalone system vs. counted tasks
+**Context (2026-07-17):** the W24 gate ("living with Notes") was evaluated against 5 days of real
+usage plus the developer's checklist export. Evidence: all Checklist/Notes features in honest
+daily use and staying; **zero organic tracking workarounds appeared** (no counts written as text
+anywhere — the strongest available signal); the developer's own first tracker-shaped task
+("Tracking Money") was created 07-11 and deleted 07-16; the want-to-track list (water, sleep,
+wake time, weight, time wasted, gym/commute time, outreach, "list goes on") is aspirational
+breadth of exactly the kind that populates tracker graveyards, and most items fail the ~2-tap
+mid-day friction test (they're end-of-day estimations, already served by the daily note).
+**Options:** (a) build the brainstorm's standalone Track system (items/occurrences/quantities,
+own surface, stats); (b) minimal shape — optional +1 tally on existing checklist tasks, no new
+tables/tab/webhook; (c) drop tracking entirely.
+**RULED (2026-07-17): Option B — counted tasks.** W24 re-scoped accordingly
+(`prompts/W24-counted-tasks.md`); the standalone Track system is **deferred, not dropped** —
+revisit only if counted tasks see heavy sustained use. Reduction-vs-growth target semantics
+(pouches-down vs pages-up) are deferred with it, to the stats era (W26 Log-hub redesign), since
+direction only pays off where numbers are judged. Also re-affirmed in the same session: the
+"export checklist/notes to a new Sheets tab" idea stays RULED OUT under the 2026-07-12 data
+policy (Sheets = append-only workout log; Supabase D7 is the mutable-data destination; the
+full-backup JSON is its seed).
+
+## D9 — Off-programme activity logging (OPEN — not yet ruled)
+**Context:** developer idea captured in the app's own "App improvements" checklist group
+(2026-07-17): some days include real physical activity outside the 7-day programme (any sport,
+ad-hoc sessions); today those days look like rest in the Log, skewing the picture. Day 7
+(optional/custom gym day) partially covers this, but only as the day the cycle assigns.
+**The actual question:** should off-programme activity be loggable, and if so where does it
+live — (a) a session-type/toggle inside the existing day structure (touches `sessions` shape
+and possibly the frozen webhook row layout — expensive, needs its own W-item with the
+AGENTS.md rule-2 restriction explicitly lifted); (b) a counted task ("Workout" habit already
+exists in the developer's Daily Habits) + a note, i.e. zero new machinery, surfaced later by
+W26's unified Log view; (c) not worth modeling — the Sheet stays a programme log, period.
+**Blocks:** nothing. Candidate input to W26's proposal rather than a standalone build.
+**Not ruled — do not default silently.**
