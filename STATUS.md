@@ -1,24 +1,23 @@
 # STATUS
-_Last updated: 2026-07-12 · delegated feature work (marathon session, 2026-07-10 evening → 07-12)_
+_Last updated: 2026-07-17 · delegated feature work_
 
 ## Last session
-Shipped the entire W19→W23 arc via six merged PRs (#12–#17) using the delegation model
-(Sonnet workers, Fable diagnostics review, developer rulings): W19 nav sign-off — informed by
-studying the live TRW Android app (screenshots + analysis now tracked in docs/reference) — then
-W20 layered nav shell (TopTabs, Playbook into Train), W21 Checklist hub v1 (habit tracker,
-Dexie v2), W22 checklist v1.1 (configurable reset time + countdown, export/import, action
-sheets), W23.5 data durability (persistent storage + full-app backup; phone reports PERSISTENT),
-and W23 Notes v1 (tags+pin, inline checkboxes, on-demand daily note, search, Dexie v3).
-Everything verified on-device; 204 tests green. Two workers died mid-run to usage limits —
-the inventory-and-resume recovery pattern worked cleanly both times.
+Cleared the entire pending delegation queue via four merged feature PRs (#18, #21, #22, #23)
+plus two docs PRs (#19 day-7 quirk note, #20 rescued goodnight): W16 Day-7 cycle extension
+(7-day sequential wrap, Cardio default on day 7, phase-unlock exclusion), W10 HUD visual
+hierarchy (A1/A2 superset badges, collapsible bag/core with auto-expand), W10.1 follow-up
+making mobility/strength/cooldown collapsible too (default open), and W17 soft delete
+(webhook.gs v3 writes CANCELLED to the new Status column BN instead of deleting the row;
+local hard delete kept). Apps Script redeployed and verified (v3 health check + on-device
+log→delete test); 206 tests green. One worker died to a usage limit mid-W10.1 — the
+inventory-and-resume pattern recovered it with zero rework.
 
 ## Current focus
-Live with Checklist + Notes daily before building on top of them — W24 (Tracking) is
-deliberately gated on that usage validation.
+Live with the new 7-day cycle + fully collapsible HUD + Checklist + Notes daily —
+W24 (Tracking) stays gated on that usage validation.
 
 ## Up next
-1. W16 — Day-7 cycle extension (prompt ready, delegate anytime)
-2. W17 — soft delete (prompt ready; needs you present for the manual Apps Script redeploy)
-3. W10 — HUD visual hierarchy (prompt ready, parallel-safe)
-4. W24 — Tracking & counting (⛔ gated on living with Notes first)
-5. Move the downloaded combatos-backup JSON out of docs/reference/checklist-ideas/ (gitignored, but personal data shouldn't live in the repo folder)
+1. W24 — Tracking & counting (⛔ gated on living with Notes; prompt not yet written)
+2. W18 — Custom Claude skills (ARCH, low-risk, parallel-safe whenever wanted)
+3. Move the downloaded combatos-backup JSON out of docs/reference/checklist-ideas/
+4. Optional: Sheets conditional-format rule (strikethrough where Status = CANCELLED) — no redeploy needed

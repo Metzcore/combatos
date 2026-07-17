@@ -64,3 +64,25 @@ gates unchanged; backup restore/import deliberately deferred to the Supabase era
 
 **To do next session:** delegate W16 (W10 in parallel if desired); W17 when the developer can do
 the Apps Script redeploy; tick W23.5/W23 in ROADMAP.md.
+
+---
+
+## 2026-07-16→17 · Delegated feature session — W16/W10/W10.1/W17 (PRs #18–#23)
+
+**Context:** Cleared the whole pending delegation queue (Sonnet workers, Fable review,
+developer rulings + on-device verification); one usage-limit kill mid-W10.1 recovered
+via inventory-and-resume with zero rework.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | W17 final shape: Status column only (col 66 = BN; blank = active, CANCELLED = deleted); NO local tombstone — local hard delete stays | The audit trail D1 wanted lives on the Sheet; a tombstone would force filters onto 5 read sites for no asked-for benefit; matches shipped Settings copy |
+| 2 | webhook.gs v3 uses fixed STATUS_COL=66 plus a grid-width guard (auto-widen before write) | getLastColumn()+1 drifts once the column exists; the guard makes deletes order-independent of the manual header step |
+| 3 | Superset/PAP treatment: gym-standard A1/A2 badges + shared left-edge accent bar (Option C) | Strongest at-a-glance pairing signal with zero new wrapper structure |
+| 4 | Collapse-state convention: UI-only fields in DBProvider (the hudScrollY pattern), reset per session; mob/str/clr default OPEN, bag/core default COLLAPSED with transition-guarded auto-expand; daily-focus label stays outside the collapse | Survives HUD unmounts; provably can't reach the payload; the day's core work stays visible by default |
+| 5 | Day-7 quirk accepted won't-fix: after logging while staying on day 7, session type resets to Combat (the Cardio default only fires on the transition in) | Reviewed post-deploy; next action is switching days; documented in ARCHITECTURE.md |
+| 6 | Process: no gh CLI on this machine — agents push branches, developer creates PRs from the web link; the IDE Commit button is never used for agent work-in-progress | The PR page shows CI checks; a panel commit would capture half-finished worker state |
+
+**Not done / deferred:** W24 (gated, prompt unwritten), W18 (parallel-safe, unscheduled),
+Supabase gates unchanged, backup-JSON move still on the developer.
+
+**To do next session:** write the W24 prompt once Notes usage is validated; W18 whenever wanted.
