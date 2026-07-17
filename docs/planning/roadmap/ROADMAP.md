@@ -48,7 +48,7 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [ ] W24 · **IMPL** · ⛔ gated on W23 + usage validation · Tracking & counting (from the brainstorm): trackable items with dated occurrences/quantities, feeding the future Log→Stats expansion (checklist %, notes presence, tracking counts on the shared logical-day axis). Prompt not yet written.
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
-- [ ] W18 · **ARCH** · Custom Claude skills (3–4 max: PWA/offline-first, mobile UX, personal-analytics viz, CombatOS conventions). Low risk, can run parallel to Phase 4 whenever wanted. → `prompts/W18-custom-skills.md`
+- [x] W18 · **ARCH** · Custom Claude skills shipped at the 4-skill hard cap: `combatos-conventions` (PR #25), then `pwa-offline-first` + `mobile-interaction-ux` + `personal-analytics-viz` (PR #27, 2026-07-17), all in `.agents/skills/`, facts derived from live code. → `prompts/W18-custom-skills.md`
 - [ ] ⛔ **Supabase migration** — gated on: research prompt 3 results (free-tier pausing), the 0.2 data review, and W9 proving what feedback matters. n8n keep-alive is the working theory for the pause guardrail; n8n stack itself is untouchable. Decision D7.
 - [ ] ⛔ **Audio-ducking bug** — gated on research prompt 3 results (Android audio focus / Media Session API). Reproducible, documented, not urgent.
 - [ ] ⛔ **Hermes connector** — the notepad half of D4 is now ACTIVE as W23 (Phase 4.5, re-ruled 2026-07-12: tags+pin replaced 5-star). The connector half stays deferred: `exportChecklist()`/`exportNotes()`/the W23.5 full backup are its designed inputs, wired up in the Supabase era or via Personal-OS, whichever comes first.
