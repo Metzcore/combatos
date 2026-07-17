@@ -54,6 +54,9 @@ export default function HUD() {
         hudScrollY, setHudScrollY,
         bagBlockOpen, setBagBlockOpen,
         coreBlockOpen, setCoreBlockOpen,
+        mobBlockOpen, setMobBlockOpen,
+        strBlockOpen, setStrBlockOpen,
+        clrBlockOpen, setClrBlockOpen,
         resetActiveWorkout
     } = useDB()
 
@@ -337,6 +340,8 @@ export default function HUD() {
                             slots={workout.mobSlots}
                             checked={mobChecked}
                             onCheck={toggleMobilityCheck}
+                            open={mobBlockOpen}
+                            onToggle={() => setMobBlockOpen(!mobBlockOpen)}
                         />
 
                         {/* ── Strength + PAP ─────────────── */}
@@ -351,6 +356,8 @@ export default function HUD() {
                             onSetChange={updateStrengthSet}
                             phase={phase}
                             day={day}
+                            open={strBlockOpen}
+                            onToggle={() => setStrBlockOpen(!strBlockOpen)}
                         />
 
                         {/* ── Bag Work ───────────────────── */}
@@ -383,6 +390,8 @@ export default function HUD() {
                             slots={workout.clrSlots}
                             checked={clrChecked}
                             onCheck={toggleCooldownCheck}
+                            open={clrBlockOpen}
+                            onToggle={() => setClrBlockOpen(!clrBlockOpen)}
                         />
 
                         {/* ── Completeness ───────────────── */}

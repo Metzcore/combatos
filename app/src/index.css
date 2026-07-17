@@ -1653,3 +1653,29 @@ input.note-editor__tag-input {
   text-transform: uppercase;
 }
 
+/* ══════════════════════════════════════════════════════
+   W10.1 — Collapsible strength section
+   StrengthBlock is a multi-card section, not a .card:
+   the wrapper carries NO gap (so the collapsed body
+   leaves no stub below the header); the gap + top
+   padding move into .str-section__cards. Radius/overflow
+   make the collapsed bar match the other blocks'.
+   ══════════════════════════════════════════════════════ */
+.str-section {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.str-section__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+/* Four exercise cards with set rows can exceed the generic 1500px
+   .card__body cap — raise it for this section only so nothing clips. */
+.str-section.open .card__body {
+  max-height: 4000px;
+}
+
