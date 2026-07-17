@@ -21,7 +21,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
     createGroup, renameGroup, moveGroup, deleteGroup,
     createTask, quickAddTask, updateTask, stopRepeating, moveTask, softDeleteTask,
-    setCompletion, getGroupsWithTasks, exportChecklist,
+    setCompletion, incrementCompletion, getGroupsWithTasks, exportChecklist,
     getResetTime, setResetTime
 } from '../db/checklist.js'
 import { logicalDateStr, DEFAULT_RESET_TIME } from '../utils/checklistDate.js'
@@ -91,6 +91,7 @@ export function useChecklist() {
         stopRepeating: wrap(stopRepeating),
         moveTask: wrap(moveTask),
         deleteTask: wrap(softDeleteTask),
-        setCompletion: wrap(setCompletion)
+        setCompletion: wrap(setCompletion),
+        increment: wrap(incrementCompletion)
     }
 }

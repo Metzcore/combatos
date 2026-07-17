@@ -14,6 +14,7 @@ export default function TaskEditSheet({ task, group, open, onClose, onSave }) {
     const [note, setNote] = useState('')
     const [scheduledTime, setScheduledTime] = useState('')
     const [repeatDaily, setRepeatDaily] = useState(false)
+    const [counted, setCounted] = useState(false)
 
     // Re-seed the form whenever the sheet opens for a (different) target
     useEffect(() => {
@@ -22,6 +23,7 @@ export default function TaskEditSheet({ task, group, open, onClose, onSave }) {
             setNote(task?.note ?? '')
             setScheduledTime(task?.scheduledTime ?? '')
             setRepeatDaily(task?.repeatDaily ?? false)
+            setCounted(task?.counted ?? false)
         }
     }, [open, task?.id])
 
@@ -29,7 +31,7 @@ export default function TaskEditSheet({ task, group, open, onClose, onSave }) {
         e.preventDefault()
         const trimmed = title.trim()
         if (!trimmed) return
-        onSave({ title: trimmed, note, scheduledTime, repeatDaily })
+        onSave({ title: trimmed, note, scheduledTime, repeatDaily, counted })
         onClose()
     }
 
@@ -59,6 +61,14 @@ export default function TaskEditSheet({ task, group, open, onClose, onSave }) {
                         onChange={e => setRepeatDaily(e.target.checked)}
                     />
                     Repeat daily
+                </label>
+                <label className="sheet-form__toggle">
+                    <input
+                        type="checkbox"
+                        checked={counted}
+                        onChange={e => setCounted(e.target.checked)}
+                    />
+                    Counted (+1 tally)
                 </label>
                 <button type="submit" className="btn-primary">
                     {task ? 'Save changes' : 'Add task'}
