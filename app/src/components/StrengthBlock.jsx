@@ -123,21 +123,51 @@ function ExerciseCard({ slot, exIdx, sets, onSetChange }) {
     )
 }
 
-export default function StrengthBlock({ slots, sets, onSetChange }) {
+export default function StrengthBlock({ slots, sets, onSetChange, open, onToggle }) {
     if (!slots || slots.length === 0) return null
 
+    // W10.1 summary chip — count set rows belonging to the CURRENTLY RENDERED
+    // slots with any field entered. Deliberately scoped to visible slots
+    // (unlike completeness(), which iterates all strSets keys) so a stale key
+    // from another day can't inflate the chip. Display-only.
+    let setsLogged = 0
+    slots.forEach((_, i) => {
+        for (let s = 1; s <= 4; s++) {
+            const e = sets[`ex${i + 1}-s${s}`]
+            if (e && ((e.kg && e.kg !== '') || (e.reps && e.reps !== '') || (e.papReps && e.papReps !== ''))) {
+                setsLogged++
+            }
+        }
+    })
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="section-header red">💪 Strength + PAP Supersets</div>
-            {slots.map((slot, idx) => (
-                <ExerciseCard
-                    key={slot.key || idx}
-                    slot={slot}
-                    exIdx={idx}
-                    sets={sets}
-                    onSetChange={onSetChange}
-                />
-            ))}
+        <div className={`str-section card--collapsible${open ? ' open' : ''}`}>
+            <button
+                type="button"
+                className="section-header red card__toggle"
+                onClick={onToggle}
+                aria-expanded={!!open}
+            >
+                <span>💪 Strength + PAP Supersets</span>
+                {!open && setsLogged > 0 && (
+                    <span className="card__summary">{setsLogged} set{setsLogged === 1 ? '' : 's'} logged</span>
+                )}
+                <span className="card__chevron" aria-hidden="true">▾</span>
+            </button>
+
+            <div className="card__body">
+                <div className="str-section__cards">
+                    {slots.map((slot, idx) => (
+                        <ExerciseCard
+                            key={slot.key || idx}
+                            slot={slot}
+                            exIdx={idx}
+                            sets={sets}
+                            onSetChange={onSetChange}
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
     )
 }

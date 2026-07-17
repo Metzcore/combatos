@@ -102,7 +102,13 @@ const WORKOUT_DEFAULTS = {
     // unmount HUD goes through on tab/hub switches, exactly like hudScrollY.
     // Never read by logSession/completeness — cannot reach the webhook payload.
     bagBlockOpen: false,
-    coreBlockOpen: false
+    coreBlockOpen: false,
+    // W10.1 — mobility/strength/cooldown are the day's core work, so they
+    // default OPEN (bag/core above stay default collapsed). Same UI-only
+    // guarantees as the W10 fields.
+    mobBlockOpen: true,
+    strBlockOpen: true,
+    clrBlockOpen: true
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -145,6 +151,10 @@ export function DBProvider({ children }) {
     // W10 — UI-only collapse state (see WORKOUT_DEFAULTS note)
     const [bagBlockOpen, setBagBlockOpen] = useState(WORKOUT_DEFAULTS.bagBlockOpen)
     const [coreBlockOpen, setCoreBlockOpen] = useState(WORKOUT_DEFAULTS.coreBlockOpen)
+    // W10.1 — same, for mobility/strength/cooldown (default open)
+    const [mobBlockOpen, setMobBlockOpen] = useState(WORKOUT_DEFAULTS.mobBlockOpen)
+    const [strBlockOpen, setStrBlockOpen] = useState(WORKOUT_DEFAULTS.strBlockOpen)
+    const [clrBlockOpen, setClrBlockOpen] = useState(WORKOUT_DEFAULTS.clrBlockOpen)
 
     // ── In-memory timer state (not persisted to Dexie) ────────────────────────
     const [swTime, setSwTime] = useState(0)
@@ -381,6 +391,10 @@ export function DBProvider({ children }) {
         // W10 — new session starts with bag/core collapsed again
         setBagBlockOpen(WORKOUT_DEFAULTS.bagBlockOpen)
         setCoreBlockOpen(WORKOUT_DEFAULTS.coreBlockOpen)
+        // W10.1 — and mobility/strength/cooldown open again
+        setMobBlockOpen(WORKOUT_DEFAULTS.mobBlockOpen)
+        setStrBlockOpen(WORKOUT_DEFAULTS.strBlockOpen)
+        setClrBlockOpen(WORKOUT_DEFAULTS.clrBlockOpen)
     }, [])
 
     // ── Persistent-storage request (W23.5) ────────────────────────────────────
@@ -580,6 +594,9 @@ export function DBProvider({ children }) {
             altDuration, setAltDuration,
             hudScrollY, setHudScrollY,
             bagBlockOpen, setBagBlockOpen,
+            mobBlockOpen, setMobBlockOpen,
+            strBlockOpen, setStrBlockOpen,
+            clrBlockOpen, setClrBlockOpen,
             coreBlockOpen, setCoreBlockOpen,
             resetActiveWorkout,
 
