@@ -1,11 +1,11 @@
 ## Current state (one line)
-ROADMAP.md complete through Phase 4.5 / W23 (PRs #1–#17, 2026-07-12): layered nav, Checklist
-hub v1.1, Notes v1, and data durability all live and verified on the developer's phone.
+ROADMAP.md complete through W17 (PRs #1–#23, 2026-07-17): 7-day cycle, fully collapsible
+HUD with superset badges, and Sheet-side soft delete (webhook v3 deployed) all live and
+verified on the developer's phone.
 
 ## Pending
 
-- [ ] Delegate W16 (Day-7 cycle) — prompt at docs/planning/roadmap/prompts/W16-next-day-semantics.md
-- [ ] Delegate W17 (soft delete) — the one webhook-guardrail exception; needs manual Apps Script redeploy
-- [ ] Delegate W10 (HUD restyle) — independent, parallel-safe
-- [ ] W24 (Tracking & counting) — ⛔ gated on the developer living with Notes v1 first; also tick the W23.5/W23 boxes in ROADMAP.md next session
+- [ ] W24 (Tracking & counting) — ⛔ still gated on living with Notes v1; prompt not yet written
+- [ ] W18 (custom Claude skills) — ARCH, parallel-safe, whenever wanted
 - [ ] Developer: move combatos-backup-*.json out of docs/reference/checklist-ideas/
+- [ ] Optional: Sheets strikethrough conditional-format rule keyed on Status = CANCELLED
