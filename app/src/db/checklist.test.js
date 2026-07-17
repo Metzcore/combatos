@@ -17,7 +17,7 @@ import {
     DEFAULT_GROUP_NAME,
     createGroup, ensureDefaultGroup, renameGroup, moveGroup, deleteGroup,
     createTask, quickAddTask, updateTask, stopRepeating, moveTask, softDeleteTask,
-    setCompletion, getGroupsWithTasks, exportChecklist,
+    setCompletion, incrementCompletion, getGroupsWithTasks, exportChecklist,
     getResetTime, setResetTime
 } from './checklist.js'
 
@@ -296,6 +296,73 @@ describe('completions — idempotence and view annotation', () => {
     })
 })
 
+// ─── Counted tasks (W24) ──────────────────────────────────────────────────────
+
+describe('counted tasks — tally on the same [taskId+date] row (W24)', () => {
+    it('increment creates the row at 1, then adjusts; decrement to 0 deletes it', async () => {
+        const t = await createTask({ title: 'Water 💧', repeatDaily: true, counted: true })
+
+        await incrementCompletion(t.id, TODAY, 1)
+        let row = await db.checklistCompletions.get([t.id, TODAY])
+        expect(row.count).toBe(1)
+        const firstCompletedAt = row.completedAt
+
+        await incrementCompletion(t.id, TODAY, 1)
+        await incrementCompletion(t.id, TODAY, 1)
+        row = await db.checklistCompletions.get([t.id, TODAY])
+        expect(row.count).toBe(3)
+        // completedAt keeps the FIRST completion time of the day
+        expect(row.completedAt).toBe(firstCompletedAt)
+
+        await incrementCompletion(t.id, TODAY, -1)
+        row = await db.checklistCompletions.get([t.id, TODAY])
+        expect(row.count).toBe(2)
+
+        await incrementCompletion(t.id, TODAY, -1)
+        await incrementCompletion(t.id, TODAY, -1)
+        expect(await db.checklistCompletions.get([t.id, TODAY])).toBeUndefined()
+
+        // decrement on a missing row stays a no-op (never goes negative)
+        await incrementCompletion(t.id, TODAY, -1)
+        expect(await db.checklistCompletions.get([t.id, TODAY])).toBeUndefined()
+    })
+
+    it('a counted day feeds doneToday and the streak exactly like a binary one', async () => {
+        const t = await createTask({ title: 'Pouches', repeatDaily: true, counted: true })
+        await incrementCompletion(t.id, '2026-07-10', 2)
+        await incrementCompletion(t.id, TODAY, 1)
+
+        const [group] = await getGroupsWithTasks(TODAY)
+        const task = group.tasks[0]
+        expect(task.doneToday).toBe(true)
+        expect(task.countToday).toBe(1)
+        expect(task.streak).toBe(2) // yesterday + today, unchanged streak math
+    })
+
+    it('a counted ONE-OFF stays visible after +1 (unlike completed binary one-offs)', async () => {
+        const t = await createTask({ title: 'Outreach', counted: true }) // repeatDaily: false
+        await incrementCompletion(t.id, TODAY, 1)
+
+        const [group] = await getGroupsWithTasks(TODAY)
+        expect(group.tasks.map(x => x.id)).toContain(t.id)
+        expect(group.tasks[0].countToday).toBe(1)
+        expect(group.tasks[0].streak).toBe(0) // streaks stay repeatDaily-only
+    })
+
+    it('a legacy binary completion row reads as countToday 1; binary tasks report 0 when unticked', async () => {
+        const t = await createTask({ title: 'Hydrate', repeatDaily: true }) // binary
+        await setCompletion(t.id, TODAY, true) // row without a count field
+
+        let [group] = await getGroupsWithTasks(TODAY)
+        expect(group.tasks[0].countToday).toBe(1)
+
+        await setCompletion(t.id, TODAY, false)
+        ;[group] = await getGroupsWithTasks(TODAY)
+        expect(group.tasks[0].countToday).toBe(0)
+        expect(group.tasks[0].doneToday).toBe(false)
+    })
+})
+
 // ─── Export (D4 connector contract) ───────────────────────────────────────────
 
 describe('exportChecklist — plain-JSON shape stability', () => {
@@ -319,16 +386,18 @@ describe('exportChecklist — plain-JSON shape stability', () => {
         expect(out.groups[0].deletedAt).toBeNull()
 
         expect(Object.keys(out.tasks[0]).sort()).toEqual(
-            ['createdAt', 'deletedAt', 'groupId', 'id', 'note', 'order',
+            ['counted', 'createdAt', 'deletedAt', 'groupId', 'id', 'note', 'order',
                 'repeatDaily', 'scheduledTime', 'title', 'updatedAt'].sort()
         )
         expect(out.tasks[0].deletedAt).toBeTruthy() // tombstone included
         expect(out.tasks[0].groupId).toBe(g.id)     // stable string FK
+        expect(out.tasks[0].counted).toBe(false)    // W24 additive, defaulted
 
         expect(Object.keys(out.completions[0]).sort()).toEqual(
-            ['completedAt', 'date', 'taskId']
+            ['completedAt', 'count', 'date', 'taskId']
         )
         expect(out.completions[0]).toMatchObject({ taskId: t.id, date: TODAY })
+        expect(out.completions[0].count).toBeNull() // binary completion → null
 
         // Round-trips through JSON without loss (plain data only)
         expect(JSON.parse(JSON.stringify(out))).toEqual(out)

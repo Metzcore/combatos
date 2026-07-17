@@ -129,7 +129,7 @@ async function nextTaskOrder(groupId) {
     return active.length > 0 ? Math.max(...active.map(t => t.order)) + 1 : 0
 }
 
-export async function createTask({ title, note = '', scheduledTime = '', repeatDaily = false, groupId = null }) {
+export async function createTask({ title, note = '', scheduledTime = '', repeatDaily = false, counted = false, groupId = null }) {
     const gid = groupId || (await ensureDefaultGroup()).id
     const ts = nowIso()
     const task = {
@@ -139,6 +139,7 @@ export async function createTask({ title, note = '', scheduledTime = '', repeatD
         note,
         scheduledTime,
         repeatDaily,
+        counted,
         order: await nextTaskOrder(gid),
         createdAt: ts,
         updatedAt: ts,
@@ -190,6 +191,30 @@ export async function setCompletion(taskId, dateStr, done) {
     }
 }
 
+/**
+ * Adjusts a COUNTED task's tally for a given local date (W24). Same
+ * [taskId+date] row as binary completions — a row existing (count >= 1) is
+ * what doneToday/streak logic already reads, so streaks are unchanged by
+ * construction. Reaching 0 deletes the row (the day becomes incomplete).
+ * `completedAt` keeps the FIRST completion time of the day across
+ * increments. A legacy row without a `count` field reads as 1.
+ */
+export async function incrementCompletion(taskId, dateStr, delta) {
+    const row = await db.checklistCompletions.get([taskId, dateStr])
+    const current = row ? (row.count ?? 1) : 0
+    const next = current + delta
+    if (next <= 0) {
+        await db.checklistCompletions.delete([taskId, dateStr])
+    } else {
+        await db.checklistCompletions.put({
+            taskId,
+            date: dateStr,
+            completedAt: row?.completedAt ?? nowIso(),
+            count: next
+        })
+    }
+}
+
 // ─── View model ───────────────────────────────────────────────────────────────
 
 /**
@@ -216,9 +241,13 @@ export async function getGroupsWithTasks(todayStr = logicalDateStr()) {
     const allCompletions = await db.checklistCompletions.toArray()
 
     const completionsByTask = new Map()
+    const countByTaskToday = new Map()
     for (const c of allCompletions) {
         if (!completionsByTask.has(c.taskId)) completionsByTask.set(c.taskId, new Set())
         completionsByTask.get(c.taskId).add(c.date)
+        // W24: today's tally per task. A row without a `count` field (binary
+        // completion, or pre-W24 data) reads as 1.
+        if (c.date === todayStr) countByTaskToday.set(c.taskId, c.count ?? 1)
     }
 
     return groups.map(group => {
@@ -230,11 +259,15 @@ export async function getGroupsWithTasks(todayStr = logicalDateStr()) {
                 return {
                     ...t,
                     doneToday: dates.has(todayStr),
+                    countToday: countByTaskToday.get(t.id) ?? 0,
                     streak: t.repeatDaily ? computeStreak(dates, todayStr) : 0,
                     everCompleted: dates.size > 0
                 }
             })
-            .filter(t => t.repeatDaily || !t.everCompleted) // completed one-offs leave the view
+            // Completed one-offs leave the view; counted tasks stay visible
+            // like recurring ones (W24 — a counted one-off must not vanish
+            // after its first +1).
+            .filter(t => t.repeatDaily || t.counted || !t.everCompleted)
         return { ...group, tasks }
     })
 }
@@ -251,9 +284,12 @@ export async function getGroupsWithTasks(todayStr = logicalDateStr()) {
  *   exportedAt: ISO timestamp,
  *   groups:      [{ id, name, order, createdAt, updatedAt, deletedAt }],
  *   tasks:       [{ id, groupId, title, note, scheduledTime, repeatDaily,
- *                   order, createdAt, updatedAt, deletedAt }],
- *   completions: [{ taskId, date, completedAt }]
+ *                   counted, order, createdAt, updatedAt, deletedAt }],
+ *   completions: [{ taskId, date, completedAt, count }]
  * }
+ *
+ * W24 additions are strictly additive (version stays 1): `counted` defaults
+ * false, `count` is null on binary completions.
  *
  * Soft-deleted rows ARE included (with their deletedAt) — the export is the
  * full data set, and the consumer decides what to do with tombstones.
@@ -282,6 +318,7 @@ export async function exportChecklist() {
             note: t.note,
             scheduledTime: t.scheduledTime,
             repeatDaily: t.repeatDaily,
+            counted: t.counted ?? false,
             order: t.order,
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
@@ -290,7 +327,8 @@ export async function exportChecklist() {
         completions: completions.map(c => ({
             taskId: c.taskId,
             date: c.date,
-            completedAt: c.completedAt
+            completedAt: c.completedAt,
+            count: c.count ?? null
         }))
     }
 }

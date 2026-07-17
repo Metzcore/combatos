@@ -1061,6 +1061,35 @@ input[type="checkbox"] {
   font-size: 0.68rem;
 }
 
+/* W24 — counted-task tally. Sits in the checkbox's left slot; the visible
+   glyph is checkbox-scale but the hit area is padded well past it (sweaty
+   thumbs — mid-workout is the design case). */
+.checklist-count-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.checklist-count-btn:active {
+  background: rgba(232, 160, 32, 0.18);
+}
+
+.checklist-count {
+  font-size: 0.68rem;
+}
+
 .checklist-task-row__more {
   flex-shrink: 0;
   padding: 4px 10px;

@@ -48,6 +48,15 @@ export default function Checklist() {
         cl.setCompletion(task.id, logicalDateStr(new Date(), cl.resetTime), done)
     }
 
+    // W24 — counted tasks: the row's ＋ sends +1, the … sheet's "− 1 today"
+    // sends −1. Same logical-day stamp as binary completions.
+    const handleIncrement = task => {
+        cl.increment(task.id, logicalDateStr(new Date(), cl.resetTime), 1)
+    }
+    const handleDecrement = task => {
+        cl.increment(task.id, logicalDateStr(new Date(), cl.resetTime), -1)
+    }
+
     const handleSaveTask = fields => {
         if (editState?.task) {
             cl.updateTask(editState.task.id, fields)
@@ -122,6 +131,7 @@ export default function Checklist() {
                             onAddTask={g => setEditState({ group: g })}
                             onOpenGroupActions={g => setActionsGroupId(g.id)}
                             onToggleTask={handleToggle}
+                            onIncrementTask={handleIncrement}
                             onOpenTaskActions={setActionsTask}
                         />
                     ))
@@ -142,6 +152,7 @@ export default function Checklist() {
                 onStopRepeating={cl.stopRepeating}
                 onMoveToGroup={cl.moveTask}
                 onDelete={cl.deleteTask}
+                onDecrement={handleDecrement}
             />
 
             <TaskEditSheet

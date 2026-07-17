@@ -1,15 +1,17 @@
 /**
- * TaskActionsSheet.jsx — the row `…` bottom-sheet menu (W21)
+ * TaskActionsSheet.jsx — the row `…` bottom-sheet menu (W21, W24)
  *
- * Actions: Edit · Stop repeating (recurring tasks only) · Move to group ·
- * Delete (native confirm — reviewer ruling #4). "Move to group" swaps the
- * sheet content for the group list in place.
+ * Actions: − 1 today (counted tasks with a tally, W24 — the deliberate home
+ * of decrement, so the row's ＋ can't be mis-tapped into an undo) · Edit ·
+ * Stop repeating (recurring tasks only) · Move to group · Delete (native
+ * confirm — reviewer ruling #4). "Move to group" swaps the sheet content
+ * for the group list in place.
  */
 import { useState, useEffect } from 'react'
 import BottomSheet from '../BottomSheet.jsx'
 
 export default function TaskActionsSheet({
-    task, groups, onClose, onEdit, onStopRepeating, onMoveToGroup, onDelete
+    task, groups, onClose, onEdit, onStopRepeating, onMoveToGroup, onDelete, onDecrement
 }) {
     const [picking, setPicking] = useState(false)
     const open = !!task
@@ -46,6 +48,11 @@ export default function TaskActionsSheet({
                 )
             ) : (
                 <>
+                    {task.counted && task.countToday > 0 && (
+                        <button className="sheet__action" onClick={() => { onDecrement(task); onClose() }}>
+                            − 1 today (×{task.countToday})
+                        </button>
+                    )}
                     <button className="sheet__action" onClick={() => { onEdit(task); onClose() }}>
                         ✎ Edit
                     </button>

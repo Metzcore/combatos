@@ -10,7 +10,7 @@ import ChecklistTaskRow from './ChecklistTaskRow.jsx'
 export default function ChecklistGroupCard({
     group,
     onAddTask, onOpenGroupActions,
-    onToggleTask, onOpenTaskActions
+    onToggleTask, onIncrementTask, onOpenTaskActions
 }) {
     return (
         <div className="card checklist-group">
@@ -29,6 +29,7 @@ export default function ChecklistGroupCard({
                         key={task.id}
                         task={task}
                         onToggle={onToggleTask}
+                        onIncrement={onIncrementTask}
                         onOpenActions={onOpenTaskActions}
                     />
                 ))
