@@ -1,7 +1,13 @@
 import { useState, useMemo } from 'react'
 import PLAYBOOK_DATA from '../data/playbook.js'
+import { useDB } from '../db/index.jsx'
+import { isPhaseLocked } from '../utils/phaseUnlock.js'
 
 export default function PlaybookViewer() {
+    // W14 — lock badges read the same phase + sessionCount the real unlock
+    // check uses (utils/phaseUnlock.js). Signal only: locked phases stay
+    // fully browsable.
+    const { phase, sessionCount } = useDB()
     // Group rows by Phase then Day
     const playbook = useMemo(() => {
         const phases = { 1: {}, 2: {}, 3: {} }
@@ -23,16 +29,19 @@ export default function PlaybookViewer() {
             </header>
 
             <div className="selector-row" style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                {[1, 2, 3].map(p => (
-                    <button
-                        key={p}
-                        className={activePhase === p ? 'btn-primary' : 'btn-secondary'}
-                        onClick={() => setActivePhase(p)}
-                        style={{ padding: '8px 16px', width: 'auto' }}
-                    >
-                        Phase {p}
-                    </button>
-                ))}
+                {[1, 2, 3].map(p => {
+                    const locked = isPhaseLocked(p, phase, sessionCount)
+                    return (
+                        <button
+                            key={p}
+                            className={`${activePhase === p ? 'btn-primary' : 'btn-secondary'}${locked ? ' phase-locked' : ''}`}
+                            onClick={() => setActivePhase(p)}
+                            style={{ padding: '8px 16px', width: 'auto' }}
+                        >
+                            Phase {p}{locked ? ' 🔒' : ''}
+                        </button>
+                    )
+                })}
             </div>
 
             <div className="content" style={{ padding: 0 }}>

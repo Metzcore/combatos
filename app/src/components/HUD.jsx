@@ -19,6 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
 import { nextDay } from '../utils/nextDay.js'
+import { PHASE_UNLOCK_THRESHOLD, phaseReady } from '../utils/phaseUnlock.js'
 import MobilityBlock from './MobilityBlock.jsx'
 import StrengthBlock from './StrengthBlock.jsx'
 import BagBlock from './BagBlock.jsx'
@@ -30,7 +31,6 @@ import PhaseUnlockBanner from './PhaseUnlockBanner.jsx'
 
 const DAY_LABELS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7']
 const HIP_LABELS = ['1 – Critical', '2 – High Alert', '3 – Moderate', '4 – Good', '5 – Excellent']
-const PHASE_UNLOCK_THRESHOLD = 12
 
 export default function HUD() {
     const {
@@ -97,8 +97,10 @@ export default function HUD() {
     }, [coreHasData, setCoreBlockOpen])
 
     // ── Phase unlock check ────────────────────────
+    // W14: the condition itself moved verbatim to utils/phaseUnlock.js so
+    // the signaling surfaces below read the SAME computation — no drift.
     const gymSessionsThisPhase = sessionCount[phase] || 0
-    const phaseUnlocked = gymSessionsThisPhase >= PHASE_UNLOCK_THRESHOLD && phase < 3
+    const phaseUnlocked = phaseReady(phase, sessionCount)
 
     // ── Progress Summary ──────────────────────────
     const [progressSummary, setProgressSummary] = useState(null)
@@ -279,6 +281,17 @@ export default function HUD() {
                         </select>
                     </div>
                 </div>
+
+                {/* ── Phase progress line (W14) ───────── */}
+                {/* Signal only — derives from the SAME sessionCount +      */}
+                {/* phaseReady() the unlock check reads. When the phase is  */}
+                {/* ready, the PhaseUnlockBanner above already says so, so  */}
+                {/* this line only renders while still locked.              */}
+                {phase < 3 && !phaseUnlocked && (
+                    <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                        🔒 Phase {phase + 1} unlocks after {PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase} more S&amp;C session{PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase === 1 ? '' : 's'} ({gymSessionsThisPhase}/{PHASE_UNLOCK_THRESHOLD})
+                    </div>
+                )}
 
                 {/* ── Next Day indicator ──────────────── */}
                 {progressSummary && (
