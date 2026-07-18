@@ -732,6 +732,12 @@ input[type="checkbox"] {
   width: auto;
 }
 
+/* W14 — locked-phase signal on the Playbook phase buttons. Signal only:
+   the button stays fully interactive (curriculum is always browsable). */
+.phase-locked {
+  opacity: 0.55;
+}
+
 /* ── Action buttons bar ─────────────────────────── */
 .actions-bar {
   display: grid;
