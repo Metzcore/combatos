@@ -9,7 +9,7 @@
  * half of URL are stubbed per test. `File` itself is a real Node global.
  */
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { shareOrDownloadJson, shareOrDownloadChecklist } from './checklistShare.js'
+import { shareOrDownloadJson, shareOrDownloadChecklist, shareOrDownloadNotes } from './checklistShare.js'
 import { localDateStr } from './checklistDate.js'
 
 const DATA = { hello: 'world' }
@@ -118,6 +118,30 @@ describe('shareOrDownloadChecklist — unchanged W22 wrapper behavior', () => {
         stubShare({ shareImpl: async () => { throw abort } })
 
         await expect(shareOrDownloadChecklist(DATA)).resolves.toBeUndefined()
+        expect(anchor.click).not.toHaveBeenCalled()
+    })
+})
+
+describe('shareOrDownloadNotes — W25 wrapper behavior', () => {
+    it('keeps the combatos-notes-<local date> filename and W25 share title', async () => {
+        stubAnchor()
+        const share = stubShare({ shareImpl: async () => {} })
+
+        const result = await shareOrDownloadNotes(DATA)
+
+        const { files, title } = share.mock.calls[0][0]
+        expect(files[0].name).toBe(`combatos-notes-${localDateStr()}.json`)
+        expect(title).toBe('CombatOS Notes Export')
+        expect(result).toBeUndefined() // same signature as shareOrDownloadChecklist
+    })
+
+    it('still swallows a user cancel silently (no download, no throw)', async () => {
+        const anchor = stubAnchor()
+        const abort = new Error('cancel')
+        abort.name = 'AbortError'
+        stubShare({ shareImpl: async () => { throw abort } })
+
+        await expect(shareOrDownloadNotes(DATA)).resolves.toBeUndefined()
         expect(anchor.click).not.toHaveBeenCalled()
     })
 })

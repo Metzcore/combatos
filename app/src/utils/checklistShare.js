@@ -57,3 +57,11 @@ export async function shareOrDownloadChecklist(exportData) {
     const filename = `combatos-checklist-${localDateStr()}.json`
     await shareOrDownloadJson(exportData, filename, 'CombatOS Checklist Export')
 }
+
+// shareOrDownloadNotes() — W25, thin sibling of shareOrDownloadChecklist().
+// Takes the ALREADY-FETCHED exportNotes() result (that function's shape is
+// the D4 connector contract and is not touched here).
+export async function shareOrDownloadNotes(exportData) {
+    const filename = `combatos-notes-${localDateStr()}.json`
+    await shareOrDownloadJson(exportData, filename, 'CombatOS Notes Export')
+}

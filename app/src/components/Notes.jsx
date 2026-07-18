@@ -14,6 +14,7 @@
 import { useState } from 'react'
 import { useNotes } from '../hooks/useNotes.js'
 import { filterNotesViewModel } from '../utils/noteFilter.js'
+import { shareOrDownloadNotes } from '../utils/checklistShare.js'
 import NoteGroupCard from './notes/NoteGroupCard.jsx'
 import NoteEditor from './notes/NoteEditor.jsx'
 import NoteActionsSheet from './notes/NoteActionsSheet.jsx'
@@ -59,6 +60,11 @@ export default function Notes() {
         setEditorState({ note, mode: 'edit' })
     }
 
+    const handleShare = async () => {
+        const data = await n.exportData()
+        await shareOrDownloadNotes(data)
+    }
+
     if (editorState) {
         return (
             <NoteEditor
@@ -91,6 +97,9 @@ export default function Notes() {
                         aria-label="Search notes"
                     />
                     <div className="checklist-toolbar__actions">
+                        <button className="btn-ghost" onClick={handleShare} aria-label="Share notes export">
+                            ⇪ Share
+                        </button>
                         <button className="btn-ghost" onClick={handleToday} aria-label="Open today's daily note">
                             ☀ Today
                         </button>
