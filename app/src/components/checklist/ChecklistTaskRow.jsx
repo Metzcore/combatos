@@ -18,8 +18,13 @@ export default function ChecklistTaskRow({ task, onToggle, onIncrement, onOpenAc
         || (task.repeatDaily && task.streak > 0)
         || (task.counted && task.countToday > 0)
 
+    // Counted tasks never take the `done` styling: a tally records
+    // occurrences, it doesn't complete anything — striking through
+    // "Nicotine Pouches" at ×1 reads as finished (or worse, for a
+    // reduction target, as an achievement). The ×N badge is the
+    // activity-today signal for counted rows.
     return (
-        <div className={`checklist-task-row${task.doneToday ? ' done' : ''}`}>
+        <div className={`checklist-task-row${task.doneToday && !task.counted ? ' done' : ''}`}>
             {task.counted ? (
                 <button
                     className="checklist-count-btn"
