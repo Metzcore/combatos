@@ -1,23 +1,22 @@
 # STATUS
-_Last updated: 2026-07-17 · delegated feature work_
+_Last updated: 2026-07-18 · mixed (hygiene + W18 close-out + W24 ruled, built, shipped)_
 
 ## Last session
-Cleared the entire pending delegation queue via four merged feature PRs (#18, #21, #22, #23)
-plus two docs PRs (#19 day-7 quirk note, #20 rescued goodnight): W16 Day-7 cycle extension
-(7-day sequential wrap, Cardio default on day 7, phase-unlock exclusion), W10 HUD visual
-hierarchy (A1/A2 superset badges, collapsible bag/core with auto-expand), W10.1 follow-up
-making mobility/strength/cooldown collapsible too (default open), and W17 soft delete
-(webhook.gs v3 writes CANCELLED to the new Status column BN instead of deleting the row;
-local hard delete kept). Apps Script redeployed and verified (v3 health check + on-device
-log→delete test); 206 tests green. One worker died to a usage limit mid-W10.1 — the
-inventory-and-resume pattern recovered it with zero rework.
+Closed the whole arc in one day: W17 hygiene finished (Sheets strikethrough rule added
+manually, verified), W18 completed at the 4-skill cap (PR #27), ARCHITECTURE.md refreshed
+to post-W17 reality (PR #28). Then W24 end to end: the usage gate was evaluated against
+5 days of real Checklist/Notes use → D8 ruled the standalone tracker DEFERRED in favor of
+counted tasks (+1 tally on checklist tasks, zero schema bump), implemented and merged
+(PR #29), validated on-device the same day; day-one use caught the counted-row
+strikethrough bug, fixed in PR #30. W25 (Notes export button) and W26 (Log hub redesign
+research) added to the roadmap; D9 (off-programme activity logging) opened, unruled.
 
 ## Current focus
-Live with the new 7-day cycle + fully collapsible HUD + Checklist + Notes daily —
-W24 (Tracking) stays gated on that usage validation.
+Live with counted tasks daily — W26 (Log hub redesign, the surface for per-day tally
+history, now a VALIDATED need) is gated on that usage.
 
 ## Up next
-1. W24 — Tracking & counting (⛔ gated on living with Notes; prompt not yet written)
-2. W18 — Custom Claude skills (ARCH, low-risk, parallel-safe whenever wanted)
-3. Move the downloaded combatos-backup JSON out of docs/reference/checklist-ideas/
-4. Optional: Sheets conditional-format rule (strikethrough where Status = CANCELLED) — no redeploy needed
+1. W25 — Notes export button (tiny, parallel-safe; prompt not yet written)
+2. W26 — Log hub redesign research (⛔ gated on living with counted tasks)
+3. Developer: confirm where the full-backup JSON lives, or re-export from Settings
+4. D9 ruling whenever ready — feeds W26, blocks nothing

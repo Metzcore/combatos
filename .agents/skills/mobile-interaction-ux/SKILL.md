@@ -23,8 +23,9 @@ breathing hard, phone at arm's length, thumb only. Desktop rendering is irreleva
 ## Reuse the existing primitives — don't invent parallel ones
 
 - **`BottomSheet.jsx`** is the app's one modal-ish surface (pickers, action menus,
-  import/share flows). Browser `prompt()`/`confirm()` are banned — W22 removed the last
-  of them; don't reintroduce.
+  import/share flows). Browser `prompt()` is banned — W22 removed the last of them.
+  `confirm()` survives ONLY for destructive confirmations (task delete, by explicit
+  reviewer ruling); don't add new ones.
 - **`QuickAddBar.jsx`** is the pinned-input pattern for capture-fast flows.
 - Navigation is the 5-slot `BottomNav` + `TopTabs` layer-2 bar (selection state in
   `utils/navState.js`, owned by `AppShell`). New surfaces slot into this paradigm; a

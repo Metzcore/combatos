@@ -86,3 +86,30 @@ via inventory-and-resume with zero rework.
 Supabase gates unchanged, backup-JSON move still on the developer.
 
 **To do next session:** write the W24 prompt once Notes usage is validated; W18 whenever wanted.
+
+---
+
+## 2026-07-18 · Hygiene + W18 close-out + W24 ruled/built/shipped (PRs #27–#30)
+
+**Context:** one session, start to finish: hygiene items → W18 remainder skills →
+ARCHITECTURE.md refresh → W24 gate evaluation → D8 ruling → prompt → implementation →
+on-device validation → day-one fix.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | D8: standalone Track system DEFERRED; W24 = counted tasks (`counted`/`count` as non-indexed fields on existing rows — NO Dexie bump; +1 in the row, −1 in the `…` sheet; streaks unchanged by construction; counted one-offs stay visible) | 5 days of honest usage produced zero tracking workarounds; the developer's own first tracker-shaped task died in 5 days; the want-to-track list fails the 2-tap friction test |
+| 2 | Counted rows never take the done styling — a tally records occurrences, it completes nothing | Day-one on-device use: strikethrough on "Nicotine Pouches ×1" read as completion/achievement (fixed in PR #30) |
+| 3 | Sheets-tab export for checklist/notes re-affirmed OUT; developer ratified "stick to it for now" | The 2026-07-12 data policy stands; history visibility is W26's job, durability is the full backup + Supabase (D7) |
+| 4 | W26 scope upgraded: per-day tally history surfacing is a VALIDATED requirement, not a hypothesis | The developer put the date in a task title to "save" daily counts — the per-date data was already stored; the gap is visibility, not storage |
+| 5 | D9 opened, NOT ruled: off-programme activity logging (options range from a counted task to webhook-touching session types) | Some options touch the frozen webhook contract; never default silently |
+
+**Not done / deferred:** W25/W26 unstarted; Supabase gates unchanged; backup-JSON location
+unconfirmed by the developer.
+
+**Process note:** the W24 planning-docs PR was believed merged mid-session but never was —
+caught at goodnight by pulling main and checking before branching; its commit ships inside
+this goodnight PR instead (the code PRs never depended on it). Lesson: after a "merged",
+pull and verify before building dependent work on the assumption.
+
+**To do next session:** live with counted tasks · W25 whenever wanted · W26 once usage
+accumulates · D9 ruling when the developer is ready.
