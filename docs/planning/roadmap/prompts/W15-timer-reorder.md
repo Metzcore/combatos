@@ -4,7 +4,7 @@
 
 --------------------------------------------------------------------------------
 
-You are working in the **Combat OS (Fight-Camp)** repo. Task: user-controlled ordering of the blocks on the Timer tab (stopwatch / rest-timer / rounds-timer blocks — currently fixed order).
+You are working in the **Combat OS (Fight-Camp)** repo. Task: user-controlled ordering of the blocks on the Timer tab (stopwatch / rest-timer blocks in `BasicTimer.jsx` — currently fixed order; post-W20 the rounds timer is a separate top tab, not a stackable block).
 
 ### DO NOT TOUCH
 - Timer LOGIC: the rounds engine, interval/bell scheduling, audio, the in-memory timer state persistence (this survived a hard-won Project A fix — see `db/index.jsx` in-memory timer state). Reordering is layout-only.

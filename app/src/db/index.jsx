@@ -14,6 +14,7 @@
 import Dexie from 'dexie'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import useRoundsTimer from '../hooks/useRoundsTimer.js'
+import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 
 // Re-export for backward compatibility (syncQueue.test.js and any external
@@ -269,6 +270,23 @@ export function DBProvider({ children }) {
         });
     }, []);
 
+    // ── Basic Timer block order (W15) ─────────────────────────────────────────
+    // LAYOUT ONLY: which order the Stopwatch / Rest Timer cards render in on
+    // the Basic tab. The timers themselves tick in this provider regardless
+    // of display position. Persisted in the settings table (fallback-on-read,
+    // no eager write — same pattern as savedRoundsTimers above).
+    const [basicTimerBlockOrder, setBasicTimerBlockOrder] = useState(() => normalizeBlockOrder(undefined))
+
+    const moveBasicTimerBlock = useCallback((id, delta) => {
+        setBasicTimerBlockOrder(prev => {
+            const next = moveBlock(prev, id, delta)
+            if (next !== prev) {
+                setSetting('basicTimerBlockOrder', next).catch(console.error)
+            }
+            return next
+        })
+    }, [])
+
     // ── Stopwatch interval — runs in provider, survives tab unmount ───────────
     useEffect(() => {
         if (swRunning) {
@@ -441,6 +459,10 @@ export function DBProvider({ children }) {
                 setSavedRoundsSetups(setups)
             }
 
+            // W15 — normalizeBlockOrder handles undefined (no stored value →
+            // default order) and any stale/corrupt stored shape; never throws.
+            setBasicTimerBlockOrder(normalizeBlockOrder(await getSetting('basicTimerBlockOrder')))
+
             await refreshCounts()
             await refreshPending()
             setReady(true)
@@ -604,6 +626,7 @@ export function DBProvider({ children }) {
             swTime, swRunning, toggleStopwatch, resetStopwatch,
             cdTime, cdRunning, startCountdown, toggleCountdown, cancelCountdown, addCountdownTime,
             alertState,
+            basicTimerBlockOrder, moveBasicTimerBlock,
 
             // ── Custom Rounds Timer ──
             roundsTimer,
