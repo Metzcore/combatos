@@ -139,3 +139,34 @@ pull and verify before building dependent work on the assumption.
 
 **To do next session:** live with counted tasks · W25 whenever wanted · W26 once usage
 accumulates · D9 ruling when the developer is ready.
+
+---
+
+## 2026-07-20→21 · Feature delivery (W25/W14/W15/W27) + rebuild & Supabase architecture committed
+
+**Context:** One long session: four small roadmap items shipped via delegate→review→PR, a
+branch-prune sweep that rescued a stranded decision-log entry, then a strategic pivot to planning
+the app rebuild and kicking off the Supabase backend.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Commit to Track B — Supabase multi-tenant — as the distribution foundation (extends D7 "leaning go" → "in progress") | The open-source/multi-user vision needs a real backend; Sheets + per-user webhook doesn't scale past 2 |
+| 2 | One app, cartridge-driven: a program = a BUNDLE of typed cartridges (training + content); Apex becomes a bundle, NOT a sibling app; no per-user forks | Rule of three (CombatOS v1 → Apex → this rebuild) revealed the axes; forking is the pain being escaped |
+| 3 | Navigation is a variation axis: config-driven hubs + a "More" catch-all (TRW pattern); Checklist is a universal primary hub | Solves Apex's icon crowding and "no Apex tab in Combat OS" without forking |
+| 4 | Clean-slate Supabase migration: wipe/freeze old Sheets data; repoint the write path (syncQueue drain) webhook → Supabase. Deliberately supersedes AGENTS rule 2 for the write path | New schema differs; migrating old rows is translation busywork; developer OK wiping |
+| 5 | Supabase `sessions` stores a generic JSONB payload | So the cartridge rebuild changes the payload, not the table — no second DB migration |
+| 6 | Supabase work stays OFF main (`feat/supabase-foundation` + preview deploy) until proven | The daily-driver production app must never be at risk mid-migration |
+| 7 | Sequencing: Supabase foundation FIRST (current app, single-user), THEN the cartridge rebuild (Track A). Brother NOT pre-staged; magic-link onboard when he + his cartridge are ready | Supabase is the well-understood foundation; the brother's value needs Track A, which comes after |
+| 8 | Free-tier keep-alive must be EXTERNAL (n8n per D7, or a GitHub Action cron), never in-app; go Pro when the brother is a daily user | An app can't ping itself when closed; a paused project needs a manual restore, so prevention runs externally |
+
+**Not done / deferred:** Supabase M1 (auth) + M2/M3 (sync repoint, isolation test) unbuilt; CSV
+Program Authoring Kit still owed; W26 research running as a parallel session; D9 open; W28
+(data-layer phase guard) logged as a candidate.
+
+**Also this session:** shipped W25 (#32), W14 (#33), W15 (#36), W27 (merged) — all on-device
+verified. Rescued the stranded 2026-07-17 decision-log entry (confirmed backup JSON location).
+Applied the Supabase sessions+profiles+RLS schema (project `pckokypnxrimayjmjgcl`; advisor clean
+after locking down the `handle_new_user` trigger).
+
+**To do next session:** build Supabase M1 (auth → phone login) · write the CSV Authoring Kit ·
+then M2/M3 · rule D9 · fold in W26 research when it returns.
