@@ -89,6 +89,32 @@ Supabase gates unchanged, backup-JSON move still on the developer.
 
 ---
 
+## 2026-07-17 (evening) · Housekeeping + W18 partial — conventions skill, PR-#11 cleanup (PRs #24–#26)
+
+_(Rescued 2026-07-20: this entry was originally committed on `docs/goodnight-2026-07-17-pm`,
+which was never merged to main — so its decisions, and the fact that the full-backup JSON move
+was already DONE, were lost. A later session re-opened "confirm backup location" as a pending
+item because this record was stranded. Rescued into main during the W15 branch-prune sweep;
+verified on disk before restoring: `C:\Users\jmfg9\Documents\CombatOS-backups\` holds
+`combatos-backup-2026-07-12 (1).json`.)_
+
+**Context:** Fable session direct (no workers): W18 skill authoring plus a repo-hygiene
+sweep triggered by two developer observations (goodnight docs unmerged; stale conflicted PR #11).
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | W18 scope ruled: only combatos-conventions gets written; the other three candidates stay optional/unscheduled | Highest-value one first; a skill nobody asked for yet is speculative documentation |
+| 2 | Stale superseded PRs are closed, never conflict-resolved; unique content is rescued onto a fresh branch off main (PR #11 → CLAUDE.md via PR #26) | Resolving conflicts on a week-old close would have regressed all three continuity docs |
+| 3 | Branch hygiene convention: remote branches are deleted once fully merged (verified via `git branch -r --merged`); GitHub's Restore button covers resurrection | 16 stale branches had accumulated; merged-branch refs carry zero unique content |
+| 4 | CLAUDE.md session bootstrap is live at repo root — new agent sessions auto-load it and get pointed at AGENTS.md + the rituals | The 07-10 orphaned commit's only content main actually lacked |
+
+**Not done / deferred:** W24 (gate unchanged), W18 remainder, Sheets strikethrough rule.
+The backup-JSON move is DONE (now at C:\Users\jmfg9\Documents\CombatOS-backups\).
+
+**To do next session:** write the W24 prompt once Notes usage is validated; W18 remainder whenever wanted.
+
+---
+
 ## 2026-07-18 · Hygiene + W18 close-out + W24 ruled/built/shipped (PRs #27–#30)
 
 **Context:** one session, start to finish: hygiene items → W18 remainder skills →
