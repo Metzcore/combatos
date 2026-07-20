@@ -57,3 +57,52 @@ export function isPhaseLocked(p, currentPhase, sessionCount) {
     if (p === currentPhase + 1 && phaseReady(currentPhase, sessionCount)) return false
     return true
 }
+
+/**
+ * highestUnlockedPhase — the highest phase the user has legitimately EARNED,
+ * derived purely from persistent per-phase S&C counts (W27).
+ *
+ * Phases unlock strictly one step at a time (1→2→3): phase N+1 is earned only
+ * once phase N has reached the threshold. Starting from phase 1 (always
+ * available) we walk upward while each step readies the next, capped at 3.
+ *
+ * This is a pure function of `sessionCount` ONLY — it never reads the
+ * currently-selected phase — so the set of earned phases is stable no matter
+ * which phase is active. That is what makes climbing back down and up again
+ * safe: selecting an earlier earned phase never shrinks this set, so no earned
+ * phase can become unreachable (no lockout trap).
+ *
+ * @param {Object} sessionCount  S&C session counts per phase, e.g. {1: n, 2: n, 3: n}
+ * @param {number} [threshold]   sessions required (defaults to PHASE_UNLOCK_THRESHOLD)
+ * @returns {number} highest earned phase (1–3)
+ */
+export function highestUnlockedPhase(sessionCount, threshold = PHASE_UNLOCK_THRESHOLD) {
+    let highest = 1
+    while (highest < 3 && phaseReady(highest, sessionCount, threshold)) highest++
+    return highest
+}
+
+/**
+ * isPhaseSelectable — may the phase `p` be chosen in the HUD selector? (W27)
+ *
+ * True when EITHER:
+ *   - `p` is within the earned range (`p <= highestUnlockedPhase(...)`), OR
+ *   - `p` is the currently-selected phase.
+ *
+ * The `p === currentPhase` escape hatch is INTENTIONAL and required: the active
+ * value must never be disabled (a `<select>` whose value is a disabled option is
+ * an invalid, unrecoverable UI state). A consequence — by design, not a bug — is
+ * that this predicate cannot self-heal a `currentPhase` that was corrupted into
+ * an unearned phase (e.g. legacy data, or a pre-W27 premature jump): that phase
+ * stays selectable because it is active. Touch C's mismatch badge is the passive
+ * signal for that case; W27 does not forcibly correct it.
+ *
+ * @param {number} p             the phase being rendered as an option (1–3)
+ * @param {Object} sessionCount  S&C session counts per phase
+ * @param {number} currentPhase  the phase currently selected/active (1–3)
+ * @param {number} [threshold]   sessions required (defaults to PHASE_UNLOCK_THRESHOLD)
+ * @returns {boolean}
+ */
+export function isPhaseSelectable(p, sessionCount, currentPhase, threshold = PHASE_UNLOCK_THRESHOLD) {
+    return p <= highestUnlockedPhase(sessionCount, threshold) || p === currentPhase
+}

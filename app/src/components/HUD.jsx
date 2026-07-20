@@ -19,7 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
 import { nextDay } from '../utils/nextDay.js'
-import { PHASE_UNLOCK_THRESHOLD, phaseReady } from '../utils/phaseUnlock.js'
+import { PHASE_UNLOCK_THRESHOLD, phaseReady, isPhaseSelectable } from '../utils/phaseUnlock.js'
 import MobilityBlock from './MobilityBlock.jsx'
 import StrengthBlock from './StrengthBlock.jsx'
 import BagBlock from './BagBlock.jsx'
@@ -102,24 +102,39 @@ export default function HUD() {
     const gymSessionsThisPhase = sessionCount[phase] || 0
     const phaseUnlocked = phaseReady(phase, sessionCount)
 
-    // ── Progress Summary ──────────────────────────
-    const [progressSummary, setProgressSummary] = useState(null)
-    
+    // ── Progress Summary (W27) ────────────────────
+    // Store the RAW last session; build the display string in render (below)
+    // from the LIVE `phase` state. An effect keyed on sessionCount alone would
+    // cache a stale phase when the selector changes without a new log — Touch B
+    // requires the phase shown to be the one that WILL be logged. The same
+    // lastSession also feeds the stale-phase mismatch badge (Touch C).
+    const [lastSession, setLastSession] = useState(null)
+    const [progressLoaded, setProgressLoaded] = useState(false)
+
     useEffect(() => {
         async function loadProgress() {
             try {
-                const lastSession = await db.sessions.orderBy('id').reverse().limit(1).first()
-                if (lastSession) {
-                    setProgressSummary(`NEXT: DAY ${nextDay(lastSession.day)}`)
-                } else {
-                    setProgressSummary("START: DAY 1")
-                }
+                const last = await db.sessions.orderBy('id').reverse().limit(1).first()
+                setLastSession(last || null)
+                setProgressLoaded(true)
             } catch (err) {
                 console.error(err)
             }
         }
         loadProgress()
     }, [sessionCount])
+
+    // Touch B — built in render from the live `phase`, never cached in the effect.
+    // Empty state stays on Phase 1 by the selector gating, so this reads correctly.
+    const progressSummary = lastSession
+        ? `NEXT: PHASE ${phase} · DAY ${nextDay(lastSession.day)}`
+        : `START: PHASE ${phase} · DAY 1`
+
+    // Touch C — last logged phase differs from the phase now selected. Number-
+    // coerce both sides (sessions.phase may be persisted as a string). Heads-up
+    // only: dropping back to an earlier earned phase is legitimate, so this
+    // signals, it never gates logging.
+    const phaseMismatch = lastSession != null && Number(lastSession.phase) !== phase
 
     // ── Completeness calculation ─────────────────
     const completeness = useCallback(() => {
@@ -249,6 +264,9 @@ export default function HUD() {
                         currentPhase={phase}
                         sessionsDone={gymSessionsThisPhase}
                         threshold={PHASE_UNLOCK_THRESHOLD}
+                        // W27 invariant: never call setPhase with a non-selectable
+                        // phase. Safe here — this banner only renders when phaseReady
+                        // is true, so phase+1 is by definition already earned/selectable.
                         onAdvance={() => setPhase(phase + 1)}
                     />
                 )}
@@ -266,10 +284,13 @@ export default function HUD() {
                     </div>
                     <div className="selector-group">
                         <label>Phase</label>
+                        {/* W27 invariant: never call setPhase with a non-selectable */}
+                        {/* phase. Disabled options can't be picked by the user, so    */}
+                        {/* onChange can only ever yield a selectable value.            */}
                         <select value={phase} onChange={e => setPhase(Number(e.target.value))}>
-                            <option value={1}>Phase 1</option>
-                            <option value={2}>Phase 2</option>
-                            <option value={3}>Phase 3</option>
+                            <option value={1} disabled={!isPhaseSelectable(1, sessionCount, phase)}>Phase 1</option>
+                            <option value={2} disabled={!isPhaseSelectable(2, sessionCount, phase)}>Phase 2</option>
+                            <option value={3} disabled={!isPhaseSelectable(3, sessionCount, phase)}>Phase 3</option>
                         </select>
                     </div>
                     <div className="selector-group">
@@ -281,6 +302,16 @@ export default function HUD() {
                         </select>
                     </div>
                 </div>
+
+                {/* ── Stale-phase mismatch (W27, Touch C) ── */}
+                {/* Heads-up only, directly under the Phase selector: the last  */}
+                {/* logged session's phase differs from the phase now selected. */}
+                {/* Self-clears when the selector matches or a new session logs.*/}
+                {phaseMismatch && (
+                    <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                        ⚠️ Last logged Phase {lastSession.phase} — you're on Phase {phase}
+                    </div>
+                )}
 
                 {/* ── Phase progress line (W14) ───────── */}
                 {/* Signal only — derives from the SAME sessionCount +      */}
@@ -294,7 +325,7 @@ export default function HUD() {
                 )}
 
                 {/* ── Next Day indicator ──────────────── */}
-                {progressSummary && (
+                {progressLoaded && (
                     <div style={{
                         background: 'linear-gradient(135deg, rgba(255,165,0,0.12) 0%, rgba(255,100,0,0.08) 100%)',
                         border: '1px solid rgba(255,165,0,0.25)',
