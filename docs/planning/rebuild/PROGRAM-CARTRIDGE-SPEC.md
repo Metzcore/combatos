@@ -23,6 +23,18 @@ changes, no new deployment.
   prescription style, the coaching notes.
 - Swapping cartridges swaps the entire training experience with zero code changes.
 
+## Cartridge types (a person gets a BUNDLE)
+
+Every cartridge has a `type`. A person's program is a **bundle** of one or more cartridges:
+
+- **`training`** — a workout program (days + prescription model). Drives the Train hub. This is
+  the main body of this spec.
+- **`content`** — theory / educational / quick-consumption material (sections → items). Renders
+  in its own hub or a "More" entry. Sold/shipped independently of the training cartridge.
+
+Most of this document specifies the `training` type. The `content` type is intentionally minimal
+for now (the content strategy is undeveloped) — see "Content cartridge" near the end.
+
 ## The prescription model (the one real "science" choice)
 
 Every cartridge declares ONE prescription model. It controls what fields each set prescribes and
@@ -45,9 +57,10 @@ not invent a new prescription model unless none of the five can express the inte
 ```jsonc
 {
   "cartridgeId": "kebab-case-unique-id",        // e.g. "combatos-fighter-2026", "hypertrophy-6day"
+  "type": "training",                            // "training" | "content" (see Cartridge types)
   "label": "Human-readable program name",
   "description": "One or two sentences on who this is for and the training philosophy.",
-  "prescription": "percent-1rm",                 // one of the five models above
+  "prescription": "percent-1rm",                 // one of the five models above (training only)
   "cycle": {
     "dayCount": 7,                               // days in one rotation (commonly 6 or 7)
     "weeksPerBlock": 8,                           // optional: length of a training block/phase
@@ -163,3 +176,34 @@ not invent a new prescription model unless none of the five can express the inte
   "features": { "hipScoreRouting": false, "bagWork": false }
 }
 ```
+
+## Content cartridge (`type: "content"`) — minimal, provisional
+
+Content cartridges carry theory / educational / quick-consumption material (the Apex "theory"
+tab is the first example). The content strategy is undeveloped, so this shape is intentionally
+minimal and WILL evolve — treat it as a placeholder, not a finished contract. It renders inside
+its own hub or a "More" entry (see the north-star doc's navigation model).
+
+```jsonc
+{
+  "cartridgeId": "apex-theory-v1",
+  "type": "content",
+  "label": "Theory",
+  "description": "Quick-consumption training & mindset material.",
+  "sections": [
+    {
+      "id": "sec1",
+      "title": "Principles",
+      "items": [
+        { "id": "i1", "title": "Progressive Overload", "body": "Plain-text or lightweight markdown." },
+        { "id": "i2", "title": "Recovery Basics", "body": "..." }
+      ]
+    }
+  ]
+}
+```
+
+Rules: `type: "content"`, unique `cartridgeId`, ≥1 section, each section ≥1 item, unique ids.
+No prescription model, no days, no exercises — a content cartridge never drives the Train hub.
+Media (images/video) is explicitly OUT of scope for v1 (text only), mirroring the Notes editor
+plain-text ruling; revisit when the content strategy is defined.

@@ -20,6 +20,12 @@ Apex's HUD already half-implements this (it renders a dynamic `exercises[]` arra
 The rebuild adopts that dynamic, program-driven model as the foundation; Combat OS's fixed-slot
 CSV model is the thing being replaced.
 
+A person's program is a **bundle of TYPED cartridges** — a `training` cartridge (workout days +
+prescription model) and optionally a `content` cartridge (theory / educational / quick-consumption
+material, e.g. Apex's "theory" tab, which has monetisation potential as a separately shippable
+product). The bundle also declares **which navigation hubs appear** — so the set of tabs is
+config, not hardcoded. "Combat OS" and "Apex" become two bundles on one app, not two codebases.
+
 ## 2. Three layers, kept strictly separate
 
 The mental model that resolves most of the "will I wipe someone's data?" fears:
@@ -34,10 +40,10 @@ The mental model that resolves most of the "will I wipe someone's data?" fears:
 in the deployment. This is the property the current Sheets+webhook setup lacks (data is trapped
 in the deployment/device) and the main reason the rebuild targets a real backend.
 
-## 3. The five variation axes (what differs between training styles)
+## 3. The six variation axes (what differs between training styles)
 
-Derived from comparing Combat OS and Apex. Everything else is universal. A "program module"
-(cartridge + its prescription choice) is defined by these five:
+Derived from comparing Combat OS and Apex. Everything else is universal. A program bundle
+(its cartridges + their choices) is defined by these six:
 
 1. **Data schema** — how a day/exercise is described (mostly universal; see the cartridge spec).
 2. **Prescription model** — the "science": `%1RM` (Combat OS), `RPE` (Apex), `straight-sets`,
@@ -48,6 +54,40 @@ Derived from comparing Combat OS and Apex. Everything else is universal. A "prog
 4. **Day-type vocabulary** — training / rest / recovery / fight / custom.
 5. **Domain widgets** — optional per-program surfaces (hip-score routing, bag work, warmups,
    recovery cards). Feature-flagged by the cartridge, off by default.
+6. **Navigation / hubs** — which bottom-nav hubs appear and in what order, declared per bundle.
+   Universal hubs (Checklist, Timer, Settings) are always available; program-specific surfaces
+   (e.g. Apex's theory tab, driven by a `content` cartridge) appear only for bundles that include
+   them. This is why "I don't want the Apex theory tab in Combat OS" is trivially true — Combat
+   OS's bundle just doesn't declare it. See §3.1 for the pattern that keeps the bar uncrowded.
+
+### 3.1 Navigation model: config-driven hubs + the "More" catch-all
+
+Two composition patterns, both mobile-proven (the TRW app uses both — see
+`docs/reference/therealworld-app-references/`):
+
+- **Hub with top-tabs** (Combat OS already has this): one bottom-nav hub whose screen has
+  swipeable sub-tabs — Train→Workout/Playbook, Checklist→Checklist/Notes. Good for 2–3 tightly
+  related screens.
+- **"More" catch-all hub** (TRW pattern; the rebuild adds this): one bottom slot opens a
+  menu-list of secondary / rarely-used / program-specific destinations (Settings, Profile, and
+  program-specific surfaces like the Apex theory tab). Keeps the bottom bar at ~4–5 PRIMARY
+  icons no matter how many secondary surfaces exist.
+
+Consequence: **Checklist is promoted to a universal primary hub** (wanted in every app);
+overflow and program-specific tabs go into "More". Apex's crowding problem (6 icons + no room
+for Checklist) is solved by moving secondary tabs into "More" and making the hub set config.
+
+### 3.2 Cartridge types
+
+A cartridge carries a `type`. Two are defined now; more may be added:
+
+- **`training`** — workout days + a prescription model. Drives the Train hub. (Fully specced.)
+- **`content`** — theory / educational / quick-consumption material (sections + items). Renders
+  in its own hub or a "More" entry. Monetisation-relevant: a workout-science cartridge and a
+  theory/content cartridge can be sold or shipped independently and bundled per person.
+
+Combat OS today ships a `training` cartridge only. A `content` cartridge is an Apex concern;
+Combat OS may add a placeholder "More" hub later, but the theory *content* stays out of its bundle.
 
 ## 4. The vocabulary: branch vs environment vs tenant (do not conflate)
 
@@ -120,6 +160,10 @@ per-user export later, never again as the primary store.
 - **Committed:** one app, cartridge-driven — no per-user forks; Apex becomes a cartridge, not a
   sibling app, at Stage 4.
 - **Committed:** clean-slate migration (wipe/freeze old Sheet data).
+- **Committed:** a program is a BUNDLE of typed cartridges (`training` + optional `content`);
+  cartridge types can be sold/shipped independently. Apex's theory tab is a `content` cartridge.
+- **Committed:** navigation is config-driven (variation axis #6); ~4–5 primary hubs + a "More"
+  catch-all for overflow/program-specific surfaces; Checklist is a universal primary hub.
 - **Open:** canonical logging shape (per-session vs per-set row) — decide during the Stage-2
   rebuild, informed by the W26 Log-hub research.
 - **Open:** exact prescription-module boundary/interface — decide when the second module (RPE)
