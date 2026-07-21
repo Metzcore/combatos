@@ -1,24 +1,18 @@
 /**
  * syncQueue.test.js
  *
- * Tests the Dexie-backed sync queue mechanics in app/src/db/index.jsx at
- * the granularity that's practical without restructuring production code
- * (that restructuring is a later item — see W8 in docs/planning/roadmap).
+ * Tests the Dexie-backed sync queue mechanics in app/src/sync/syncQueue.js
+ * (re-exported through db/index.jsx). The queue drains to Supabase (M2), so
+ * the Supabase client module is mocked — these tests never hit the network.
  *
- * db/index.jsx exports `db` (the Dexie instance) and `trySyncQueue`
- * directly, so the queue mechanics — envelope shape on enqueue, attempts
- * incrementing on a failed push, and the skip-after-MAX_ATTEMPTS guard —
- * are tested by driving those exports and the Dexie tables directly,
- * rather than through the DBProvider React context (logSession /
- * deleteLastSession are closures private to that provider and are not
- * exported; testing them would require rendering the provider, which is
- * out of scope for this minimal harness).
- *
- * global.fetch is always mocked — these tests never hit the real webhook.
+ * Covered: enqueue envelope shape, the log-insert success/failure/idempotent
+ * paths, the delete path, the attempts / MAX_ATTEMPTS guard, and the
+ * signed-out short-circuit. db/index.jsx exports `db` and `trySyncQueue`
+ * directly; logSession / deleteLastSession are closures private to the
+ * provider and out of scope for this minimal harness.
  */
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { db, trySyncQueue } from './index.jsx'
 
 // trySyncQueue bails immediately unless navigator.onLine is true. Node only
 // gained a `navigator` global in v21 (and it has no `onLine` even then), so
@@ -26,16 +20,34 @@ import { db, trySyncQueue } from './index.jsx'
 // production code is touched.
 vi.stubGlobal('navigator', { onLine: true })
 
+// Mock the Supabase client the drain talks to. Both this test file and
+// sync/syncQueue.js resolve to the same sync/supabaseClient.js module, so the
+// mock applies to the code under test.
+const mockInsert = vi.fn()
+const mockDeleteEq = vi.fn()
+const mockGetSession = vi.fn()
+vi.mock('../sync/supabaseClient.js', () => ({
+    isSupabaseConfigured: true,
+    supabase: {
+        auth: { getSession: (...a) => mockGetSession(...a) },
+        from: () => ({
+            insert: (...a) => mockInsert(...a),
+            delete: () => ({ eq: (...a) => mockDeleteEq(...a) }),
+        }),
+    },
+}))
+
+import { db, trySyncQueue } from './index.jsx'
+
 beforeEach(async () => {
     await db.sessions.clear()
     await db.syncQueue.clear()
     await db.settings.clear()
-    // trySyncQueue reads webhookUrl from settings, falling back to the
-    // DEFAULTS baked into db/index.jsx when unset — that default is a real
-    // URL, so tests must never let a real fetch reach it. global.fetch is
-    // mocked below regardless, but set the setting explicitly for clarity
-    // and to avoid ever depending on the module's default value.
-    await db.settings.put({ key: 'webhookUrl', value: 'https://example.invalid/mock-webhook' })
+    mockInsert.mockReset()
+    mockDeleteEq.mockReset()
+    mockGetSession.mockReset()
+    // Default: signed in. Individual tests override for the signed-out case.
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } })
 })
 
 describe('sync queue — enqueue envelope shapes', () => {
@@ -67,28 +79,41 @@ describe('sync queue — enqueue envelope shapes', () => {
     })
 })
 
-describe('trySyncQueue — attempts and MAX_ATTEMPTS behavior', () => {
-    it('increments attempts when the mocked fetch rejects', async () => {
+describe('trySyncQueue — Supabase drain', () => {
+    it('inserts a log row (stamped with user_id + client_session_id) and drops it from the queue on success', async () => {
+        const envelope = { action: 'log', sessionId: 'y', payload: { foo: 'baz' } }
+        const itemId = await db.syncQueue.add({ sessionId: 2, attempts: 0, payload: envelope })
+        mockInsert.mockResolvedValue({ error: null })
+
+        await trySyncQueue()
+
+        expect(mockInsert).toHaveBeenCalledTimes(1)
+        expect(mockInsert).toHaveBeenCalledWith({
+            user_id: 'user-1',
+            client_session_id: 'y',
+            cartridge_id: null,
+            payload: { foo: 'baz' },
+        })
+        const item = await db.syncQueue.get(itemId)
+        expect(item).toBeUndefined()
+    })
+
+    it('increments attempts when the insert returns an error', async () => {
         const envelope = { action: 'log', sessionId: 'x', payload: { foo: 'bar' } }
         const itemId = await db.syncQueue.add({ sessionId: 1, attempts: 0, payload: envelope })
-
-        global.fetch = vi.fn().mockRejectedValue(new Error('network down'))
+        mockInsert.mockResolvedValue({ error: { message: 'insert failed' } })
 
         await trySyncQueue()
 
         const item = await db.syncQueue.get(itemId)
         expect(item).toBeDefined()
         expect(item.attempts).toBe(1)
-        expect(global.fetch).toHaveBeenCalledTimes(1)
-        // Never hit the real webhook URL.
-        expect(global.fetch.mock.calls[0][0]).toBe('https://example.invalid/mock-webhook')
     })
 
-    it('removes the item from the queue once fetch succeeds (opaque no-cors response)', async () => {
-        const envelope = { action: 'log', sessionId: 'y', payload: { foo: 'baz' } }
-        const itemId = await db.syncQueue.add({ sessionId: 2, attempts: 0, payload: envelope })
-
-        global.fetch = vi.fn().mockResolvedValue({ type: 'opaque', ok: false, status: 0 })
+    it('treats a unique-violation (23505) as success — idempotent retry', async () => {
+        const envelope = { action: 'log', sessionId: 'dup', payload: {} }
+        const itemId = await db.syncQueue.add({ sessionId: 4, attempts: 0, payload: envelope })
+        mockInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
 
         await trySyncQueue()
 
@@ -96,16 +121,27 @@ describe('trySyncQueue — attempts and MAX_ATTEMPTS behavior', () => {
         expect(item).toBeUndefined()
     })
 
-    it('skips items with attempts >= MAX_ATTEMPTS (5) instead of retrying them', async () => {
-        const envelope = { action: 'log', sessionId: 'z', payload: { foo: 'qux' } }
-        const itemId = await db.syncQueue.add({ sessionId: 3, attempts: 5, payload: envelope })
-
-        global.fetch = vi.fn().mockResolvedValue({ type: 'opaque', ok: false, status: 0 })
+    it('routes a delete envelope to supabase.delete().eq(client_session_id) and drops it on success', async () => {
+        const envelope = { action: 'delete', sessionId: 'gone' }
+        const itemId = await db.syncQueue.add({ sessionId: 5, attempts: 0, payload: envelope })
+        mockDeleteEq.mockResolvedValue({ error: null })
 
         await trySyncQueue()
 
-        // Not touched: fetch never called for this item, attempts unchanged.
-        expect(global.fetch).not.toHaveBeenCalled()
+        expect(mockInsert).not.toHaveBeenCalled()
+        expect(mockDeleteEq).toHaveBeenCalledWith('client_session_id', 'gone')
+        const item = await db.syncQueue.get(itemId)
+        expect(item).toBeUndefined()
+    })
+
+    it('skips items with attempts >= MAX_ATTEMPTS (5) instead of retrying them', async () => {
+        const envelope = { action: 'log', sessionId: 'z', payload: { foo: 'qux' } }
+        const itemId = await db.syncQueue.add({ sessionId: 3, attempts: 5, payload: envelope })
+        mockInsert.mockResolvedValue({ error: { message: 'should not be called' } })
+
+        await trySyncQueue()
+
+        expect(mockInsert).not.toHaveBeenCalled()
         const item = await db.syncQueue.get(itemId)
         expect(item.attempts).toBe(5)
     })
@@ -113,19 +149,29 @@ describe('trySyncQueue — attempts and MAX_ATTEMPTS behavior', () => {
     it('processes a mix of queue items, skipping only the exhausted one', async () => {
         const okEnvelope = { action: 'log', sessionId: 'ok', payload: {} }
         const exhaustedEnvelope = { action: 'log', sessionId: 'exhausted', payload: {} }
-
         const okId = await db.syncQueue.add({ sessionId: 10, attempts: 0, payload: okEnvelope })
         const exhaustedId = await db.syncQueue.add({ sessionId: 11, attempts: 5, payload: exhaustedEnvelope })
-
-        global.fetch = vi.fn().mockRejectedValue(new Error('down'))
+        mockInsert.mockResolvedValue({ error: { message: 'down' } })
 
         await trySyncQueue()
 
-        expect(global.fetch).toHaveBeenCalledTimes(1) // only the non-exhausted item
-
+        expect(mockInsert).toHaveBeenCalledTimes(1) // only the non-exhausted item
         const okItem = await db.syncQueue.get(okId)
         const exhaustedItem = await db.syncQueue.get(exhaustedId)
         expect(okItem.attempts).toBe(1)
         expect(exhaustedItem.attempts).toBe(5)
+    })
+
+    it('does not drain at all when there is no auth session', async () => {
+        mockGetSession.mockResolvedValue({ data: { session: null } })
+        const envelope = { action: 'log', sessionId: 'nope', payload: {} }
+        const itemId = await db.syncQueue.add({ sessionId: 6, attempts: 0, payload: envelope })
+
+        await trySyncQueue()
+
+        expect(mockInsert).not.toHaveBeenCalled()
+        const item = await db.syncQueue.get(itemId)
+        expect(item).toBeDefined()
+        expect(item.attempts).toBe(0) // untouched — not a failed attempt
     })
 })

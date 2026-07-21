@@ -170,3 +170,31 @@ after locking down the `handle_new_user` trigger).
 
 **To do next session:** build Supabase M1 (auth → phone login) · write the CSV Authoring Kit ·
 then M2/M3 · rule D9 · fold in W26 research when it returns.
+
+---
+
+## 2026-07-21 · Supabase M1–M3 built + invite-only + hardening (Track B execution)
+
+**Context:** Execution session — turned the 07-20 Supabase architecture into a working, proven
+foundation on `feat/supabase-foundation` (off main).
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Invite-only at TWO layers: project "Allow new users to sign up" OFF + app `shouldCreateUser:false` | Signup never self-serve; the app never mints accounts. Onboarding = add the email first, then they magic-link in |
+| 2 | Use the modern publishable key (`sb_publishable_…`) as `VITE_SUPABASE_ANON_KEY`, not the legacy anon JWT | Connector-recommended; public-safe by design (RLS is the real protection) |
+| 3 | Supabase DDL captured as repo migrations (`supabase/migrations/`), recovered from the live project | Reproducibility / disaster recovery; schema no longer lives only in the cloud |
+| 4 | Cloudflare hosting — Path A: don't fight the accidental Preview Access wall; go live at the production merge. Second Pages project is the escape hatch for a free sandbox URL | Removing the wall needs Zero-Trust Free (card on file); M1–M3 already proven on localhost, so the preview URL is optional. Production isn't behind the preview wall |
+| 5 | Braindumps go to `docs/planning/ICEBOX.md`, triaged (evidence / blocking / cost×leverage) at goodnight — never straight to the roadmap; operator runbook `docs/OPERATIONS.md` added | Protects execution focus ("defer with a shape, don't drop"); cuts token spend on repeatable manual ops |
+| 6 | Track A (app reads cartridge JSON) explicitly does NOT jump the queue — earns its own planning session | Biggest item in the plan, non-blocking; rushing risks a sloppy foundation + collision with the rebuild |
+
+**Also this session:** M1/M2/M3 built and verified — a real session synced to Supabase tagged to
+the user; RLS isolation proven with a real 2nd account (dropped after) + a forged-write block;
+profile auto-creation trigger confirmed; 261 tests pass. Diagnosed & fixed the Cloudflare env-var
+Preview-scope + build-time-inlining bug. Rescued the stranded 2026-07-20→21 decision entry into
+this branch.
+
+**Not done / deferred:** production merge + go-live; free-tier keep-alive; CSV Authoring Kit;
+Track A (own session); D9 ruling; W26 research (parallel).
+
+**To do next session:** developer's pick — go-live (merge → prod env + redirect), OR start the CSV
+Authoring Kit, OR a Track A planning session.
