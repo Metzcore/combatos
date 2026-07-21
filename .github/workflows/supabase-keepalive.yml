@@ -1,0 +1,43 @@
+name: Supabase Keep-Alive
+
+# Free-tier Supabase projects PAUSE after ~7 days of inactivity, and a paused
+# project has to be restored by hand — until then the live app silently fails
+# (auth + sync are down). This job pings the REST API on a schedule so the
+# database keeps seeing traffic and never trips the inactivity timer.
+# See docs/OPERATIONS.md → "Free-tier keep-alive".
+
+on:
+  schedule:
+    # 06:14 UTC daily. An odd minute dodges the top-of-hour GitHub Actions rush
+    # (scheduled runs get delayed under load); daily leaves a wide margin against
+    # the ~7-day pause window even if a run or two is skipped.
+    - cron: '14 6 * * *'
+  workflow_dispatch: {}   # manual "Run workflow" button in the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          # Both values are PUBLIC-SAFE by design — the same project URL and
+          # publishable/anon key that already ship in the client bundle (RLS is
+          # the real protection; the service-role key is never here). Inlined on
+          # purpose so the keep-alive needs zero secret setup. If the key is
+          # ever rotated in Supabase, update it here.
+          SUPABASE_URL: https://pckokypnxrimayjmjgcl.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_y7h0Mj8SLLyj_XRidMMdVg_v4Q-TUxB
+        run: |
+          # A trivial SELECT against a core table. RLS returns an empty array for
+          # this anonymous request, but Postgres still runs the query — that is
+          # what counts as activity and resets the inactivity clock. We only care
+          # that the API answered (2xx), not what it returned.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/sessions?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Supabase responded HTTP $code"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Supabase keep-alive ping failed (HTTP $code) — the project may be paused or the anon key rotated."
+            exit 1
+          fi

@@ -55,11 +55,13 @@ Anything ruled that isn't ready → record it in `OPEN-DECISIONS.md` (with ratio
 - **Gate read:** not needed for you + brother; **triggered** the moment you onboard more than a
   couple of users (else "email rate limit exceeded").
 
-### Free-tier keep-alive (follow-on to D7)
+### Free-tier keep-alive (follow-on to D7) — ✅ SHIPPED 2026-07-21
 - **Shape:** external cron (n8n per D7, or a GitHub Action) pinging Supabase so the free tier
   doesn't pause from inactivity.
-- **Gate read:** **must exist before anyone relies on the app daily** (i.e. before brother
-  onboarding), not before your own testing. Not blocking now.
+- **Gate read:** **must exist before anyone relies on the app daily** — the go-live merge made the
+  developer the daily production user, so the gate tripped.
+- **Delivered:** GitHub Action `.github/workflows/supabase-keepalive.yml` (daily REST ping,
+  external, no secrets, proven 200 against the live project). Operator notes in `docs/OPERATIONS.md`.
 
 ### New standalone repo + its own deployment
 - **Shape:** a fresh repo deployed separately (dashboard or Wrangler; no Cloudflare connector).
