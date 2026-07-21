@@ -52,9 +52,16 @@ export function AuthProvider({ children }) {
         // emailRedirectTo uses the live origin so the same code works on the
         // preview URL and locally — each origin must be registered as an
         // allowed redirect in Supabase Auth settings.
+        // shouldCreateUser:false makes this INVITE-ONLY at the app layer: the
+        // sign-in screen never mints an account, so a non-provisioned email
+        // gets no link. Accounts are added out-of-band (dashboard / connector),
+        // backed up by "Allow new users to sign up" being off at the project.
         const { error } = await supabase.auth.signInWithOtp({
             email: email.trim(),
-            options: { emailRedirectTo: window.location.origin },
+            options: {
+                emailRedirectTo: window.location.origin,
+                shouldCreateUser: false,
+            },
         })
         return { error }
     }, [])
