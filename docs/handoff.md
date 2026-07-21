@@ -1,17 +1,21 @@
 ## Current state (one line)
-Supabase is **LIVE in production** (magic-link login verified on phone; cut over from Sheets
-2026-07-21) with a daily free-tier keep-alive Action. Now in Track A / Stage-2 planning: rebuild
-the Train tab as a universal player over a cartridge, first cartridge = the developer's own
-new-gym program. Project `pckokypnxrimayjmjgcl` (free tier). Operator guide: `docs/OPERATIONS.md`.
+Supabase is **LIVE in production** (magic-link, cut over 2026-07-21). Track A / Stage-2 cartridge
+rebuild is now BUILDING: the model-agnostic **Program Authoring Kit** (`docs/authoring/`) is done
+and proven on the developer's own two-phase program (`cartridges/combatos-foundation-2026` +
+`-operator-2026`); `validateCartridge()` shipped as the first tested rebuild module. Next: the
+Train/Playbook renderer. Project `pckokypnxrimayjmjgcl` (free tier). Cartridges will attach to the
+sole Supabase user **at.25degrees@gmail.com** once assignment is built. Operator guide: `docs/OPERATIONS.md`.
 
 ## Pending
 
-- [ ] **Track A / Stage-2 — Train + Playbook rebuild** on the cartridge model (app renders
-      days/exercises/prescription from a cartridge JSON per `PROGRAM-CARTRIDGE-SPEC.md`). First
-      cartridge = the developer's new-gym program. Skips Stage 0 (no `playbook.csv` patch). Main focus.
-- [ ] **AI authoring framework (docs, not app code):** intake schema (incl. equipment) · versioned
-      authoring "coach" prompt that adapts proven templates · coaching-sanity reviewer checklist.
-      Build + prove on the developer's own program first; re-authoring-from-logged-data loop deferred.
+- [ ] **Track A / Stage-2 — Train + Playbook RENDERER** (A4): the app player over a cartridge, per
+      `PROGRAM-CARTRIDGE-SPEC.md`, with inline per-session exercise substitution. Authoring kit +
+      first cartridges + `validateCartridge()` DONE 2026-07-22; the renderer's read/render path is
+      W26-independent, its logging path is gated on the payload-shape lock. Skips Stage 0. Main focus.
+- [x] **AI authoring framework (docs, not app code):** intake schema · versioned coach prompt ·
+      split reviewer checklist — DONE 2026-07-22 in `docs/authoring/`, proven on the developer's
+      two-phase program. `validateCartridge()` makes reviewer Part A executable. Re-authoring-from-
+      logged-data loop still deferred. Apex cartridge (A5) = the next quick test of the kit.
 - [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed per
       exercise for the substitution model) — open decision, gated on W26; blocks renderer code.
 - [ ] **Habit / "mental side" = checklist-cartridge** extension of the existing Checklist hub

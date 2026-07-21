@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-07-22 · Track A/Stage-2 — Program Authoring Kit + first cartridges + cartridge validator
+
+**Context:** First build session on the cartridge rebuild. Built the model-agnostic authoring
+framework, proved it by authoring the developer's own two-phase program, and shipped the first
+tested module of the rebuild. Design work on Opus 4.8 high (the fork moments); routine writing on
+Sonnet 5 high.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Authoring kit = 3 portable markdown files (`INTAKE-SCHEMA` · `COACH-PROMPT` v1 · `REVIEWER-CHECKLIST`) + README in `docs/authoring/`, NOT a Claude skill or agent | Model-agnostic core is the single decision that lets a future self-hosted model (Hermes on the developer's VPS) run the same process with zero rework. A skill would be a thin wrapper LATER, once the manual process is proven; no agents (that's for code delegation) |
+| 2 | Reviewer split into Part A (structural, deterministic → automatable) and Part B (coaching-sanity, LLM/human) | So automated onboarding later needs a model only for the judgment half; Part A lifts straight into code (done this session — #6) |
+| 3 | A training program = an ordered SEQUENCE of cartridges (phases), swapped over time; the coach authors ONE phase and names the next | Periodization by cartridge-swap, not by editing one file. Surfaced naturally when the developer's post-chiro state needed a corrective phase before a strength phase |
+| 4 | Prescription model for the developer = `rpe`/RIR | Autoregulates around sport fatigue without max testing; fits the stated longevity/sustainability ethos. Firm rec; developer deferred the science |
+| 5 | Two cartridges authored: Foundation (Phase 1, 4-wk corrective, spine-friendly, run FIRST) → Operator (Phase 2, heavy strength) | Developer under active chiropractic care (cleared to train): a corrective block rebuilds the striking-neglected stabilisers (glutes, deep anti-movement core, cuff, mid/lower traps) while MAINTAINING strength at RPE 7–8 (you don't need RPE 9 to maintain). S&C supports the sport, doesn't duplicate the 3 fight days' conditioning; full-body ×3 for robustness to the flexible/missed-day schedule |
+| 6 | `validateCartridge()` built now as the first rebuild module | Crisp contract (spec rules), immediate use (reviewer Part A made executable + guards the two real cartridges), and **W26-independent** — the one renderer-adjacent piece not blocked by the payload-shape gate |
+
+**Also this session:** ruled **D10** (weekly structure = pool of day-templates + suggested order,
+flexible off-plan logging; no schema change; overlaps D9) — in OPEN-DECISIONS.md. Equipment reality
+corrected (no hip-thrust → single-leg glute machine; face-pull/cuff flagged as a personal weak
+point). **Spec finding:** the five prescription models have no clean power/velocity axis — power
+work encoded as far-from-failure (`rir`) + explicit cue, flagged as a known limitation in the coach
+prompt. Cartridges will attach to the sole Supabase user **at.25degrees@gmail.com** once assignment
+is built.
+
+**Not done / deferred:** the Train/Playbook renderer (A4 — logging half gated on W26); the Apex
+cartridge (A5); the payload-shape lock; goodnight continuity close.
+
+**To do next session:** the renderer's read/render path (W26-independent), or the Apex cartridge as
+a second test of the kit; lock the payload shape when W26 lands.
+
+---
+
 ## 2026-07-21 · Go-live (Supabase → production) + Track A/Stage-2 planning kickoff
 
 **Context:** Second 07-21 session. Cut Supabase over to production (merge + operator config +

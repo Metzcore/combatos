@@ -76,3 +76,22 @@ exists in the developer's Daily Habits) + a note, i.e. zero new machinery, surfa
 W26's unified Log view; (c) not worth modeling — the Sheet stays a programme log, period.
 **Blocks:** nothing. Candidate input to W26's proposal rather than a standalone build.
 **Not ruled — do not default silently.**
+
+## D10 — Cartridge weekly structure: fixed rotation vs flexible pool
+**Context (2026-07-22):** authoring the first real cartridge (developer's own UFC-Gym programme)
+surfaced that the spec's fixed numbered day-rotation (`days[]` = 1..dayCount, advance N→N+1) does
+not match real usage. The developer's week is a **default of 3 S&C + 3 fight + 1 pick**, but weeks
+genuinely reshuffle (2 S&C + 4 fight, or life-driven reordering) and he still wants to log whatever
+he actually did on any given date.
+**The actual question:** does a cartridge lock the athlete to its numbered day order, or is that
+order a suggestion?
+**Options:** (a) fixed rotation (spec as written) — the HUD advances day N→N+1; simple but wrong
+for a flexible sport schedule; (b) **pool of day-templates + suggested default order** — any
+day-template is loggable on any date, off-plan sessions logged freely, the default order is just
+the recommended next-up; (c) fully free-form, no default order — loses the guidance value.
+**Blocks:** the Stage-2 Train renderer (how it advances/selects days).
+**RULED (2026-07-22): Option B.** No schema change — reuses the existing day `type` field; this is
+a renderer/UX behavior (let the athlete pick which day-template to log, defaulting to the suggested
+next one). **Overlaps D9** (off-programme logging) — the flexible-logging surface should serve both.
+Cartridge `combatos-operator-2026` is authored on this assumption (7-day default order, S&C and
+fight interleaved).
