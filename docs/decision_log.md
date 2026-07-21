@@ -139,3 +139,65 @@ pull and verify before building dependent work on the assumption.
 
 **To do next session:** live with counted tasks · W25 whenever wanted · W26 once usage
 accumulates · D9 ruling when the developer is ready.
+
+---
+
+## 2026-07-20→21 · Feature delivery (W25/W14/W15/W27) + rebuild & Supabase architecture committed
+
+_(Rescued 2026-07-21 into `feat/supabase-foundation`: this entry was committed only on the
+unmerged `docs/goodnight-2026-07-20` branch — folded here so it survives the eventual merge.)_
+
+**Context:** One long session: four small roadmap items shipped via delegate→review→PR, a
+branch-prune sweep that rescued a stranded decision-log entry, then a strategic pivot to planning
+the app rebuild and kicking off the Supabase backend.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Commit to Track B — Supabase multi-tenant — as the distribution foundation (extends D7 "leaning go" → "in progress") | The open-source/multi-user vision needs a real backend; Sheets + per-user webhook doesn't scale past 2 |
+| 2 | One app, cartridge-driven: a program = a BUNDLE of typed cartridges (training + content); Apex becomes a bundle, NOT a sibling app; no per-user forks | Rule of three (CombatOS v1 → Apex → this rebuild) revealed the axes; forking is the pain being escaped |
+| 3 | Navigation is a variation axis: config-driven hubs + a "More" catch-all (TRW pattern); Checklist is a universal primary hub | Solves Apex's icon crowding and "no Apex tab in Combat OS" without forking |
+| 4 | Clean-slate Supabase migration: wipe/freeze old Sheets data; repoint the write path (syncQueue drain) webhook → Supabase. Deliberately supersedes AGENTS rule 2 for the write path | New schema differs; migrating old rows is translation busywork; developer OK wiping |
+| 5 | Supabase `sessions` stores a generic JSONB payload | So the cartridge rebuild changes the payload, not the table — no second DB migration |
+| 6 | Supabase work stays OFF main (`feat/supabase-foundation` + preview deploy) until proven | The daily-driver production app must never be at risk mid-migration |
+| 7 | Sequencing: Supabase foundation FIRST (current app, single-user), THEN the cartridge rebuild (Track A). Brother NOT pre-staged; magic-link onboard when he + his cartridge are ready | Supabase is the well-understood foundation; the brother's value needs Track A, which comes after |
+| 8 | Free-tier keep-alive must be EXTERNAL (n8n per D7, or a GitHub Action cron), never in-app; go Pro when the brother is a daily user | An app can't ping itself when closed; a paused project needs a manual restore, so prevention runs externally |
+
+**Not done / deferred:** Supabase M1 (auth) + M2/M3 (sync repoint, isolation test) unbuilt; CSV
+Program Authoring Kit still owed; W26 research running as a parallel session; D9 open; W28
+(data-layer phase guard) logged as a candidate.
+
+**Also this session:** shipped W25 (#32), W14 (#33), W15 (#36), W27 (merged) — all on-device
+verified. Rescued the stranded 2026-07-17 decision-log entry (confirmed backup JSON location).
+Applied the Supabase sessions+profiles+RLS schema (project `pckokypnxrimayjmjgcl`; advisor clean
+after locking down the `handle_new_user` trigger).
+
+**To do next session:** build Supabase M1 (auth → phone login) · write the CSV Authoring Kit ·
+then M2/M3 · rule D9 · fold in W26 research when it returns.
+
+---
+
+## 2026-07-21 · Supabase M1–M3 built + invite-only + hardening (Track B execution)
+
+**Context:** Execution session — turned the 07-20 Supabase architecture into a working, proven
+foundation on `feat/supabase-foundation` (off main).
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Invite-only at TWO layers: project "Allow new users to sign up" OFF + app `shouldCreateUser:false` | Signup never self-serve; the app never mints accounts. Onboarding = add the email first, then they magic-link in |
+| 2 | Use the modern publishable key (`sb_publishable_…`) as `VITE_SUPABASE_ANON_KEY`, not the legacy anon JWT | Connector-recommended; public-safe by design (RLS is the real protection) |
+| 3 | Supabase DDL captured as repo migrations (`supabase/migrations/`), recovered from the live project | Reproducibility / disaster recovery; schema no longer lives only in the cloud |
+| 4 | Cloudflare hosting — Path A: don't fight the accidental Preview Access wall; go live at the production merge. Second Pages project is the escape hatch for a free sandbox URL | Removing the wall needs Zero-Trust Free (card on file); M1–M3 already proven on localhost, so the preview URL is optional. Production isn't behind the preview wall |
+| 5 | Braindumps go to `docs/planning/ICEBOX.md`, triaged (evidence / blocking / cost×leverage) at goodnight — never straight to the roadmap; operator runbook `docs/OPERATIONS.md` added | Protects execution focus ("defer with a shape, don't drop"); cuts token spend on repeatable manual ops |
+| 6 | Track A (app reads cartridge JSON) explicitly does NOT jump the queue — earns its own planning session | Biggest item in the plan, non-blocking; rushing risks a sloppy foundation + collision with the rebuild |
+
+**Also this session:** M1/M2/M3 built and verified — a real session synced to Supabase tagged to
+the user; RLS isolation proven with a real 2nd account (dropped after) + a forged-write block;
+profile auto-creation trigger confirmed; 261 tests pass. Diagnosed & fixed the Cloudflare env-var
+Preview-scope + build-time-inlining bug. Rescued the stranded 2026-07-20→21 decision entry into
+this branch.
+
+**Not done / deferred:** production merge + go-live; free-tier keep-alive; CSV Authoring Kit;
+Track A (own session); D9 ruling; W26 research (parallel).
+
+**To do next session:** developer's pick — go-live (merge → prod env + redirect), OR start the CSV
+Authoring Kit, OR a Track A planning session.
