@@ -144,9 +144,6 @@ accumulates · D9 ruling when the developer is ready.
 
 ## 2026-07-20→21 · Feature delivery (W25/W14/W15/W27) + rebuild & Supabase architecture committed
 
-_(Rescued 2026-07-21 into `feat/supabase-foundation`: this entry was committed only on the
-unmerged `docs/goodnight-2026-07-20` branch — folded here so it survives the eventual merge.)_
-
 **Context:** One long session: four small roadmap items shipped via delegate→review→PR, a
 branch-prune sweep that rescued a stranded decision-log entry, then a strategic pivot to planning
 the app rebuild and kicking off the Supabase backend.
