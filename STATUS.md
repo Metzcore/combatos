@@ -1,25 +1,25 @@
 # STATUS
-_Last updated: 2026-07-21 · Supabase M1–M3 built + invite-only + hardening (Track B)_
+_Last updated: 2026-07-21 · go-live shipped + keep-alive + Train-tab/cartridge planning_
 
 ## Last session
-Built the Supabase foundation end-to-end on `feat/supabase-foundation` (off main): M1 magic-link
-auth + sign-in gate, M2 syncQueue drain repointed webhook→Supabase (a real session synced and
-verified in the DB), M3 RLS isolation proven with a real 2nd account (throwaway, since dropped) +
-a forged-write block. Locked to invite-only at two layers (project signups off + app
-`shouldCreateUser:false`). Captured the 3 Supabase migrations into the repo. Added an operator
-runbook (`docs/OPERATIONS.md`) and an idea icebox (`docs/planning/ICEBOX.md`). Cloudflare preview
-deploy hit an accidental Zero-Trust Access wall → chose Path A (go live at the production merge;
-skip the preview URL).
+Took Supabase LIVE: resolved a stranded 07-20 doc-merge conflict, merged
+`feat/supabase-foundation` → `main`; set Cloudflare Production env vars + the Supabase redirect
+(`combatos.pages.dev`) and verified magic-link login on phone — **production now runs on Supabase,
+not Sheets.** Shipped a daily free-tier keep-alive GitHub Action (proven 200 against the live
+project). Then a planning pivot: opened the Track A / Stage-2 rebuild (Train + Playbook on the
+cartridge model) and ruled a batch of design decisions.
 
 ## Current focus
-Supabase foundation is DONE and proven on the branch; stays off `main` until you cut production
-over. Production still runs on Sheets, untouched. (All continuity + these docs live on
-`feat/supabase-foundation`.)
+Track A / Stage-2: rebuild the Train tab (incl. Playbook) as a universal player over a cartridge;
+the developer's own new-gym program is the first cartridge. Backend (Supabase) is already live,
+which de-risks it.
 
 ## Up next
-1. Go-live when ready: merge `feat/supabase-foundation` → main; set VITE_SUPABASE_* on the
-   Cloudflare **Production** scope; add the production URL to Supabase redirect config; log in on phone
-2. Free-tier keep-alive (external cron) — before anyone relies on it daily (brother onboarding)
-3. CSV Program Authoring Kit — unblock the gym-change program swap on the CURRENT app
-4. Track A (cartridge rebuild) — needs its OWN planning session; don't jump the queue
-5. D9 ruling (off-programme logging) · fold in W26 research when it returns
+1. Track A / Stage-2 build: Train + Playbook renderer on the cartridge format; first cartridge =
+   the developer's new-gym program (authored via the framework, proven on self first)
+2. AI authoring framework artifacts (versioned docs): intake schema · authoring "coach" prompt
+   (adapts proven templates) · coaching-sanity checklist — prove on the developer's own program
+3. Lock the logging payload shape (per-session vs per-set) — open decision blocking renderer code;
+   gated on W26 research
+4. Merge the keep-alive PR; delete the merged `feat/supabase-foundation` branch
+5. D9 (off-programme logging) · W26 log-hub research (parallel) · medical disclaimer line in Settings
