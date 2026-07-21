@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-07-21 · Go-live (Supabase → production) + Track A/Stage-2 planning kickoff
+
+**Context:** Second 07-21 session. Cut Supabase over to production (merge + operator config +
+phone verify), shipped the free-tier keep-alive, then opened the Train-tab/cartridge rebuild and
+ruled a batch of design decisions.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Go-live ordering is a hard rule: set Cloudflare Production env vars + Supabase redirect **before** the merge builds | Vite bakes `VITE_*` at build time; an env-less Production build renders a dead sign-in wall (`isSupabaseConfigured=false` → a `<SignIn/>` that can't send a link) — bricks the live app |
+| 2 | Exercise substitution = **inline per-session override**; the log stores BOTH prescribed (cartridge) + performed (user edit) + a `substituted` flag; per-session only to start (sticky deferred) | Matches real gym UX; no exercise-library to build; captures truth for stats; the swap data seeds a future library. Resolves the exercise-swap fork with no engine |
+| 3 | First cartridge = the developer's own new-gym program; **Stage 0 (patch `playbook.csv`) is skipped** | The gym-change fix and the rebuild become the SAME work; no investment in the transitional CSV format |
+| 4 | **CSV Program Authoring Kit killed** as a durable deliverable | `playbook.csv` is transitional; the cartridge format supersedes it. Program *content* migrates; only the CSV wrapper is throwaway |
+| 5 | Habit / "mental side" = a **checklist cartridge** (curated daily-reset bundles), extending the shipped Checklist hub — not a new system | The hub already has groups/streaks/reset-time (W21/W22); "TRW campus checklist" = a curated bundle. Compete on authoring rigor + results, not on out-featuring Trainerize/Everfit |
+| 6 | Coach CRM = **structured data + versioned prompts now, dashboard deferred**; clients in Supabase `profiles`; AI Projects as the working surface | A CRM UI for 2–3 clients is a premature-engine trap; the manual process is the spec; a dashboard earns itself at ~5–10+ clients. The foundation is the data model, not the UI |
+| 7 | AI authoring framework = 4 artifacts (intake schema · versioned "coach" prompt that **adapts proven templates, doesn't free-invent** · coaching-sanity reviewer · data feedback loop). Build 1–3 as docs, prove on self; #4 deferred | Program quality is capped by intake quality; adapting proven templates is safer + how real coaches work; re-authoring-from-data needs the rebuilt app + real logs first |
+| 8 | Medical/AI disclaimer = one subtle Settings line (not app-wide); **open-source deferred → business path** | Health guidance carries responsibility regardless of licence; results are the current asset; keep the OSS option cheap to exercise |
+
+**Also this session:** resolved a stranded 07-20 goodnight doc-merge (kept the newer 07-21
+continuity, dropped the obsolete "rescued" note); shipped the keep-alive Action
+(`.github/workflows/supabase-keepalive.yml`) + OPERATIONS notes; noted the staging reshuffle —
+Track B (Supabase) shipped *before* the Stage-2 rebuild (out of §8 order), which de-risks it.
+
+**Not done / deferred:** the Train/Playbook renderer build; the authoring-framework docs; the
+logging payload shape (gated on W26); the habit checklist-cartridge; the coach dashboard; D9; W26;
+the Settings disclaimer; branch cleanup.
+
+**To do next session:** start the Stage-2 build (or the authoring-framework docs), proven on the
+developer's own program first; lock the payload shape when W26 lands.
+
+---
+
 ## 2026-07-10 · Housekeeping — Session-continuity system established
 
 **Context:** First-ever Combat OS session using structured tracking files.
