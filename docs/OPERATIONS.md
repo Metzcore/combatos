@@ -96,6 +96,25 @@ connector). Optional; only if you want to test on your phone before the real pro
 
 ---
 
+## Free-tier keep-alive (automated)
+A scheduled GitHub Action (`.github/workflows/supabase-keepalive.yml`) pings the Supabase REST
+API **once a day** so the free-tier project never hits the ~7-day inactivity pause (a paused
+project has to be restored by hand, and the live app is down until then). It's **external** to
+the app by design (an app can't ping itself when closed) and needs no secrets — it uses the same
+public anon key that ships in the client bundle.
+
+- **Check it's healthy:** GitHub repo → **Actions** tab → **Supabase Keep-Alive**. Green runs =
+  fine. A red run emails you and means the ping got a non-2xx (project paused, or the anon key was
+  rotated without updating the workflow).
+- **Run it on demand:** Actions → Supabase Keep-Alive → **Run workflow** (the `workflow_dispatch`
+  button) — useful right after a rest week/holiday, or to test.
+- **If you rotate the anon key:** update `SUPABASE_ANON_KEY` in the workflow file (it's inlined
+  there, public-safe).
+- **Upgrading to Pro** removes the pause entirely and makes this optional — worth it once your
+  brother is a daily user.
+
+---
+
 ## Things NOT to touch / handle with care
 - **Don't commit directly to `main`.** Feature branch → PR → CI green → merge (see `AGENTS.md`).
 - **Don't put the service-role key anywhere** outside the Supabase dashboard.
