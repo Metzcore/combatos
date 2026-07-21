@@ -61,6 +61,36 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 
 ---
 
+## Track A / Stage-2 — Train + Playbook cartridge rebuild (ACTIVE — main line since 2026-07-21)
+The Train tab (incl. Playbook) becomes a universal player over a **cartridge** — one person's
+program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md`. Backend (Supabase) already
+live. Stage 0 (patch `playbook.csv`) skipped — the rebuild and the gym-change fix are the same work
+(decisions 2026-07-21 #3/#4).
+
+- [x] **A1 · Program Authoring Kit** (model-agnostic docs) — `docs/authoring/`: `INTAKE-SCHEMA.md`,
+      `COACH-PROMPT.md` (v1), `REVIEWER-CHECKLIST.md` (Part A structural / Part B coaching-sanity),
+      `README.md`. Plain files so a future self-hosted model (Hermes) runs the same process with no
+      rework. Built + proven on the developer's own program. _2026-07-22._
+- [x] **A2 · First cartridges** — `cartridges/combatos-foundation-2026.json` (Phase 1, 4-wk
+      corrective/spine-friendly, run FIRST — developer under active chiropractic care) +
+      `cartridges/combatos-operator-2026.json` (Phase 2, heavy strength). Periodization =
+      cartridge-swap. Authored from `intake-developer-program.md`, validated. _2026-07-22._
+- [x] **A3 · `validateCartridge()`** — `app/src/utils/validateCartridge.js` implements reviewer
+      Part A (spec rules 1–7 + required fields + basic content-cartridge check); 33 vitest tests,
+      full suite green (294). The first tested brick of the rebuild; **W26-independent.** _2026-07-22._
+- [ ] **A4 · Train/Playbook renderer** — universal player rendering days/exercises/prescription
+      from a cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ the
+      LOGGING half is gated on the payload-shape lock (below); the read/render half is NOT.
+- [ ] **A5 · Apex cartridge** (2nd person) — adapt the brother's existing workout to the cartridge
+      format; a fast second test of the kit. Assign to his Supabase profile once assignment lands.
+- [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed+substituted)
+      — open, gated on W26; blocks the renderer's logging path.
+
+New decision this track: **D10** (cartridge weekly structure = pool of day-templates + suggested
+order, not a fixed rotation; overlaps D9) — see OPEN-DECISIONS.md.
+
+---
+
 ## Addendum — 2026-07-10 developer rulings (see OPEN-DECISIONS.md for full text)
 All seven decisions were ruled the same day the roadmap was produced. Gate/scope changes, not yet re-sequenced into the phases above:
 - **W17 UNGATED** (D1 = soft delete). Runs as written.
