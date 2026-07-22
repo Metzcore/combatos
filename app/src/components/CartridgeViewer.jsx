@@ -211,6 +211,9 @@ function ProgramDetail({
         [cartridge]
     )
     const cycleBlocks = Array.isArray(cartridge.cycle?.blocks) ? cartridge.cycle.blocks : []
+    const descriptionParagraphs = typeof cartridge.description === 'string'
+        ? cartridge.description.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
+        : []
 
     useEffect(() => {
         setOpenDays(new Set())
@@ -281,7 +284,7 @@ function ProgramDetail({
                     </div>
                 </section>
 
-                {cartridge.description && (
+                {descriptionParagraphs.length > 0 && (
                     <div className={`card card--collapsible cartridge-about${aboutOpen ? ' open' : ''}`}>
                         <button
                             type="button"
@@ -289,11 +292,15 @@ function ProgramDetail({
                             onClick={() => setAboutOpen((value) => !value)}
                             aria-expanded={aboutOpen}
                         >
-                            <span>About this program</span>
+                            <span>How this program works</span>
                             <span className="card__chevron" aria-hidden="true">▾</span>
                         </button>
                         <div className="card__body">
-                            <div className="cartridge-about__text">{cartridge.description}</div>
+                            <div className="cartridge-about__text">
+                                {descriptionParagraphs.map((paragraph, index) => (
+                                    <p key={`${cartridge.cartridgeId}-description-${index}`}>{paragraph}</p>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

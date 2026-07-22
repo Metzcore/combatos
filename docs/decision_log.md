@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-07-23 · A9d phone review and final visual standard
+
+**Context:** Two Android portrait reviews exposed hierarchy and copy problems that desktop
+verification could not prove. The developer approved both refinements and the final result.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Keep the existing dark/green/amber identity; improve hierarchy by assigning colours roles rather than adding more colours | The palette was not the problem—primary and supporting information lacked separation |
+| 2 | One training block is one quiet visual group; exercises remain lightweight rows inside it | Separates workout structure without producing nested-card clutter |
+| 3 | Primary names and content use off-white; muted colour carries metadata; green marks structure; amber marks active or meaningful emphasis | Produces faster three-second scanning and preserves colour meaning |
+| 4 | Runtime cartridge descriptions are optional member-facing guidance: two or three short paragraphs covering purpose, use and progression | A styled wall of developer notes can never become good athlete UX |
+| 5 | Source files, schema decisions, internal IDs, unsupported-feature notes and author instructions stay outside runtime cartridges | Future LLM-authored programmes remain portable without exposing implementation details to users |
+
+**Implemented:** readable equipment/focus sections, improved programme-week and exercise hierarchy,
+paragraph-based “How this program works” rendering, member-facing descriptions for all three
+cartridges, validator coverage, and updated model-agnostic authoring guidance. Cartridge versions
+advanced to 1.0.1 because presentation content changed.
+
+**Not changed:** exercises, prescriptions, programme structure, Supabase access/assignment,
+activation behaviour, workout logging, PWA caching, or navigation.
+
+**Verification:** 363 tests passed, production PWA build passed, localhost returned HTTP 200, and
+the final Android portrait review was approved.
+
+**Next:** publish/merge A9, then begin A10 as a fresh diagnostic task.
+
+---
+
 ## 2026-07-22 (cont'd) · A9d assigned-only Library built
 
 **Context:** The A9c access provider was complete and the developer approved the diagnostic boundary

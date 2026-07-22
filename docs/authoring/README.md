@@ -47,7 +47,8 @@ Output cartridges live in [`../../cartridges/`](../../cartridges/).
   a model for the judgment half.
 - **A program is a sequence of cartridges** — periodise by swapping phases, not by editing one file.
 - **User-facing copy is structured, honest and useful** — summaries and outcomes explain why the
-  program matters without exposing author notes or using manipulative motivation.
+  program matters, while an optional two- or three-paragraph description explains how to use it.
+  Author/developer notes stay outside the runtime cartridge and motivation is never manipulative.
 - **Prove on real programs first, let the schema follow evidence** — the block model itself exists
   because authoring a *second* real program (Apex) proved the first schema underserved both real
   users. Extend the format only when a real cartridge needs it, never speculatively.

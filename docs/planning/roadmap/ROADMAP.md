@@ -108,13 +108,11 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       A6.5 and the payload-shape lock below.
 - [x] **A8 · Cartridge Viewer UX/UI pass** — quiet block headers, collapsible days, collapsed About
       disclosure, and tab-contrast fix shipped. _2026-07-22._
-- [~] **A9 · Cartridge availability + activation** — a user may have several coach-made-available
-      cartridges but exactly one active. Unassigned bundled programs are hidden, not private. Start
-      with a Supabase/RLS diagnostic; no database change before approval. Metadata additions ride
-      with the same spec revision. **A9a access foundation and A9b schema-v3 metadata are live and
-      verified. A9c loader/cache is complete. A9d assigned-only Library UI is built and verified
-      (362 tests + production build); Android portrait review remains before merge.**
-      See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
+- [x] **A9 · Cartridge availability + activation** — A9a–A9d complete. Assigned-only Library,
+      active/viewing separation, schema-v3 metadata, account-scoped cache, controlled offline
+      fallback and confirmed activation are implemented. Final visual hierarchy and member-facing
+      programme guidance passed Android portrait review. 363 tests and production build pass.
+      _2026-07-23._ See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
 - [ ] **A10 · Train information architecture** — Workout / Playbook / Cartridges becomes Today /
       Plan / Library inside the existing Train hub; no new main-nav button. Produce the mobile and
       responsive interaction spec before implementation.

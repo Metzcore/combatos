@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "cartridgeVersion": "1.0.0",
+  "cartridgeVersion": "1.0.1",
   "cartridgeId": "combatos-operator-2026",
   "type": "training",
   "label": "Combat OS — Tactical Operator (UFC Gym Dublin)",
@@ -24,7 +24,7 @@
       "Open throwing area"
     ]
   },
-  "description": "A minimalist strength-led programme for a lean, advanced striker (30yo, 67kg) training around 3 weekly fight sessions. Priorities: relative strength, then conditioning/skill (covered by fight days), then explosiveness. Longevity-first: RPE-capped loads, no grinding, single-leg and anti-rotation work for joint health, no deadlift. Full-body x3 so a missed day never skips a movement pattern. PHASE 2 of the plan — graduate into this after the Foundation block (combatos-foundation-2026).",
+  "description": "This strength-led phase helps experienced athletes become stronger and more explosive without draining the practice that matters most.\n\nThree full-body sessions build relative strength, single-leg control and rotational stability. Loads are challenging but capped: finish clean reps, avoid grinding, and protect the quality of your sport sessions.\n\nUse this after completing a foundation block, when your movement feels dependable and you are ready for heavier work.",
   "cycle": {
     "dayCount": 7
   },

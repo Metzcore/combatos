@@ -38,6 +38,23 @@ function trainingMetadataErrors(cartridge) {
         errors.push('summary must be a single-line string between 1 and 160 characters')
     }
 
+    if (cartridge.description != null) {
+        if (typeof cartridge.description !== 'string') {
+            errors.push('description must be a string')
+        } else {
+            const paragraphs = cartridge.description
+                .split(/\n\s*\n/)
+                .map((paragraph) => paragraph.trim())
+                .filter(Boolean)
+            if (paragraphs.length < 2 || paragraphs.length > 3) {
+                errors.push('description must contain two or three paragraphs separated by a blank line')
+            }
+            if (paragraphs.some((paragraph) => paragraph.length > 320)) {
+                errors.push('each description paragraph must be no more than 320 characters')
+            }
+        }
+    }
+
     if (!Array.isArray(cartridge.outcomes)) {
         errors.push('outcomes must be an array')
     } else {

@@ -111,7 +111,7 @@ authoring system. Do not invent a kind speculatively.
   "requirements": {
     "equipment": ["Dumbbells", "Cable station"]
   },
-  "description": "Longer author context, philosophy, constraints, and next-phase rationale.",
+  "description": "Why this phase matters.\n\nHow to train it.\n\nWhen to progress.",
   "cycle": {
     "dayCount": 7,                               // days in one rotation (commonly 6 or 7)
     "weeksPerBlock": 4,                           // optional: length of this phase/mesocycle
@@ -200,10 +200,13 @@ therefore carry a small, structured presentation contract:
 - `requirements.equipment` — required array of unique, non-empty display strings. An empty array is
   valid. List only equipment actually required by the authored sessions.
 
-`description` remains the longer explanation and author context. It may capture assumptions,
-constraints and progression rationale, but future Library UI must prefer `summary` + `outcomes` for
-the first impression. Account assignment, active state and ownership belong in Supabase, never in
-the cartridge JSON.
+`description` is optional member-facing guidance rendered under **How this program works**. When
+present, it contains two or three short paragraphs separated by a blank line: why the phase matters,
+how to train it, and when to progress. Each paragraph is at most 320 characters. Source filenames,
+schema decisions, internal IDs, unsupported-feature notes and author-to-author instructions belong
+in the separate author rationale, never in the runtime cartridge. The Library still prefers
+`summary` + `outcomes` for the first impression. Account assignment, active state and ownership
+belong in Supabase, never in the cartridge JSON.
 
 ## Day types
 
@@ -273,7 +276,7 @@ descriptive (no `prescription`) since a beginner isn't yet training to RPE or %1
   ],
   "tags": ["beginner", "full-body", "strength"],
   "requirements": { "equipment": ["Dumbbells", "Lat pulldown machine"] },
-  "description": "General fitness for a new trainee: three full-body days, fixed sets and reps.",
+  "description": "This phase builds a dependable strength base with three simple full-body sessions each week.\n\nUse controlled loads and finish every prescribed rep with clean technique.\n\nProgress when the weekly rhythm feels consistent and the main movements feel secure.",
   "cycle": { "dayCount": 7 },
   "days": [
     {

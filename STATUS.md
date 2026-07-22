@@ -1,38 +1,24 @@
 # STATUS
-_Last updated: 2026-07-22 · A9d assigned-only Library built; on-device review pending_
+_Last updated: 2026-07-23 · A9 complete and phone-approved_
 
 ## Last session
-Closed out the Cartridge Viewer's first on-device feedback: shipped a UX pass (quiet block
-sub-headers, collapsible days so a full week fits on one screen, a collapsed "About this program"
-disclosure, tab-contrast fix) — merged. Also built a dev-only password sign-in so agents and the
-developer can skip the magic-link email round-trip on localhost, verified fully stripped from the
-production bundle. Diagnosed a Supabase email-rate-limit scare during dev-user setup via the auth
-logs — confirmed nothing was broken, just the free-tier email throttle. Closed out remaining git
-housekeeping (archived the superseded CHECKLIST.md); `main` is now caught up with all four PRs.
-Kicked off research for the next real feature (A9: cartridge tagging + select/activate) — two
-prompts sent out, one for design/UX inspiration, one for a DB-connected agent to ground options
-against the actual Supabase schema and cartridge code. A documentation-only planning pass then
-resolved the Train direction and recorded it in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`:
-Today / Plan / Library, coach-controlled availability, one active cartridge, local unfinished
-drafts, and A6.5 as an explicit prerequisite to A7.
+Completed A9d's assigned-only Program Library and refined it through two real-phone reviews. The
+Library now has stable full-width programme cards, clear active/preview states, benefit-led detail,
+calmer programme-week grouping, readable equipment and focus sections, and member-facing programme
+guidance instead of internal author notes. All three cartridges follow the same presentation
+contract.
+
+A9a–A9d are complete on `codex/a9d-assigned-library`. The final suite has 363 passing tests and the
+production PWA build passes. No workout prescriptions, logging payloads, Supabase schema,
+service-worker behaviour, or main navigation changed.
 
 ## Current focus
-Track A / Stage-2. The Cartridge Viewer's UX debt is cleared and the Train product direction is
-documented. A9a is now live: `user_cartridges` records coach-managed availability,
-`profiles.assigned_cartridge` is constrained to one available program, and profile permissions are
-narrowed. The three initial accounts are assigned and RLS isolation is proven. No Train UI changed.
-A9b is complete: schema v3, structured benefit-led metadata, authoring kit, validator/tests, and all
-canonical/bundled cartridges agree. A9c is complete on `codex/a9c-cartridge-access-cache`: validated
-own-user cache, Supabase reads, confirmed online-only activation, unknown-ID reporting, and a
-controlled read-only offline-device fallback. A9d is built on `codex/a9d-assigned-library`: equal
-assigned-only cards, active/viewing separation, benefit-led detail, collapsed week, explicit
-offline/error/update states, and confirmed activation sheet. Tests/build pass; Android review is the
-remaining merge gate. No Supabase schema, HUD, logging, or service-worker change.
+A9 is complete and ready to publish through the normal PR/merge workflow. The next product task is
+A10: specify Today / Plan / Library inside the existing Train hub before implementation.
 
 ## Up next
-1. Review A9d on Android portrait, adjust only real device issues, then merge A9c/A9d
-2. Rotate the dev Supabase user's password (currently a placeholder, set during setup) to something
-   long/random — low severity but a real loose end
-3. A10 — specify Today / Plan / Library on phone and responsive web; no new main-nav button
-4. A6.5 — local durable active-workout draft before A7; permanent payload remains gated on W26
-5. Bigger design initiative: Log tab UX/UI rebuild, then Checklist/Notes backend + n8n sync idea
+1. Publish and merge `codex/a9d-assigned-library`
+2. Start A10 as a fresh diagnostic/specification task; no implementation before approval
+3. Rotate the developer Supabase password
+4. A6.5 — durable local active-workout drafts before A7
+5. Plan the Log-tab redesign in its own future task

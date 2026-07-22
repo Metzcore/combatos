@@ -102,6 +102,15 @@ describe('validateCartridge — v3 user-facing metadata', () => {
         expect(validateCartridge(c).some((e) => e.includes('summary'))).toBe(true)
     })
 
+    it('accepts two or three short description paragraphs and rejects a wall of text', () => {
+        const c = validCartridge()
+        c.description = 'Why this phase matters.\n\nHow to train it.\n\nWhen to progress.'
+        expect(validateCartridge(c)).toEqual([])
+
+        c.description = 'One long author paragraph.'
+        expect(validateCartridge(c)).toContain('description must contain two or three paragraphs separated by a blank line')
+    })
+
     it('requires two to four unique short outcomes', () => {
         const c = validCartridge()
         c.outcomes = ['Same outcome', 'Same outcome']

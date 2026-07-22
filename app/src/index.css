@@ -505,7 +505,7 @@ input[type="checkbox"] {
 .library-detail__section h3,
 .library-week__heading h3 {
   color: var(--label);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   letter-spacing: 0.1em;
 }
 
@@ -518,14 +518,14 @@ input[type="checkbox"] {
 .library-outcomes {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 11px;
 }
 
 .library-outcomes li {
   position: relative;
   padding-left: 16px;
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -543,15 +543,15 @@ input[type="checkbox"] {
 .library-equipment {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 7px 14px;
+  gap: 10px 14px;
 }
 
 .library-equipment li {
-  padding-left: 12px;
+  padding: 2px 0 2px 12px;
   border-left: 2px solid var(--divider);
-  color: var(--label);
-  font-size: 0.8rem;
-  line-height: 1.45;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .library-equipment-empty {
@@ -562,6 +562,13 @@ input[type="checkbox"] {
 
 .library-detail__tags {
   margin-top: 10px;
+}
+
+.library-detail__tags > span {
+  padding: 5px 9px;
+  background: var(--input);
+  color: var(--text);
+  font-size: 0.78rem;
 }
 
 .library-week {
@@ -580,7 +587,7 @@ input[type="checkbox"] {
 
 .library-week__heading span {
   color: var(--dim);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .library-activation,
@@ -660,7 +667,7 @@ input[type="checkbox"] {
   border-radius: 0;
   text-align: left;
   padding: 10px 14px;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -677,10 +684,20 @@ input[type="checkbox"] {
 }
 
 .cartridge-about__text {
-  padding: 12px 14px;
-  color: var(--label);
-  font-size: 0.85rem;
-  line-height: 1.6;
+  max-width: 58ch;
+  padding: 16px;
+}
+
+.cartridge-about__text p {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.cartridge-about__text p + p {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
 }
 
 .cartridge-about.open .card__body {
@@ -711,7 +728,7 @@ input[type="checkbox"] {
   border-radius: 0;
   background: var(--input);
   color: var(--label);
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-align: left;
@@ -734,10 +751,10 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__focus {
-  color: var(--label);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin-bottom: 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 16px;
 }
 
 .cartridge-day--rest .cartridge-day__rest-row {
@@ -749,7 +766,7 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__rest-label {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -757,16 +774,20 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__rest-type {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dim);
   flex-shrink: 0;
 }
 
-/* ── Block (quiet sub-header: thin accent + coloured label, no fill) ── */
+/* ── Block (one clear group per training intent; exercises stay as rows) ── */
 .cartridge-block {
-  margin-top: 16px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--input);
 }
 
 .cartridge-block:first-child {
@@ -776,12 +797,12 @@ input[type="checkbox"] {
 .cartridge-block__head {
   padding-left: 10px;
   border-left: 3px solid var(--divider);
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--label);
-  line-height: 1.2;
+  line-height: 1.35;
 }
 
 /* Distinct tint per kind so no two adjacent bands read the same. Green brackets
@@ -810,13 +831,17 @@ input[type="checkbox"] {
 }
 
 .cartridge-block__items {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .cartridge-block__item {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  margin-bottom: 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--divider);
+}
+
+.cartridge-block__item:first-child {
+  padding-top: 2px;
 }
 
 .cartridge-block__item:last-child {
@@ -829,7 +854,8 @@ input[type="checkbox"] {
 .cartridge-item-name {
   font-weight: 600;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .cartridge-superset-badge {
@@ -839,33 +865,39 @@ input[type="checkbox"] {
 }
 
 .cartridge-item-meta {
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: var(--dim);
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
-  gap: 12px;
+  gap: 4px 12px;
   flex-wrap: wrap;
+  line-height: 1.45;
 }
 
 .cartridge-item-cue {
-  font-size: 0.8rem;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--divider);
+  font-size: 0.85rem;
   color: var(--label);
   font-style: italic;
-  margin-top: 6px;
+  line-height: 1.5;
 }
 
 .cartridge-pap {
-  font-size: 0.8rem;
-  color: var(--alert);
+  font-size: 0.85rem;
+  color: var(--accent);
   font-weight: 600;
-  margin-top: 6px;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 .cartridge-perround {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   padding-left: 18px;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--dim);
+  line-height: 1.5;
 }
 
 .cartridge-perround li {

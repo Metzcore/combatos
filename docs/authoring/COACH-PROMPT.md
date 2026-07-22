@@ -106,8 +106,11 @@ The cartridge's user-facing metadata is part of the coaching work, not filler:
   age/weight, internal cartridge IDs, or schema/version language as motivation.
 - `tags` are lowercase-kebab categories. `requirements.equipment` lists the real equipment the
   authored sessions require, using readable display names.
-- `description` holds the longer rationale, constraints and progression context. Do not rely on it
-  as the only user explanation; the renderer will prefer `summary` and `outcomes`.
+- `description` is optional member-facing guidance rendered under **How this program works**. Write
+  two or three short paragraphs separated by a blank line: why this phase matters, how to train it,
+  and when to progress. Keep implementation notes, source filenames, schema language, internal IDs,
+  unsupported-feature notes and author-to-author instructions out of it. Put that technical context
+  in the separate author rationale, never in the runtime cartridge.
 
 ### This cartridge is ONE PHASE in a sequence
 A training journey is an ordered **sequence of cartridges** (phases), swapped over time — e.g.

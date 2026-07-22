@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "cartridgeVersion": "1.0.0",
+  "cartridgeVersion": "1.0.1",
   "cartridgeId": "apex-protocol-phase1",
   "type": "training",
   "label": "Apex Protocol — Foundation (Phase 1)",
@@ -26,7 +26,7 @@
       "Foam roller"
     ]
   },
-  "description": "Phase 1 of a 3-phase striker programme (Foundation → Phase 2 → Peak), adapted from the athlete's existing Apex Protocol playbook.csv into the block-model cartridge format — content unchanged, format only. Each training day runs mobility → strength (with PAP pairing) → bag work → cooldown. Strength items originally prescribed as %1RM carry a dual-coded { percent, rpe } — the percent preserves the program's intended intensity curve; RPE 8 governs actual load until a tested 1RM is on file, then percent takes over. HIGH_ALERT (the source CSV's alternate mobility routine for hip-flare days) is intentionally NOT modelled here — it needs a tracked injury/mobility-profile state input (Combat OS roadmap item W13) that doesn't exist yet; only STANDARD content is authored. Next phase: Phase 2 (heavier %1RM, Trap Bar Deadlift replaces Romanian Deadlift, more PAP volume, body-shot bag work added) — author as apex-protocol-phase2 when ready to progress.",
+  "description": "This foundation phase builds the strength and explosive power that support sharper, more repeatable rounds—without replacing your fight practice.\n\nEach training day moves from mobility into strength and explosive pairings, followed by bag work and a cooldown. Keep strength work around RPE 8: challenging and controlled, without grinding.\n\nBuild consistency and clean technique here before progressing to the heavier second phase.",
   "cycle": {
     "dayCount": 7,
     "weeksPerBlock": 4,

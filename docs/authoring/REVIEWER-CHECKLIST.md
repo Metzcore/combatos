@@ -54,6 +54,9 @@ Each is a question to answer, not a box to blindly tick. Flag anything that isn'
 - [ ] **User-facing promise is honest and useful** — do `summary` and `outcomes` explain the need
       and expected benefits in the person's language, without shame, urgency, guarantees, raw
       intake facts, internal IDs or implementation notes?
+- [ ] **Description belongs in the app** — if present, is it two or three short paragraphs covering
+      why the phase matters, how to train it and when to progress, with all author/developer notes
+      kept outside the cartridge?
 - [ ] **Metadata matches the program** — are the tags and equipment requirements supported by the
       actual authored days rather than generated as plausible-sounding filler?
 - [ ] **Block selection is deliberate, not padded** — does each day carry the block kinds it
