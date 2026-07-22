@@ -6,18 +6,46 @@
  * are invite-only). Styled with the app's tactical-amber CSS vars.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider.jsx'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignIn() {
-    const { signInWithMagicLink } = useAuth()
+    const { signInWithMagicLink, signInWithPassword } = useAuth()
     const [email, setEmail] = useState('')
     const [status, setStatus] = useState('idle') // idle | sending | sent | error
     const [error, setError] = useState('')
+    const [devError, setDevError] = useState('')
 
     const canSubmit = EMAIL_RE.test(email.trim()) && status !== 'sending'
+
+    // ── Dev-only password bypass (localhost + agent browser testing) ──
+    // Skips the magic-link email entirely by signing in a dedicated password
+    // user whose creds live in gitignored app/.env.local (VITE_DEV_EMAIL /
+    // VITE_DEV_PASSWORD). The whole block is guarded by import.meta.env.DEV, so
+    // `vite build` (DEV=false) strips it from the production bundle — and the
+    // VITE_DEV_* vars aren't set in the Cloudflare build env either. Prod is
+    // untouched: real users still get magic-link only.
+    async function handleDevLogin() {
+        const devEmail = import.meta.env.VITE_DEV_EMAIL
+        const devPassword = import.meta.env.VITE_DEV_PASSWORD
+        if (!devEmail || !devPassword) {
+            setDevError('Set VITE_DEV_EMAIL / VITE_DEV_PASSWORD in app/.env.local')
+            return
+        }
+        setDevError('')
+        const { error: err } = await signInWithPassword(devEmail, devPassword)
+        if (err) setDevError(err.message || 'Dev sign-in failed')
+    }
+
+    // Optional zero-click auto-login for agents: set VITE_DEV_AUTOLOGIN=true.
+    useEffect(() => {
+        if (!import.meta.env.DEV) return
+        if (import.meta.env.VITE_DEV_AUTOLOGIN !== 'true') return
+        handleDevLogin()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -144,6 +172,50 @@ export default function SignIn() {
                             </p>
                         )}
                     </form>
+                )}
+
+                {import.meta.env.DEV && (
+                    <div
+                        style={{
+                            marginTop: '1.5rem',
+                            paddingTop: '1.5rem',
+                            borderTop: '1px dashed var(--divider)',
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: '0.65rem',
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                color: 'var(--dim)',
+                                marginBottom: '0.5rem',
+                            }}
+                        >
+                            Dev — localhost only
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleDevLogin}
+                            style={{
+                                width: '100%',
+                                padding: '0.7rem 1rem',
+                                fontSize: '0.9rem',
+                                fontWeight: 700,
+                                color: 'var(--accent)',
+                                background: 'rgba(232, 160, 32, 0.1)',
+                                border: '1px solid var(--accent)',
+                                borderRadius: 'var(--radius-md)',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            ⚡ Dev sign-in (skip magic link)
+                        </button>
+                        {devError && (
+                            <p style={{ color: 'var(--alert)', fontSize: '0.8rem', marginTop: '0.6rem' }}>
+                                {devError}
+                            </p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
