@@ -1,9 +1,9 @@
 /**
  * validateCartridge.test.js
  *
- * Pins Part A (structural validation) of the authoring reviewer checklist
- * against the cartridge spec's rules. Uses inline fixtures for each rule, plus
- * a regression guard that the two real authored cartridges validate clean.
+ * Pins Part A (structural validation) for the block-model schema
+ * (docs/planning/rebuild/BLOCK-MODEL-DRAFT.md). Inline fixtures per rule, plus
+ * a regression guard that the real authored cartridges validate clean.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -11,21 +11,31 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { validateCartridge } from './validateCartridge.js'
 
-/** A minimal, structurally-valid training cartridge to mutate per test. */
+/** A minimal, structurally-valid block-model training cartridge to mutate per test. */
 function validCartridge() {
     return {
         cartridgeId: 'test-cartridge',
         type: 'training',
         label: 'Test',
-        prescription: 'rpe',
         cycle: { dayCount: 3 },
         days: [
             {
                 day: 1,
                 label: 'Day 1',
                 type: 'training',
-                exercises: [
-                    { id: 'd1-ex1', name: 'Squat', superset: null, sets: 3, reps: '5', prescription: { rpe: 8 }, cue: 'Brace.' }
+                blocks: [
+                    {
+                        kind: 'strength',
+                        label: 'Strength',
+                        items: [
+                            { id: 'd1-str-1', name: 'Squat', sets: 3, reps: '5', prescription: { rpe: 8 }, cue: 'Brace.' }
+                        ]
+                    },
+                    {
+                        kind: 'core',
+                        label: 'Core',
+                        items: [{ id: 'd1-core-1', name: 'Plank', sets: 3, reps: '30s', cue: 'Tight.' }]
+                    }
                 ]
             },
             { day: 2, label: 'Day 2', type: 'rest' },
@@ -36,26 +46,38 @@ function validCartridge() {
 }
 
 describe('validateCartridge — valid input', () => {
-    it('accepts a minimal valid training cartridge', () => {
+    it('accepts a minimal valid block-model cartridge', () => {
         expect(validateCartridge(validCartridge())).toEqual([])
+    })
+
+    it('accepts all five block kinds', () => {
+        const c = validCartridge()
+        c.days[0].blocks = [
+            { kind: 'mobility', items: [{ id: 'm1', name: 'Hip 90/90', dose: '2x60s each side' }] },
+            { kind: 'strength', items: [{ id: 's1', name: 'Squat', sets: 4, reps: '4', prescription: { percent: 0.8 }, pair: { name: 'Box Jump', sets: 4, reps: '3' } }] },
+            { kind: 'conditioning', items: [{ id: 'b1', name: 'Bag Work', rounds: 6, roundLength: '3 min', perRound: ['R1', 'R2'] }] },
+            { kind: 'core', items: [{ id: 'c1', name: 'Pallof', sets: 3, reps: '10' }] },
+            { kind: 'cooldown', items: [{ id: 'cl1', name: 'Pigeon', dose: '2x90s each side' }] }
+        ]
+        expect(validateCartridge(c)).toEqual([])
     })
 })
 
-describe('validateCartridge — rule 1: required fields + model', () => {
-    it.each(['cartridgeId', 'label', 'prescription'])('flags missing %s', (field) => {
+describe('validateCartridge — required cartridge fields', () => {
+    it.each(['cartridgeId', 'label'])('flags missing %s', (field) => {
         const c = validCartridge()
         delete c[field]
         expect(validateCartridge(c).join(' ')).toContain(field)
     })
 
-    it('flags an unknown prescription model', () => {
+    it('flags a non-positive dayCount', () => {
         const c = validCartridge()
-        c.prescription = 'made-up'
-        expect(validateCartridge(c).some((e) => e.includes('not one of'))).toBe(true)
+        c.cycle.dayCount = 0
+        expect(validateCartridge(c).some((e) => e.includes('dayCount'))).toBe(true)
     })
 })
 
-describe('validateCartridge — rule 2: day coverage', () => {
+describe('validateCartridge — day coverage', () => {
     it('flags a gap in the day sequence', () => {
         const c = validCartridge()
         c.days = c.days.filter((d) => d.day !== 2)
@@ -73,25 +95,19 @@ describe('validateCartridge — rule 2: day coverage', () => {
         c.days[2].day = 9
         expect(validateCartridge(c).some((e) => e.includes('outside 1..3'))).toBe(true)
     })
-
-    it('flags a non-positive dayCount', () => {
-        const c = validCartridge()
-        c.cycle.dayCount = 0
-        expect(validateCartridge(c).some((e) => e.includes('dayCount'))).toBe(true)
-    })
 })
 
-describe('validateCartridge — rule 3: day-type / exercise coupling', () => {
-    it('flags a training day with no exercises', () => {
+describe('validateCartridge — day/block coupling', () => {
+    it('flags a training day with no blocks', () => {
         const c = validCartridge()
-        c.days[0].exercises = []
-        expect(validateCartridge(c).some((e) => e.includes('must have at least one exercise'))).toBe(true)
+        c.days[0].blocks = []
+        expect(validateCartridge(c).some((e) => e.includes('training day must have at least one block'))).toBe(true)
     })
 
-    it('flags a rest day that carries exercises', () => {
+    it('flags a rest day that carries blocks', () => {
         const c = validCartridge()
-        c.days[1].exercises = [{ id: 'x', name: 'X', sets: 1, reps: '1', cue: 'c', prescription: { rpe: 8 } }]
-        expect(validateCartridge(c).some((e) => e.includes('rest day must have no exercises'))).toBe(true)
+        c.days[1].blocks = [{ kind: 'strength', items: [{ id: 'x', name: 'X', sets: 1, reps: '1' }] }]
+        expect(validateCartridge(c).some((e) => e.includes('rest day must have no blocks'))).toBe(true)
     })
 
     it('flags an unknown day type', () => {
@@ -99,68 +115,99 @@ describe('validateCartridge — rule 3: day-type / exercise coupling', () => {
         c.days[2].type = 'party'
         expect(validateCartridge(c).some((e) => e.includes('unknown day type'))).toBe(true)
     })
-})
 
-describe('validateCartridge — rule 4: unique exercise ids', () => {
-    it('flags a duplicate exercise id', () => {
-        const c = validCartridge()
-        c.days[0].exercises.push({ id: 'd1-ex1', name: 'Row', sets: 3, reps: '5', cue: 'Pull.', prescription: { rpe: 8 } })
-        expect(validateCartridge(c).some((e) => e.includes('duplicate exercise id'))).toBe(true)
+    it('accepts a custom day with no blocks (e.g. a fight day)', () => {
+        expect(validateCartridge(validCartridge())).toEqual([])
     })
 })
 
-describe('validateCartridge — rule 5: supersets group >= 2', () => {
+describe('validateCartridge — block rules', () => {
+    it('flags an unknown block kind', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].kind = 'cardio-blast'
+        expect(validateCartridge(c).some((e) => e.includes('unknown block kind'))).toBe(true)
+    })
+
+    it('flags a block with no items', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].items = []
+        expect(validateCartridge(c).some((e) => e.includes('block must have at least one item'))).toBe(true)
+    })
+
+    it('flags a missing block kind', () => {
+        const c = validCartridge()
+        delete c.days[0].blocks[0].kind
+        expect(validateCartridge(c).some((e) => e.includes('block kind is required'))).toBe(true)
+    })
+})
+
+describe('validateCartridge — item ids', () => {
+    it('flags a duplicate item id across blocks', () => {
+        const c = validCartridge()
+        c.days[0].blocks[1].items[0].id = 'd1-str-1'
+        expect(validateCartridge(c).some((e) => e.includes('duplicate item id'))).toBe(true)
+    })
+
+    it('flags a missing item id', () => {
+        const c = validCartridge()
+        delete c.days[0].blocks[0].items[0].id
+        expect(validateCartridge(c).some((e) => e.includes('id is required'))).toBe(true)
+    })
+})
+
+describe('validateCartridge — kind-specific item shape', () => {
+    it('requires dose on mobility/cooldown items', () => {
+        const c = validCartridge()
+        c.days[0].blocks = [{ kind: 'mobility', items: [{ id: 'm1', name: 'Hip 90/90' }] }]
+        expect(validateCartridge(c).some((e) => e.includes('mobility item requires a "dose"'))).toBe(true)
+    })
+
+    it.each(['sets', 'reps'])('requires %s on strength items', (field) => {
+        const c = validCartridge()
+        delete c.days[0].blocks[0].items[0][field]
+        expect(validateCartridge(c).some((e) => e.includes(`requires "${field}"`))).toBe(true)
+    })
+
+    it('requires numeric rounds on conditioning items', () => {
+        const c = validCartridge()
+        c.days[0].blocks = [{ kind: 'conditioning', items: [{ id: 'b1', name: 'Bag' }] }]
+        expect(validateCartridge(c).some((e) => e.includes('conditioning item requires a numeric "rounds"'))).toBe(true)
+    })
+
+    it('flags a non-object prescription', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].items[0].prescription = 8
+        expect(validateCartridge(c).some((e) => e.includes('prescription must be an object'))).toBe(true)
+    })
+
+    it('accepts a free-note prescription (mixed multi-modal styles)', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].items[0].prescription = { note: 'Moderate — feel the hamstring' }
+        expect(validateCartridge(c)).toEqual([])
+    })
+
+    it('flags a PAP pair missing a name', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].items[0].pair = { sets: 4, reps: '3' }
+        expect(validateCartridge(c).some((e) => e.includes('pair requires a "name"'))).toBe(true)
+    })
+
+    it('flags a non-array perRound', () => {
+        const c = validCartridge()
+        c.days[0].blocks = [{ kind: 'conditioning', items: [{ id: 'b1', name: 'Bag', rounds: 6, perRound: 'R1' }] }]
+        expect(validateCartridge(c).some((e) => e.includes('perRound must be an array'))).toBe(true)
+    })
+})
+
+describe('validateCartridge — supersets group >= 2', () => {
     it('flags a lone superset label', () => {
         const c = validCartridge()
-        c.days[0].exercises[0].superset = 'A'
+        c.days[0].blocks[0].items[0].superset = 'A'
         expect(validateCartridge(c).some((e) => e.includes('superset "A" groups only 1'))).toBe(true)
     })
-
-    it('accepts a superset label shared by two exercises', () => {
-        const c = validCartridge()
-        c.days[0].exercises[0].superset = 'A'
-        c.days[0].exercises.push({ id: 'd1-ex2', name: 'Row', superset: 'A', sets: 3, reps: '5', cue: 'Pull.', prescription: { rpe: 8 } })
-        expect(validateCartridge(c)).toEqual([])
-    })
 })
 
-describe('validateCartridge — rule 6: prescription matches model', () => {
-    it('accepts rpe or rir under the rpe model', () => {
-        const c = validCartridge()
-        c.days[0].exercises[0].prescription = { rir: 3 }
-        expect(validateCartridge(c)).toEqual([])
-    })
-
-    it('flags an rpe-model exercise with neither rpe nor rir', () => {
-        const c = validCartridge()
-        c.days[0].exercises[0].prescription = {}
-        expect(validateCartridge(c).some((e) => e.includes('requires a numeric "rpe" or "rir"'))).toBe(true)
-    })
-
-    it('requires a numeric percent under percent-1rm', () => {
-        const c = validCartridge()
-        c.prescription = 'percent-1rm'
-        c.days[0].exercises[0].prescription = {}
-        expect(validateCartridge(c).some((e) => e.includes('percent-1rm requires'))).toBe(true)
-    })
-
-    it('rejects stray keys under straight-sets', () => {
-        const c = validCartridge()
-        c.prescription = 'straight-sets'
-        c.days[0].exercises[0].prescription = { rpe: 8 }
-        expect(validateCartridge(c).some((e) => e.includes('straight-sets prescription allows only'))).toBe(true)
-    })
-})
-
-describe('validateCartridge — Part A extras: required exercise fields', () => {
-    it.each(['name', 'sets', 'reps', 'cue'])('flags an exercise missing %s', (field) => {
-        const c = validCartridge()
-        delete c.days[0].exercises[0][field]
-        expect(validateCartridge(c).join(' ')).toContain(field)
-    })
-})
-
-describe('validateCartridge — rule 7: known feature flags', () => {
+describe('validateCartridge — known feature flags', () => {
     it('flags an unknown feature flag', () => {
         const c = validCartridge()
         c.features.warpDrive = true
@@ -185,11 +232,9 @@ describe('validateCartridge — content cartridge', () => {
         expect(validateCartridge(c)).toEqual([])
     })
 
-    it('flags an empty content cartridge and a stray prescription', () => {
-        const c = { cartridgeId: 'x', type: 'content', sections: [], prescription: 'rpe' }
-        const errors = validateCartridge(c)
-        expect(errors.some((e) => e.includes('non-empty sections'))).toBe(true)
-        expect(errors.some((e) => e.includes('must not declare a prescription'))).toBe(true)
+    it('flags an empty content cartridge', () => {
+        const c = { cartridgeId: 'x', type: 'content', sections: [] }
+        expect(validateCartridge(c).some((e) => e.includes('non-empty sections'))).toBe(true)
     })
 })
 

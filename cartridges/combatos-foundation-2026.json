@@ -2,8 +2,7 @@
   "cartridgeId": "combatos-foundation-2026",
   "type": "training",
   "label": "Combat OS — Foundation / Corrective (Phase 1, 4 weeks)",
-  "description": "A 4-week spine-friendly foundation block for a lean, advanced striker returning to full training after chiropractic spinal adjustments (cleared to train). Goal: rebuild the muscles striking neglects — glutes/pelvic stability, deep anti-movement core, rotator cuff, mid/lower traps, single-leg stability — and add controlled hypertrophy there, WHILE maintaining strength. Loads capped at RPE 7 on joint-friendly machine and single-leg lifts; no heavy axial barbell work (no back squat, no bent-over row, no deadlift). Run alongside heavy sport practice (boxing, kickboxing, BJJ, classes) and yoga. If sessions feel short, that's by design — bank the extra time in the recovery studio. Graduate to combatos-operator-2026 (Phase 2) when the foundation is rebuilt.",
-  "prescription": "rpe",
+  "description": "A 4-week spine-friendly foundation block for a lean, advanced striker returning to full training after chiropractic spinal adjustments (cleared to train). Goal: rebuild the muscles striking neglects — glutes/pelvic stability, deep anti-movement core, rotator cuff, mid/lower traps, single-leg stability — while maintaining strength. Loads capped at RPE 7 on joint-friendly machine and single-leg lifts; no heavy axial barbell work. Run alongside heavy sport practice and yoga; if sessions feel short, bank the time in the recovery studio. Graduate to combatos-operator-2026 (Phase 2). Block-model v2.",
   "cycle": {
     "dayCount": 7,
     "weeksPerBlock": 4,
@@ -17,172 +16,92 @@
       "label": "Day 1 — Legs, Glutes & Deep Core",
       "type": "training",
       "focus": "Leg strength without spinal load, glute/pelvic stability, deep core",
-      "warmup": ["Your own 10-min warm-up routine"],
-      "exercises": [
+      "blocks": [
         {
-          "id": "f1-ex1",
-          "name": "45° Leg Press",
-          "target": "Quads / Glutes",
-          "superset": null,
-          "sets": 3,
-          "reps": "10",
-          "prescription": { "rpe": 7 },
-          "cue": "Heavy but controlled, full range, mid-foot drive. Loads your legs hard with zero spinal compression — this is how you keep leg strength while the back settles."
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "f1-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
         },
         {
-          "id": "f1-ex2",
-          "name": "Single-Leg Glute Machine (kickback)",
-          "target": "Glutes (single-leg)",
-          "superset": null,
-          "sets": 3,
-          "reps": "10 each side",
-          "prescription": { "rpe": 7 },
-          "cue": "Your preferred machine — elbows supported, full extension, hard squeeze and a beat's pause. Strong glutes = a stable pelvis and a protected lower back. This is the centrepiece of the corrective month."
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "f1-str-1", "name": "45° Leg Press", "target": "Quads / Glutes", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Heavy but controlled, full range, mid-foot drive. Loads your legs hard with zero spinal compression." },
+            { "id": "f1-str-2", "name": "Single-Leg Glute Machine (kickback)", "target": "Glutes (single-leg)", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 7 }, "cue": "Elbows supported, full extension, hard squeeze and a beat's pause. Strong glutes = a stable pelvis and a protected lower back." },
+            { "id": "f1-str-3", "name": "Single-Leg RDL (DB, light)", "target": "Hamstrings / Glute-med / balance", "sets": 3, "reps": "8 each side", "prescription": { "rir": 4 }, "cue": "Light — hip control and balance, not load. Teaches the clean hinge your spine wants." }
+          ]
         },
         {
-          "id": "f1-ex3",
-          "name": "Single-Leg RDL (DB, light)",
-          "target": "Hamstrings / Glute-med / balance",
-          "superset": null,
-          "sets": 3,
-          "reps": "8 each side",
-          "prescription": { "rir": 4 },
-          "cue": "Light — this is hip control and balance, not load. Teaches the clean hinge your spine wants and fires the glute-med that stabilises the hip. Slow and honest."
-        },
-        {
-          "id": "f1-ex4",
-          "name": "Dead Bug",
-          "target": "Deep core (anti-extension)",
-          "superset": null,
-          "sets": 3,
-          "reps": "10 each side",
-          "prescription": { "rir": 4 },
-          "cue": "Slow, ribs down, low back glued to the floor — no arching. Deep-core anti-extension is priority #1 post-adjustment: this is what holds your spine together under everything else you do."
+          "kind": "core",
+          "label": "Deep Core",
+          "items": [
+            { "id": "f1-core-1", "name": "Dead Bug", "sets": 3, "reps": "10 each side", "prescription": { "rir": 4 }, "cue": "Slow, ribs down, low back glued to the floor. Deep-core anti-extension is priority #1 post-adjustment." }
+          ]
         }
       ]
     },
-    {
-      "day": 2,
-      "label": "Day 2 — Fight",
-      "type": "custom",
-      "focus": "Boxing / kickboxing / BJJ / class — log freely in notes"
-    },
+    { "day": 2, "label": "Day 2 — Fight", "type": "custom", "focus": "Boxing / kickboxing / BJJ / class — log freely in notes" },
     {
       "day": 3,
       "label": "Day 3 — Push, Pull & Shoulder Health",
       "type": "training",
       "focus": "Spine-friendly pulling, maintained pressing, rotator-cuff & trap rebuild",
-      "warmup": ["Your own 10-min warm-up routine"],
-      "exercises": [
+      "blocks": [
         {
-          "id": "f3-ex1",
-          "name": "Chest-Supported Row (plate-loaded)",
-          "target": "Back / Upper back (horizontal pull)",
-          "superset": null,
-          "sets": 3,
-          "reps": "10",
-          "prescription": { "rpe": 7 },
-          "cue": "Chest on the pad — zero lower-back demand, unlike a bent-over row. Squeeze the shoulder blades, control the return. Rebuilds the mid-back that pulls your posture upright."
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "f3-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
         },
         {
-          "id": "f3-ex2",
-          "name": "Machine Shoulder Press",
-          "target": "Shoulders (vertical push)",
-          "superset": null,
-          "sets": 3,
-          "reps": "8",
-          "prescription": { "rpe": 7 },
-          "cue": "Machine keeps it stable this month (swap to barbell OHP if it feels great). Maintains your pressing strength without the axial load of a standing grind."
-        },
-        {
-          "id": "f3-ex3",
-          "name": "Cable Face Pull",
-          "target": "Rear delts / Lower traps",
-          "superset": null,
-          "sets": 3,
-          "reps": "15",
-          "prescription": { "rir": 3 },
-          "cue": "The area you flagged as weak. High elbows, pull to the eyes, pause at the back. Rebuilds the postural chain striking neglects — do it religiously this month."
-        },
-        {
-          "id": "f3-ex4",
-          "name": "Cable External Rotation",
-          "target": "Rotator cuff",
-          "superset": null,
-          "sets": 2,
-          "reps": "12 each side",
-          "prescription": { "rir": 4 },
-          "cue": "Light, elbow pinned to your side, slow. Direct rotator-cuff health — the untrained stabiliser that keeps a striker's shoulders in the game for years."
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "f3-str-1", "name": "Chest-Supported Row (plate-loaded)", "target": "Back / Upper back", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Chest on the pad — zero lower-back demand. Squeeze the shoulder blades, control the return." },
+            { "id": "f3-str-2", "name": "Machine Shoulder Press", "target": "Shoulders", "sets": 3, "reps": "8", "prescription": { "rpe": 7 }, "cue": "Machine keeps it stable this month. Maintains pressing strength without axial load." },
+            { "id": "f3-str-3", "name": "Cable Face Pull", "target": "Rear delts / Lower traps", "sets": 3, "reps": "15", "prescription": { "rir": 3 }, "cue": "The area you flagged as weak. High elbows, pull to the eyes, pause. Do it religiously." },
+            { "id": "f3-str-4", "name": "Cable External Rotation", "target": "Rotator cuff", "sets": 2, "reps": "12 each side", "prescription": { "rir": 4 }, "cue": "Light, elbow pinned to your side, slow. Direct rotator-cuff health." }
+          ]
         }
       ]
     },
-    {
-      "day": 4,
-      "label": "Day 4 — Fight",
-      "type": "custom",
-      "focus": "Boxing / kickboxing / BJJ / class — log freely in notes"
-    },
+    { "day": 4, "label": "Day 4 — Fight", "type": "custom", "focus": "Boxing / kickboxing / BJJ / class — log freely in notes" },
     {
       "day": 5,
-      "label": "Day 5 — Single-Leg, Vertical Pull & Carries",
+      "label": "Day 5 — Single-Leg, Pull & Carries",
       "type": "training",
       "focus": "Single-leg strength & symmetry, stable vertical pull, anti-rotation & carry core",
-      "warmup": ["Your own 10-min warm-up routine"],
-      "exercises": [
+      "blocks": [
         {
-          "id": "f5-ex1",
-          "name": "Reverse Lunge (DB, controlled)",
-          "target": "Quads / Glutes (single-leg)",
-          "superset": null,
-          "sets": 3,
-          "reps": "8 each side",
-          "prescription": { "rpe": 7 },
-          "cue": "Controlled and balanced, drive through the front heel. Single-leg strength and left/right symmetry with minimal spinal load."
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "f5-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
         },
         {
-          "id": "f5-ex2",
-          "name": "Lat Pulldown (machine)",
-          "target": "Back / Lats (vertical pull)",
-          "superset": null,
-          "sets": 3,
-          "reps": "10",
-          "prescription": { "rpe": 7 },
-          "cue": "Machine-stable vertical pulling — keeps your strong lats strong while sparing the grip and joint strain of heavy weighted pull-ups this month."
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "f5-str-1", "name": "Reverse Lunge (DB, controlled)", "target": "Quads / Glutes (single-leg)", "sets": 3, "reps": "8 each side", "prescription": { "rpe": 7 }, "cue": "Controlled and balanced, drive through the front heel. Single-leg strength with minimal spinal load." },
+            { "id": "f5-str-2", "name": "Lat Pulldown (machine)", "target": "Back / Lats", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Machine-stable vertical pulling — keeps your strong lats strong while sparing grip strain this month." }
+          ]
         },
         {
-          "id": "f5-ex3",
-          "name": "Pallof Press (cable)",
-          "target": "Core (anti-rotation)",
-          "superset": null,
-          "sets": 3,
-          "reps": "12 each side",
-          "prescription": { "rir": 3 },
-          "cue": "Resist the rotation, don't create it. Anti-rotation trunk control protects the spine and builds the core that transfers straight into punch power."
-        },
-        {
-          "id": "f5-ex4",
-          "name": "Farmer Carry (DB)",
-          "target": "Total-body / Anti-lateral-flexion core",
-          "superset": null,
-          "sets": 3,
-          "reps": "30 m",
-          "prescription": { "rpe": 7 },
-          "cue": "Heavy DBs, stand tall and braced, walk slow and controlled. Loaded carries are the most spine-friendly core builder there is — grip, traps and total-body stability in one. Use the turf track."
+          "kind": "core",
+          "label": "Core",
+          "items": [
+            { "id": "f5-core-1", "name": "Pallof Press (cable)", "sets": 3, "reps": "12 each side", "prescription": { "rir": 3 }, "cue": "Resist the rotation, don't create it. Protects the spine and builds punch-transferable core." },
+            { "id": "f5-core-2", "name": "Farmer Carry (DB)", "sets": 3, "reps": "30 m", "prescription": { "rpe": 7 }, "cue": "Heavy DBs, stand tall and braced, walk slow. The most spine-friendly core builder there is. Use the turf track." }
+          ]
         }
       ]
     },
-    {
-      "day": 6,
-      "label": "Day 6 — Fight",
-      "type": "custom",
-      "focus": "Boxing / kickboxing / BJJ / class — log freely in notes"
-    },
-    {
-      "day": 7,
-      "label": "Day 7 — Pick / Recovery",
-      "type": "custom",
-      "focus": "Yoga or mobility class (great this month), a recovery-studio session (cryo / infrared sauna / plunge), or a bonus session. Log what you did."
-    }
+    { "day": 6, "label": "Day 6 — Fight", "type": "custom", "focus": "Boxing / kickboxing / BJJ / class — log freely in notes" },
+    { "day": 7, "label": "Day 7 — Pick / Recovery", "type": "custom", "focus": "Yoga or mobility class, a recovery-studio session (cryo / infrared sauna / plunge), or a bonus session. Log what you did." }
   ],
   "features": {
     "hipScoreRouting": false,
