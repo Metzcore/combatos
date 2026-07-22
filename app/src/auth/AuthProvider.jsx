@@ -66,6 +66,22 @@ export function AuthProvider({ children }) {
         return { error }
     }, [])
 
+    // Password sign-in. Only wired up behind an import.meta.env.DEV guard in
+    // SignIn (see the dev-bypass block there) so it never reaches production —
+    // it exists so localhost + agent browser testing can skip the magic-link
+    // email round-trip using a dedicated password user. Harmless in prod: no
+    // shipped code path calls it.
+    const signInWithPassword = useCallback(async (email, password) => {
+        if (!isSupabaseConfigured) {
+            return { error: new Error('Supabase is not configured for this build.') }
+        }
+        const { error } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+        })
+        return { error }
+    }, [])
+
     const signOut = useCallback(async () => {
         if (!isSupabaseConfigured) return
         await supabase.auth.signOut()
@@ -78,6 +94,7 @@ export function AuthProvider({ children }) {
                 user: session?.user ?? null,
                 loading,
                 signInWithMagicLink,
+                signInWithPassword,
                 signOut,
             }}
         >
