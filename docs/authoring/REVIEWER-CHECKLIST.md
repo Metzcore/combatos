@@ -5,12 +5,12 @@
 >
 > - **Part A — Structural validation:** deterministic, mechanical, **automated**. Implemented in
 >   `app/src/utils/validateCartridge.js` (tested, `npm test` in `app/`) against the block model in
->   `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` v2. Run it — don't hand-check Part A.
+>   `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` v3. Run it — don't hand-check Part A.
 > - **Part B — Coaching-sanity judgment:** qualitative. Needs a coach (LLM or human) for now.
 >   This is what a schema validator can never catch: a cartridge can be perfectly well-formed and
 >   still be a bad program.
 >
-> Version 2 (2026-07-22) — updated for the block-composable model.
+> Version 3 (2026-07-22) — adds renderer-ready Library metadata to the block-composable model.
 
 ---
 
@@ -20,7 +20,12 @@
 valid. It enforces:
 
 - [ ] Parses as valid JSON.
+- [ ] `schemaVersion` is exactly `3`; `cartridgeVersion` is valid semantic versioning.
 - [ ] `cartridgeId` and `label` are present.
+- [ ] `summary` is a single-line 1–160 character string.
+- [ ] `outcomes` contains 2–4 unique, single-line benefit statements of at most 80 characters each.
+- [ ] `tags` contains 1–8 unique lowercase-kebab strings.
+- [ ] `requirements.equipment` is an array of unique, non-empty display strings (empty is valid).
 - [ ] `cycle.dayCount` is a positive number.
 - [ ] `days[]` covers `1..cycle.dayCount` with no gaps, no duplicates, none out of range.
 - [ ] Every day's `type` is one of `training` · `rest` · `recovery` · `custom`.
@@ -46,6 +51,11 @@ Each is a question to answer, not a box to blindly tick. Flag anything that isn'
 
 - [ ] **Goal fit** — does the program actually serve the stated goal and priority ranking? (A
       strength-first athlete shouldn't get a bodybuilding split.)
+- [ ] **User-facing promise is honest and useful** — do `summary` and `outcomes` explain the need
+      and expected benefits in the person's language, without shame, urgency, guarantees, raw
+      intake facts, internal IDs or implementation notes?
+- [ ] **Metadata matches the program** — are the tags and equipment requirements supported by the
+      actual authored days rather than generated as plausible-sounding filler?
 - [ ] **Block selection is deliberate, not padded** — does each day carry the block kinds it
       actually needs (no `mobility` block that's really just a placeholder, no `conditioning`
       block bolted on for the sake of it)? A simple program having only `strength` blocks is fine.

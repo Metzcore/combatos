@@ -1,14 +1,14 @@
 # Program Cartridge Spec — the "hand it to any LLM" file
 
-> **STATUS: v2 — DESIGN PROVEN, NOT YET RENDERED.** This defines the program-definition format the
+> **STATUS: v3 — DESIGN PROVEN, READ-ONLY RENDER PATH LIVE.** This defines the program-definition format the
 > rebuilt Train tab will consume (see `ARCHITECTURE-NORTHSTAR.md`, the console+cartridge model).
-> **v2 (2026-07-22) replaces the flat-exercise v1 with a block-composable model** — see
-> "Revision history" at the bottom for why. The format itself is now proven: three real cartridges
+> **v3 (2026-07-22) adds renderer-ready Library metadata to the proven v2 block model** — see
+> "Revision history" at the bottom for why. The format itself is proven: three real cartridges
 > (`cartridges/combatos-foundation-2026.json`, `combatos-operator-2026.json`,
 > `apex-protocol-phase1.json`) validate clean against it, and `app/src/utils/validateCartridge.js`
-> implements every rule below in tested code. What's still missing is the **renderer** — the Train
-> tab does not consume this format yet. Treat the JSON shape as locked; treat "how it looks in the
-> app" as open.
+> implements every rule below in tested code. The current Train viewer renders the training content;
+> A9c/A9d will connect account availability and render the new summary/outcomes metadata. Treat the
+> JSON shape as locked; treat "how it looks in the app" as open.
 
 ---
 
@@ -97,10 +97,21 @@ authoring system. Do not invent a kind speculatively.
 
 ```jsonc
 {
+  "schemaVersion": 3,                            // exact format compatibility version
+  "cartridgeVersion": "1.0.0",                 // this cartridge's semantic content version
   "cartridgeId": "kebab-case-unique-id",        // e.g. "combatos-operator-2026", "apex-protocol-phase1"
   "type": "training",                            // "training" | "content" (see Cartridge types)
   "label": "Human-readable program name",
-  "description": "Who this is for, the philosophy, and (if part of a sequence) the next phase.",
+  "summary": "One outcome-led sentence the Library can show without expansion.",
+  "outcomes": [
+    "A short, believable benefit the person can expect",
+    "A second benefit written in the person's language"
+  ],
+  "tags": ["strength", "full-body"],
+  "requirements": {
+    "equipment": ["Dumbbells", "Cable station"]
+  },
+  "description": "Longer author context, philosophy, constraints, and next-phase rationale.",
   "cycle": {
     "dayCount": 7,                               // days in one rotation (commonly 6 or 7)
     "weeksPerBlock": 4,                           // optional: length of this phase/mesocycle
@@ -170,6 +181,30 @@ authoring system. Do not invent a kind speculatively.
 Note: `cycle.blocks` (named phases, e.g. `"phase1"`) is unrelated to `day.blocks` (mobility/
 strength/etc. inside a day) — same word, different level. Keep this straight when authoring.
 
+## User-facing metadata (v3)
+
+The Library must not turn an author's working notes into one cramped paragraph. Training cartridges
+therefore carry a small, structured presentation contract:
+
+- `schemaVersion` — required integer, exactly `3`. The app uses this to reject an incompatible
+  cartridge instead of guessing.
+- `cartridgeVersion` — required semantic version such as `1.0.0`. Increment this when the
+  cartridge's content changes; the stable `cartridgeId` does not change.
+- `summary` — required single-line string, 1–160 characters. Lead with the outcome or need, not the
+  implementation. Do not include internal IDs, schema notes, age/weight, shame, urgency, or
+  guaranteed results.
+- `outcomes` — required array of 2–4 unique single-line strings, each 1–80 characters. These are
+  credible benefits the renderer can scan as separate lines; they are not feature names.
+- `tags` — required array of 1–8 unique lowercase-kebab strings. Tags support compact grouping and
+  filtering; they are not user ownership or access control.
+- `requirements.equipment` — required array of unique, non-empty display strings. An empty array is
+  valid. List only equipment actually required by the authored sessions.
+
+`description` remains the longer explanation and author context. It may capture assumptions,
+constraints and progression rationale, but future Library UI must prefer `summary` + `outcomes` for
+the first impression. Account assignment, active state and ownership belong in Supabase, never in
+the cartridge JSON.
+
 ## Day types
 
 - `training` — has `blocks[]`; the app renders and logs a full session.
@@ -185,20 +220,22 @@ These are implemented in tested code at `app/src/utils/validateCartridge.js` (Pa
 `docs/authoring/REVIEWER-CHECKLIST.md`) — treat that module as the executable source of truth if
 this list and the code ever drift.
 
-1. `cartridgeId` and `label` are present.
-2. `cycle.dayCount` is a positive number.
-3. `days[]` covers `1..cycle.dayCount` with no gaps, no duplicates, none out of range.
-4. Each day's `type` is one of `training` · `rest` · `recovery` · `custom`.
-5. A `training` day has ≥1 block; `rest`/`recovery` days have none; `custom` needs none.
-6. Every block has a known `kind` (see the seed table) and ≥1 item.
-7. Every item has an `id` (unique across the WHOLE cartridge, not just its block) and a `name`.
-8. Kind-specific item requirements:
+1. `schemaVersion` is exactly `3`; `cartridgeVersion` is a valid semantic version.
+2. `cartridgeId` and `label` are present.
+3. `summary`, `outcomes`, `tags`, and `requirements.equipment` follow the v3 metadata rules above.
+4. `cycle.dayCount` is a positive number.
+5. `days[]` covers `1..cycle.dayCount` with no gaps, no duplicates, none out of range.
+6. Each day's `type` is one of `training` · `rest` · `recovery` · `custom`.
+7. A `training` day has ≥1 block; `rest`/`recovery` days have none; `custom` needs none.
+8. Every block has a known `kind` (see the seed table) and ≥1 item.
+9. Every item has an `id` (unique across the WHOLE cartridge, not just its block) and a `name`.
+10. Kind-specific item requirements:
    - `mobility` / `cooldown`: requires `dose`.
    - `strength` / `core`: requires `sets` and `reps`; `prescription` (if present) must be an
      object; `pair` (if present) must be an object with a `name`.
    - `conditioning`: requires a numeric `rounds`; `perRound` (if present) must be an array.
-9. `superset` labels, where used, group ≥2 items.
-10. Any `features` referenced are known flags (currently `hipScoreRouting`, `bagWork`).
+11. `superset` labels, where used, group ≥2 items.
+12. Any `features` referenced are known flags (currently `hipScoreRouting`, `bagWork`).
 
 ## Instructions for the authoring LLM
 
@@ -224,8 +261,18 @@ descriptive (no `prescription`) since a beginner isn't yet training to RPE or %1
 
 ```jsonc
 {
+  "schemaVersion": 3,
+  "cartridgeVersion": "1.0.0",
   "cartridgeId": "beginner-full-body-3day",
+  "type": "training",
   "label": "Beginner Full-Body 3×/Week",
+  "summary": "Build a dependable full-body strength base with three simple weekly sessions.",
+  "outcomes": [
+    "Learn the major movement patterns with repeatable technique",
+    "Build strength without unnecessary complexity"
+  ],
+  "tags": ["beginner", "full-body", "strength"],
+  "requirements": { "equipment": ["Dumbbells", "Lat pulldown machine"] },
   "description": "General fitness for a new trainee: three full-body days, fixed sets and reps.",
   "cycle": { "dayCount": 7 },
   "days": [
@@ -280,8 +327,8 @@ descriptive (no `prescription`) since a beginner isn't yet training to RPE or %1
 
 Content cartridges carry theory / educational / quick-consumption material (the Apex "theory" tab
 is the first example). The content strategy is undeveloped, so this shape is intentionally
-minimal and WILL evolve — treat it as a placeholder, not a finished contract. Unaffected by the
-v2 block-model change (blocks are a `training`-cartridge concept only).
+minimal and WILL evolve — treat it as a placeholder, not a finished contract. The v3 user-facing
+metadata rules above apply to `training` cartridges only; content cartridges remain provisional.
 
 ```jsonc
 {
@@ -310,6 +357,12 @@ the Notes editor plain-text ruling; revisit when the content strategy is defined
 
 ## Revision history
 
+- **v3 (2026-07-22):** added explicit schema/content versions and structured, renderer-ready
+  presentation metadata: outcome-led `summary`, 2–4 `outcomes`, normalized `tags`, and actual
+  equipment requirements. Trigger: the first phone review showed that variable-length selector
+  pills and a raw author-description paragraph could not produce a calm, consistent Library or a
+  reliable contract for future LLM-authored cartridges. Training content and prescription shapes
+  are unchanged.
 - **v2 (2026-07-22):** replaced the flat `exercises[]` + single-cartridge-wide `prescription`
   model with the block-composable model above. Trigger: authoring a second real program (Apex
   Protocol) surfaced that Combat OS's own legacy `playbook.csv` already used a block taxonomy

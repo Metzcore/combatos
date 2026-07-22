@@ -1,8 +1,30 @@
 {
+  "schemaVersion": 3,
+  "cartridgeVersion": "1.0.0",
   "cartridgeId": "combatos-operator-2026",
   "type": "training",
   "label": "Combat OS — Tactical Operator (UFC Gym Dublin)",
-  "description": "A minimalist strength-led programme for a lean, advanced striker (30yo, 67kg) training around 3 weekly fight sessions. Priorities: relative strength, then conditioning/skill (covered by fight days), then explosiveness. Longevity-first: RPE-capped loads, no grinding, single-leg and anti-rotation work for joint health, no deadlift. Full-body x3 so a missed day never skips a movement pattern. PHASE 2 of the plan — graduate into this after the Foundation block (combatos-foundation-2026). Block-model v2.",
+  "summary": "Build strength that carries into hard rounds without draining the sport training that matters most.",
+  "outcomes": [
+    "Stay powerful as fatigue builds",
+    "Develop full-body strength without grinding repetitions",
+    "Build resilient hips, trunk and shoulders around a flexible week"
+  ],
+  "tags": ["strength", "combat-support", "full-body", "power"],
+  "requirements": {
+    "equipment": [
+      "Barbell and squat rack",
+      "Dumbbells",
+      "Glute kickback machine",
+      "Pull-up bar",
+      "Incline bench",
+      "Cable station",
+      "Medicine ball",
+      "Slam ball",
+      "Open throwing area"
+    ]
+  },
+  "description": "A minimalist strength-led programme for a lean, advanced striker (30yo, 67kg) training around 3 weekly fight sessions. Priorities: relative strength, then conditioning/skill (covered by fight days), then explosiveness. Longevity-first: RPE-capped loads, no grinding, single-leg and anti-rotation work for joint health, no deadlift. Full-body x3 so a missed day never skips a movement pattern. PHASE 2 of the plan — graduate into this after the Foundation block (combatos-foundation-2026).",
   "cycle": {
     "dayCount": 7
   },

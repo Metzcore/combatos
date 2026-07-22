@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-07-22 (cont'd) · A9b cartridge metadata v3 complete
+
+**Context:** Phone review found that variable-width program pills and a raw author-description blob
+could not produce a calm, understandable Library. The developer approved the list→detail direction
+and benefit-led copy contract before implementation.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Training cartridges require `schemaVersion`, `cartridgeVersion`, `summary`, 2–4 `outcomes`, normalized `tags`, and `requirements.equipment` | Gives any LLM and renderer a strict compatibility, presentation and gym-fit contract instead of inferring UI from prose |
+| 2 | `summary`/`outcomes` sell the honest need and expected benefit; `description` remains long context | Prevents raw intake facts, internal IDs, schema notes, shame, urgency or guarantees becoming the first user experience |
+| 3 | Library becomes equal-width program list → program detail; Active and Viewing are separate states | Fixes uneven selector geometry and makes program choice understandable without accidental activation |
+| 4 | Phases remain conditional; no phase control renders when a cartridge has none | Keeps the universal player useful for combat and non-combat programs without forcing every cartridge into one progression shape |
+
+**Implemented:** v3 spec/authoring kit/reviewer, validator and focused tests, all three canonical
+cartridges plus exact app mirrors. Exercise/day/prescription content unchanged. Verification: 49
+focused tests, 330 full-suite tests, production build passed. No Library UI changed; A9c is next.
+
+---
+
 ## 2026-07-22 (cont'd) · A9a cartridge access foundation live
 
 **Context:** The developer approved the A9 diagnostic's `user_cartridges` model and selected
@@ -35,7 +54,7 @@ live `profiles`/`sessions` tables. No app code, database schema, build, or tests
 | 6 | Durable draft persistence is **A6.5**, an explicit prerequisite to A7; draft shape remains separate from W26's permanent logged-session payload decision | The interactive renderer must not ship with close/reload data loss, but draft storage must not pre-decide analytics and logging contracts |
 | 7 | Same-device account switching is unsupported | Removes multi-account draft merge/partition UI from v1; explicit sign-out still must not expose a previous draft |
 | 8 | Ethical attention only: prompts, progress, and defaults must help the user train/recover; no artificial urgency, streak punishment, random rewards, or infinite feeds | The product may guide attention, but only toward user-chosen real-world benefit |
-| 9 | Recommended additive metadata: `schemaVersion`, `cartridgeVersion`, short `summary`, normalized `tags`, and structured `requirements.equipment`; assignment/owner/active state stays in Supabase | These fields have a concrete renderer, compatibility, or equipment-fit use; identity and access are account state, not programme content |
+| 9 | Recommended additive metadata: `schemaVersion`, `cartridgeVersion`, short `summary`, structured `outcomes`, normalized `tags`, and `requirements.equipment`; assignment/owner/active state stays in Supabase | These fields have a concrete renderer, compatibility, benefit-copy, or equipment-fit use; identity and access are account state, not programme content. `outcomes` was added after the phone review proved one summary could not replace the cramped author paragraph. |
 
 **Next:** Claude should read `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`, then run A9 as a
 diagnostic only: proposed assignment table, permissions/RLS, migration, Library states, and exact

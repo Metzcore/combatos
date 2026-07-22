@@ -111,7 +111,8 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
 - [~] **A9 · Cartridge availability + activation** — a user may have several coach-made-available
       cartridges but exactly one active. Unassigned bundled programs are hidden, not private. Start
       with a Supabase/RLS diagnostic; no database change before approval. Metadata additions ride
-      with the same spec revision. **A9a access foundation is live and verified; A9b metadata is next.**
+      with the same spec revision. **A9a access foundation is live and verified; A9b schema-v3
+      metadata is complete and verified (330 tests + production build); A9c loader/cache is next.**
       See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
 - [ ] **A10 · Train information architecture** — Workout / Playbook / Cartridges becomes Today /
       Plan / Library inside the existing Train hub; no new main-nav button. Produce the mobile and

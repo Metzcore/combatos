@@ -65,6 +65,23 @@ Library states are explicit: **Active**, **Available**, and, only for a coach-fa
 **Unassigned**. Activating a program replaces the single active pointer; it does not delete history or
 remove the other available programs.
 
+The approved phone-review direction is **list → detail**, not a row of variable-width selector pills:
+
+- the Library list uses equal-width, left-aligned, whole-row-tappable program cards;
+- the real active program carries an **Active** badge; opening another card means **viewing**, not
+  silently activating it;
+- a detail screen names the program again, shows `summary` and `outcomes` first, then equipment,
+  tags and the collapsible week;
+- `description` is longer author/program context, not the first unbroken paragraph a user must read;
+- Library day rows default collapsed so the week is understood before one day is inspected; Today
+  owns the expanded, act-now workout state;
+- use neutral dark rows for ordinary structure and reserve strong amber emphasis for "now" or an
+  important action rather than filling every training-day header.
+
+For Combat OS, "premium" means calm hierarchy, consistent geometry, honest copy, large touch targets,
+fast/offline behaviour and no ambiguity between active/viewing/tappable states. It does not mean glass,
+decoration or more animation.
+
 ## Supabase responsibility
 
 The live `profiles.assigned_cartridge` field is a good active-program pointer, but one text field cannot
@@ -87,6 +104,7 @@ The next additive spec revision should add only metadata the real UI or validato
 - `schemaVersion` — identifies the cartridge contract understood by the validator and renderer;
 - `cartridgeVersion` — identifies a revision of one program without changing its stable cartridge ID;
 - `summary` — one short user-facing explanation for Library and Plan cards;
+- `outcomes` — two to four short, believable benefits rendered as separate scan lines;
 - `tags` — normalized lowercase-kebab values for useful filtering or grouping;
 - `requirements.equipment` — a structured list used to warn that a program may not fit the user's gym.
 

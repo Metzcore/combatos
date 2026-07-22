@@ -16,6 +16,9 @@ other app code was changed._
   Self-assignment, role edit, profile deletion, anonymous read, and unavailable activation all fail.
 - Supabase advisors were rerun. Remaining notices are unrelated leaked-password protection, the
   pre-existing `sessions` policy performance warning, and expected newly-created unused indexes.
+- A9b is complete: schema v3, authoring kit, reviewer, validator/tests, and all three canonical/
+  bundled cartridge pairs now share validated summary/outcomes/tags/equipment metadata. No training
+  prescription or Train UI changed.
 
 ## Recommendation in one paragraph
 
@@ -215,7 +218,8 @@ Promote the cartridge format additively to v3 with these root fields:
 | `schemaVersion` | required integer, exactly `3` for this revision | compatibility and validator |
 | `cartridgeVersion` | required semantic-version string such as `1.0.0` | revisions without changing stable ID |
 | `summary` | required plain string, 1–160 characters | Library and Plan cards |
-| `tags` | required array, max 8, unique lowercase-kebab strings | compact grouping/filtering |
+| `outcomes` | required array of 2–4 unique strings, 1–80 characters each | benefit-led Library/program detail copy |
+| `tags` | required array, 1–8 unique lowercase-kebab strings | compact grouping/filtering |
 | `requirements.equipment` | required for training cartridges; unique non-empty display strings; empty array allowed | gym-fit warning and Plan |
 
 Keep `description` as the longer program explanation. Do not add owner, athlete, assignment, active
@@ -294,7 +298,9 @@ remain A9a through A9d:
 2. narrow the current profile policy/privileges as part of A9a;
 3. manual coach assignment for now; user activation only from the available set;
 4. cached offline browsing but online-only activation;
-5. the five-field v3 metadata contract and four-PR sequence.
+5. the v3 metadata contract and four-PR sequence. The subsequent phone review added structured
+   `outcomes` because a summary alone could not reliably produce a scan-friendly benefit section;
+   the developer explicitly approved that review before A9b.
 
 ## Current Supabase references
 

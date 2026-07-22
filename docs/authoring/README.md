@@ -5,9 +5,9 @@ are plain files on purpose: they work in Claude today and a self-hosted model (e
 VPS) later, with no tooling and no rework. The kit is the durable asset; a Claude Code skill (if we
 build one) will be a thin wrapper over these same files.
 
-**v2 (2026-07-22):** the cartridge format is now **block-composable** (`day.blocks[] → kind +
-items`), not a flat exercise list. See the spec's "Revision history" for why. All kit files below
-are current for v2.
+**v3 (2026-07-22):** the cartridge remains **block-composable** (`day.blocks[] → kind + items`) and
+now includes structured Library metadata: version compatibility, an outcome-led summary, visible
+benefits, normalized tags and real equipment requirements. All kit files below are current for v3.
 
 ## The pieces
 
@@ -46,6 +46,8 @@ Output cartridges live in [`../../cartridges/`](../../cartridges/).
   (`validateCartridge()`); Part B stays a coaching call. Unattended onboarding will only ever need
   a model for the judgment half.
 - **A program is a sequence of cartridges** — periodise by swapping phases, not by editing one file.
+- **User-facing copy is structured, honest and useful** — summaries and outcomes explain why the
+  program matters without exposing author notes or using manipulative motivation.
 - **Prove on real programs first, let the schema follow evidence** — the block model itself exists
   because authoring a *second* real program (Apex) proved the first schema underserved both real
   users. Extend the format only when a real cartridge needs it, never speculatively.

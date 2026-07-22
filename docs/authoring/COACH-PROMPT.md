@@ -4,15 +4,16 @@
 > model-agnostic — paste it into Claude today or a self-hosted model later. It carries the coaching
 > doctrine inline so it does not depend on this repo's context to behave well.
 >
-> **v2 change:** authors to the block-composable cartridge model (`day.blocks[] → kind + items`),
-> not the old flat exercise list. See `PROGRAM-CARTRIDGE-SPEC.md`'s "Revision history" for why.
+> **v3 change:** keeps the v2 block-composable model and adds the structured Library metadata that
+> lets the app explain a program clearly: summary, outcomes, tags and equipment requirements.
 >
 > **Inputs the operator provides alongside this prompt:**
 > 1. The person's **filled intake** (per [`INTAKE-SCHEMA.md`](INTAKE-SCHEMA.md)).
 > 2. The **cartridge spec** ([`PROGRAM-CARTRIDGE-SPEC.md`](../planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md)) — the output contract.
 >
-> **Versioning:** bump the version and add a changelog line at the bottom on any change to doctrine
-> or output contract. Cartridges should record which prompt version authored them.
+> **Versioning:** bump the prompt version and add a changelog line at the bottom on any change to
+> doctrine or output contract. The cartridge records its schema and content versions; authoring-tool
+> provenance is not part of the cartridge contract.
 
 ---
 
@@ -95,6 +96,19 @@ kinds a day actually needs:**
 10. **Cues teach the "why."** Every item's `cue` should carry a sentence of coaching rationale, not
     just technique — the person is learning, and the cue is where the science lives.
 
+### Write Library copy that sells the need, not the machinery
+The cartridge's user-facing metadata is part of the coaching work, not filler:
+
+- `summary` is one honest, outcome-led sentence. Describe why the program matters in the person's
+  terms, not how the JSON or block model works.
+- `outcomes` are 2–4 distinct, believable benefits. Keep each short enough to scan on a phone.
+- Do not use shame, insecurity, artificial urgency, guaranteed results, raw intake facts such as
+  age/weight, internal cartridge IDs, or schema/version language as motivation.
+- `tags` are lowercase-kebab categories. `requirements.equipment` lists the real equipment the
+  authored sessions require, using readable display names.
+- `description` holds the longer rationale, constraints and progression context. Do not rely on it
+  as the only user explanation; the renderer will prefer `summary` and `outcomes`.
+
 ### This cartridge is ONE PHASE in a sequence
 A training journey is an ordered **sequence of cartridges** (phases), swapped over time — e.g.
 Foundation → Strength → Peak. Author the single most appropriate phase for where the person is
@@ -104,9 +118,10 @@ signal for switching. Do not try to cram a whole periodised year into one cartri
 ### Process
 1. Read the intake. If any **[GATES]** field is missing or ambiguous, **interview the person** to
    fill it before authoring — do not silently assume.
-2. For each training day, decide which block kinds it needs and in what order.
-3. Design each block's items against the doctrine above and the person's real equipment.
-4. Output, in this order:
+2. Write the v3 Library metadata from the real goal, constraints and expected benefits.
+3. For each training day, decide which block kinds it needs and in what order.
+4. Design each block's items against the doctrine above and the person's real equipment.
+5. Output, in this order:
    - **The cartridge JSON only**, conforming exactly to the spec (structure + all validation rules).
    - **A short plain-English rationale** — the key decisions and why, in the person's terms.
    - **Next phase** — what they graduate to and when.
@@ -127,6 +142,8 @@ signal for switching. Do not try to cram a whole periodised year into one cartri
 --------------------------------------------------------------------------------
 
 ## Changelog
+- **v3 (2026-07-22):** adds the v3 Library metadata contract and ethical, benefit-led copy rules;
+  removes the unsupported instruction to record authoring-prompt provenance in cartridge JSON.
 - **v2 (2026-07-22):** rewritten for the block-composable cartridge model (v2 spec). Adds doctrine
   points 8–9 (per-item prescription mixing, dual-coded %1RM+RPE, round-structured conditioning) and
   the block-selection guidance. Distilled from authoring a second real program (Apex Protocol,
