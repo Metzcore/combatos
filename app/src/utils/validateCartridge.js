@@ -1,75 +1,69 @@
 /**
- * validateCartridge.js — structural validation for program cartridges
+ * validateCartridge.js — structural validation for program cartridges (block model, v2)
  *
  * Implements Part A (the deterministic half) of the authoring reviewer
- * checklist (docs/authoring/REVIEWER-CHECKLIST.md), which mirrors the
- * validation rules in docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md.
+ * checklist (docs/authoring/REVIEWER-CHECKLIST.md) against the block-composable
+ * schema (docs/planning/rebuild/BLOCK-MODEL-DRAFT.md).
  *
- * Pure and side-effect free: takes a parsed cartridge object and returns an
- * array of human-readable error strings — an empty array means structurally
- * valid. This is the seed of the cartridge contract the rebuilt Train tab
- * will consume; it is intentionally standalone and unit-tested before any
- * renderer code exists, and does NOT depend on the (still-open, W26-gated)
- * logging payload shape.
+ * Model: a day is an ordered list of BLOCKS; each block has a `kind` that
+ * decides its item shape:
+ *   - mobility / cooldown : descriptive holds — { name, dose, note?, cue? }
+ *   - strength / core     : loaded work — { name, sets, reps, prescription?, pair?, cue? }
+ *   - conditioning        : rounds/intervals — { name, rounds, roundLength?, rest?, perRound?, cue? }
+ * Prescription is per strength/core item and OPTIONAL (a free object such as
+ * { rpe } / { percent } / { note }) — the v1 "one model per cartridge" rule was
+ * dropped because real multi-modal days mix prescription styles freely.
  *
- * Scope: full validation for `training` cartridges; basic validation for
- * `content` cartridges. A cartridge with no `type` is treated as `training`
- * (matches the spec's worked example).
+ * Pure and side-effect free: takes a parsed cartridge object, returns an array
+ * of human-readable error strings — empty array === structurally valid.
  */
 
-const PRESCRIPTION_MODELS = ['percent-1rm', 'rpe', 'straight-sets', 'time-distance', 'bodyweight']
+const KNOWN_KINDS = ['mobility', 'strength', 'conditioning', 'cooldown', 'core']
 const DAY_TYPES = ['training', 'rest', 'recovery', 'custom']
 const KNOWN_FEATURES = ['hipScoreRouting', 'bagWork']
 
-/**
- * Returns an error string if an exercise's prescription object does not match
- * the cartridge's declared model, otherwise null.
- */
-function prescriptionError(model, rx, label) {
-    if (rx == null || typeof rx !== 'object' || Array.isArray(rx)) {
-        return `${label}: prescription must be an object`
-    }
-    const keys = Object.keys(rx)
-    switch (model) {
-        case 'percent-1rm': {
-            if (typeof rx.percent !== 'number') return `${label}: percent-1rm requires a numeric "percent"`
-            return null
-        }
-        case 'rpe': {
-            if (typeof rx.rpe !== 'number' && typeof rx.rir !== 'number') {
-                return `${label}: rpe model requires a numeric "rpe" or "rir"`
+/** Kind-specific field checks for a single item (id/uniqueness handled by caller). */
+function itemFieldErrors(kind, item, label) {
+    const errors = []
+    if (!item.name) errors.push(`${label}: name is required`)
+
+    switch (kind) {
+        case 'mobility':
+        case 'cooldown':
+            if (!item.dose) errors.push(`${label}: ${kind} item requires a "dose"`)
+            break
+        case 'strength':
+        case 'core':
+            if (item.sets == null) errors.push(`${label}: ${kind} item requires "sets"`)
+            if (item.reps == null || item.reps === '') errors.push(`${label}: ${kind} item requires "reps"`)
+            if (item.prescription != null && (typeof item.prescription !== 'object' || Array.isArray(item.prescription))) {
+                errors.push(`${label}: prescription must be an object`)
             }
-            return null
-        }
-        case 'straight-sets': {
-            const extra = keys.filter((k) => k !== 'suggestedLoad')
-            if (extra.length) return `${label}: straight-sets prescription allows only "suggestedLoad" (got ${extra.join(', ')})`
-            return null
-        }
-        case 'time-distance': {
-            if (rx.duration == null && rx.distance == null) return `${label}: time-distance requires "duration" or "distance"`
-            return null
-        }
-        case 'bodyweight': {
-            const extra = keys.filter((k) => k !== 'addedLoad')
-            if (extra.length) return `${label}: bodyweight prescription allows only "addedLoad" (got ${extra.join(', ')})`
-            return null
-        }
+            if (item.pair != null) {
+                if (typeof item.pair !== 'object' || Array.isArray(item.pair)) {
+                    errors.push(`${label}: pair must be an object`)
+                } else if (!item.pair.name) {
+                    errors.push(`${label}: pair requires a "name"`)
+                }
+            }
+            break
+        case 'conditioning':
+            if (typeof item.rounds !== 'number') errors.push(`${label}: conditioning item requires a numeric "rounds"`)
+            if (item.perRound != null && !Array.isArray(item.perRound)) errors.push(`${label}: perRound must be an array`)
+            break
         default:
-            return null
+            break // unknown kind already reported by caller
     }
+    return errors
 }
 
-/**
- * Basic validation for a `content` cartridge (theory/educational material).
- */
+/** Basic validation for a `content` cartridge (theory/educational material). */
 function validateContentCartridge(cartridge) {
     const errors = []
     if (!cartridge.cartridgeId) errors.push('cartridgeId is required')
     if (!Array.isArray(cartridge.sections) || cartridge.sections.length === 0) {
         errors.push('content cartridge requires a non-empty sections[]')
     }
-    if (cartridge.prescription != null) errors.push('content cartridge must not declare a prescription model')
     if (cartridge.days != null) errors.push('content cartridge must not have days')
 
     const ids = new Set()
@@ -92,7 +86,7 @@ function validateContentCartridge(cartridge) {
 }
 
 /**
- * Validate a program cartridge against the spec's structural rules.
+ * Validate a program cartridge against the block-model structural rules.
  *
  * @param {object} cartridge - a parsed cartridge object
  * @returns {string[]} error messages; empty array === structurally valid
@@ -105,14 +99,9 @@ export function validateCartridge(cartridge) {
 
     const errors = []
 
-    // Rule 1 — required fields + valid prescription model
+    // Required fields
     if (!cartridge.cartridgeId) errors.push('cartridgeId is required')
     if (!cartridge.label) errors.push('label is required')
-    if (!cartridge.prescription) {
-        errors.push('prescription is required')
-    } else if (!PRESCRIPTION_MODELS.includes(cartridge.prescription)) {
-        errors.push(`prescription "${cartridge.prescription}" is not one of: ${PRESCRIPTION_MODELS.join(', ')}`)
-    }
 
     const dayCount = cartridge.cycle && cartridge.cycle.dayCount
     if (typeof dayCount !== 'number' || dayCount < 1) {
@@ -121,10 +110,10 @@ export function validateCartridge(cartridge) {
 
     if (!Array.isArray(cartridge.days)) {
         errors.push('days must be an array')
-        return errors // nothing more can be checked meaningfully
+        return errors
     }
 
-    // Rule 2 — days cover 1..dayCount, no gaps, no duplicates, none out of range
+    // Days cover 1..dayCount, no gaps, no duplicates, none out of range
     const dayNums = cartridge.days.map((d) => d.day)
     if (typeof dayCount === 'number' && dayCount >= 1) {
         for (let i = 1; i <= dayCount; i++) {
@@ -140,57 +129,52 @@ export function validateCartridge(cartridge) {
         }
     }
 
-    // Day- and exercise-level rules
-    const seenExerciseIds = new Set()
+    const seenItemIds = new Set()
     const supersetCounts = {}
     for (const day of cartridge.days) {
         const dayLabel = `day ${day.day}`
         const type = day.type || 'training'
         if (!DAY_TYPES.includes(type)) errors.push(`${dayLabel}: unknown day type "${type}"`)
 
-        const exercises = Array.isArray(day.exercises) ? day.exercises : []
+        const blocks = Array.isArray(day.blocks) ? day.blocks : []
 
-        // Rule 3 — training days need exercises; rest/recovery must have none
-        if (type === 'training' && exercises.length === 0) {
-            errors.push(`${dayLabel}: training day must have at least one exercise`)
+        // training days need blocks; rest/recovery must have none; custom is free-form
+        if (type === 'training' && blocks.length === 0) {
+            errors.push(`${dayLabel}: training day must have at least one block`)
         }
-        if ((type === 'rest' || type === 'recovery') && exercises.length > 0) {
-            errors.push(`${dayLabel}: ${type} day must have no exercises`)
+        if ((type === 'rest' || type === 'recovery') && blocks.length > 0) {
+            errors.push(`${dayLabel}: ${type} day must have no blocks`)
         }
 
-        for (const ex of exercises) {
-            const exLabel = `${dayLabel} exercise "${ex.id || '(no id)'}"`
-
-            // Rule 4 — unique exercise ids
-            if (!ex.id) errors.push(`${exLabel}: id is required`)
-            else if (seenExerciseIds.has(ex.id)) errors.push(`duplicate exercise id "${ex.id}"`)
-            else seenExerciseIds.add(ex.id)
-
-            // Part A extras — required fields
-            if (!ex.name) errors.push(`${exLabel}: name is required`)
-            if (ex.sets == null) errors.push(`${exLabel}: sets is required`)
-            if (ex.reps == null || ex.reps === '') errors.push(`${exLabel}: reps is required`)
-            if (!ex.cue) errors.push(`${exLabel}: cue is required`)
-
-            // Rule 5 — collect superset membership
-            if (ex.superset != null) {
-                supersetCounts[ex.superset] = (supersetCounts[ex.superset] || 0) + 1
+        for (const block of blocks) {
+            const blockLabel = `${dayLabel} block "${block.kind || '(no kind)'}"`
+            if (!block.kind) errors.push(`${blockLabel}: block kind is required`)
+            else if (!KNOWN_KINDS.includes(block.kind)) {
+                errors.push(`${blockLabel}: unknown block kind "${block.kind}"`)
             }
 
-            // Rule 6 — prescription matches the declared model
-            if (PRESCRIPTION_MODELS.includes(cartridge.prescription)) {
-                const pErr = prescriptionError(cartridge.prescription, ex.prescription, exLabel)
-                if (pErr) errors.push(pErr)
+            const items = Array.isArray(block.items) ? block.items : []
+            if (items.length === 0) errors.push(`${blockLabel}: block must have at least one item`)
+
+            for (const item of items) {
+                const itemLabel = `${blockLabel} item "${item.id || '(no id)'}"`
+                if (!item.id) errors.push(`${itemLabel}: id is required`)
+                else if (seenItemIds.has(item.id)) errors.push(`duplicate item id "${item.id}"`)
+                else seenItemIds.add(item.id)
+
+                errors.push(...itemFieldErrors(block.kind, item, itemLabel))
+
+                if (item.superset != null) {
+                    supersetCounts[item.superset] = (supersetCounts[item.superset] || 0) + 1
+                }
             }
         }
     }
 
-    // Rule 5 — superset labels must group >= 2 exercises
     for (const [label, count] of Object.entries(supersetCounts)) {
-        if (count < 2) errors.push(`superset "${label}" groups only ${count} exercise (needs >= 2)`)
+        if (count < 2) errors.push(`superset "${label}" groups only ${count} item (needs >= 2)`)
     }
 
-    // Rule 7 — only known feature flags
     if (cartridge.features && typeof cartridge.features === 'object') {
         for (const key of Object.keys(cartridge.features)) {
             if (!KNOWN_FEATURES.includes(key)) errors.push(`unknown feature flag "${key}"`)
