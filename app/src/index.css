@@ -227,6 +227,53 @@ input[type="checkbox"] {
   color: var(--bg);
 }
 
+/* ── Cartridge Viewer (Track A / Stage-2, read-only) ───────────── */
+.cartridge-item-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.cartridge-superset-badge {
+  color: var(--dim);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.cartridge-item-meta {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-top: 4px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cartridge-item-cue {
+  font-size: 0.8rem;
+  color: var(--label);
+  font-style: italic;
+  margin-top: 6px;
+}
+
+.cartridge-pap {
+  font-size: 0.8rem;
+  color: var(--alert);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.cartridge-perround {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+.cartridge-perround li {
+  margin-bottom: 2px;
+}
+
 /* ── Badges ─────────────────────────────────────── */
 .badge {
   display: inline-flex;

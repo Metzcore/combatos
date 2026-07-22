@@ -8,11 +8,16 @@
  * A1) go through the identical mount/unmount cycle they always have. Neither
  * file is modified by W20.
  *
+ * Track A / Stage-2 adds a third, additive tab: CartridgeViewer ("Cartridges"),
+ * a read-only browser for the new block-model program cartridges. It does not
+ * touch HUD, PlaybookViewer, or the logging/session path.
+ *
  * Tab selection is owned by AppShell (survives hub switches); this component
  * is a pure passthrough.
  */
 import HUD from './HUD.jsx'
 import PlaybookViewer from './PlaybookViewer.jsx'
+import CartridgeViewer from './CartridgeViewer.jsx'
 import TopTabs from './TopTabs.jsx'
 import { HUB_TOP_TABS } from '../utils/navState.js'
 
@@ -28,6 +33,7 @@ export default function TrainHub({ activeTab, onTabChange }) {
             </div>
             {activeTab === 'workout' && <HUD />}
             {activeTab === 'playbook' && <PlaybookViewer />}
+            {activeTab === 'cartridges' && <CartridgeViewer />}
         </>
     )
 }

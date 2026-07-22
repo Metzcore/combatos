@@ -1,0 +1,100 @@
+{
+  "cartridgeId": "combatos-operator-2026",
+  "type": "training",
+  "label": "Combat OS — Tactical Operator (UFC Gym Dublin)",
+  "description": "A minimalist strength-led programme for a lean, advanced striker (30yo, 67kg) training around 3 weekly fight sessions. Priorities: relative strength, then conditioning/skill (covered by fight days), then explosiveness. Longevity-first: RPE-capped loads, no grinding, single-leg and anti-rotation work for joint health, no deadlift. Full-body x3 so a missed day never skips a movement pattern. PHASE 2 of the plan — graduate into this after the Foundation block (combatos-foundation-2026). Block-model v2.",
+  "cycle": {
+    "dayCount": 7
+  },
+  "days": [
+    {
+      "day": 1,
+      "label": "Day 1 — S&C: Lower + Posterior",
+      "type": "training",
+      "focus": "Squat strength, hip power, single-leg balance",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "d1-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength & Power",
+          "items": [
+            { "id": "d1-str-1", "name": "Barbell Back Squat", "target": "Quads / Glutes", "sets": 4, "reps": "4", "prescription": { "rpe": 8 }, "cue": "Explosive drive out of the hole; leave ~2 reps in reserve. Your signature lift — keep every rep pristine." },
+            { "id": "d1-str-2", "name": "Single-Leg Glute Machine (kickback)", "target": "Glutes (single-leg)", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 8 }, "cue": "Elbows supported, full extension, hard squeeze. Your no-deadlift hip-extension anchor (punch/kick power) plus pelvic stability." },
+            { "id": "d1-str-3", "name": "Bulgarian Split Squat (DB)", "target": "Quads / Glutes (single-leg)", "sets": 3, "reps": "6 each side", "prescription": { "rpe": 8 }, "cue": "Own the balance. Corrects asymmetry directly — fighting is single-leg-dominant." },
+            { "id": "d1-str-4", "name": "Rotational Med-Ball Throw (astro)", "target": "Rotational power", "sets": 4, "reps": "4 each side", "prescription": { "rir": 4 }, "cue": "Max intent, hip-to-fist. POWER not conditioning — stop the moment speed drops. Astro zone." }
+          ]
+        }
+      ]
+    },
+    { "day": 2, "label": "Day 2 — Fight", "type": "custom", "focus": "Class / bag / sparring — log freely in notes" },
+    {
+      "day": 3,
+      "label": "Day 3 — S&C: Push + Vertical Pull",
+      "type": "training",
+      "focus": "Overhead strength, vertical pull, shoulder health",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "d3-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "d3-str-1", "name": "Weighted Pull-Up (DB between feet)", "target": "Back / Lats", "sets": 4, "reps": "5", "prescription": { "rpe": 8 }, "cue": "Hold a DB between the ankles for load — no dip belt at this gym yet. Full dead-hang to chin-over. Swap to plate-loaded lat pulldown if the DB is fiddly." },
+            { "id": "d3-str-2", "name": "Barbell Overhead Press", "target": "Shoulders", "sets": 4, "reps": "5", "prescription": { "rpe": 8 }, "cue": "Brace hard, glutes tight, press to a stacked lockout. Your OHP has the most headroom of any lift." },
+            { "id": "d3-str-3", "name": "Incline DB Press", "target": "Chest / Shoulders", "sets": 3, "reps": "8", "prescription": { "rpe": 8 }, "cue": "Controlled descent, full stretch. Balances the vertical pressing and keeps the shoulders healthy." },
+            { "id": "d3-str-4", "name": "Cable Face Pull", "target": "Rear delts / Upper back", "sets": 3, "reps": "12", "prescription": { "rir": 3 }, "cue": "High elbows, pull to eye level, pause. The best insurance for striker shoulders — never skip it." }
+          ]
+        }
+      ]
+    },
+    { "day": 4, "label": "Day 4 — Fight", "type": "custom", "focus": "Class / bag / sparring — log freely in notes" },
+    {
+      "day": 5,
+      "label": "Day 5 — S&C: Pull + Power + Core",
+      "type": "training",
+      "focus": "Horizontal pull, linear power, anti-rotation trunk",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            { "id": "d5-mob-1", "name": "Your own 10-min warm-up routine", "dose": "10 min", "cue": "Your standard prep." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength & Power",
+          "items": [
+            { "id": "d5-str-1", "name": "Barbell Bent-Over Row", "target": "Back", "sets": 4, "reps": "5", "prescription": { "rpe": 8 }, "cue": "Flat back, pull to the sternum, explosive concentric. Balances all your pressing; clinch and posture strength." },
+            { "id": "d5-str-2", "name": "Reverse Lunge (DB)", "target": "Quads / Glutes (single-leg)", "sets": 3, "reps": "8 each side", "prescription": { "rpe": 8 }, "cue": "Step back under control, drive through the front heel. Athletic single-leg strength — different stimulus from Day 1's Bulgarians." },
+            { "id": "d5-str-3", "name": "Slam Ball (astro)", "target": "Total-body power", "sets": 5, "reps": "3", "prescription": { "rir": 5 }, "cue": "Full overhead reach to a violent floor slam. Quality reps only, reset and breathe between each. Astro zone." }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Core",
+          "items": [
+            { "id": "d5-core-1", "name": "Pallof Press (cable)", "sets": 3, "reps": "10 each side", "prescription": { "rir": 3 }, "cue": "Resist the rotation, don't create it. Transfers to punch power and protects the spine better than crunches." }
+          ]
+        }
+      ]
+    },
+    { "day": 6, "label": "Day 6 — Fight", "type": "custom", "focus": "Class / bag / sparring — log freely in notes" },
+    { "day": 7, "label": "Day 7 — Pick / Recovery", "type": "custom", "focus": "Your choice: recovery-studio session (cryo / infrared sauna / plunge), a yoga or mobility class, or a bonus session. Log what you did." }
+  ],
+  "features": {
+    "hipScoreRouting": false,
+    "bagWork": false
+  }
+}
