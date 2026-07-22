@@ -13,12 +13,18 @@ const KIND_LABELS = {
     core: 'Core'
 }
 
+// Quiet sub-header accent per block kind (see .cartridge-block--<kind> in
+// index.css). Honest names now — the value IS the kind, each mapped to a
+// distinct tint so no two block bands read as the same colour (the old map
+// resolved mobility/strength/conditioning all to near-identical ambers). The
+// definitive colour system is the separate Playbook/Log redesign's job; this
+// is the dedupe + de-noise pass only.
 const KIND_COLORS = {
-    mobility: 'blue',
-    strength: 'red',
-    conditioning: 'amber',
-    cooldown: 'green',
-    core: 'red'
+    mobility: 'mobility',
+    strength: 'strength',
+    conditioning: 'conditioning',
+    cooldown: 'cooldown',
+    core: 'core'
 }
 
 /** Display label for a block kind, falling back to the raw kind if unknown. */
@@ -26,7 +32,7 @@ export function blockKindLabel(kind) {
     return KIND_LABELS[kind] || kind
 }
 
-/** CSS color variant (matches .section-header.<color> in index.css) for a block kind. */
+/** Block-kind class suffix (matches .cartridge-block--<kind> in index.css). */
 export function blockKindColor(kind) {
     return KIND_COLORS[kind] || 'blue'
 }

@@ -227,7 +227,176 @@ input[type="checkbox"] {
   color: var(--bg);
 }
 
-/* ── Cartridge Viewer (Track A / Stage-2, read-only) ───────────── */
+/* ══════════════════════════════════════════════════════
+   Cartridge Viewer (Track A / Stage-2, read-only)
+   Stage-2 UX pass: quiet block sub-headers (one strong bar
+   per DAY, blocks demoted to a thin accent + coloured label
+   so a training day is no longer a stack of loud fills),
+   collapsible days, and a collapsed "About" disclosure.
+   ══════════════════════════════════════════════════════ */
+
+/* ── About this program (collapsed by default) ── */
+/* Reuses .card--collapsible / .card__body / .card__chevron. Deliberately a
+   QUIET header (panel fill, label text) — not the amber day bar — so it reads
+   as metadata, not a day. Holds the author's long description verbatim for
+   now; a short user-facing summary is the tagging/metadata spec-bump's job. */
+.cartridge-about {
+  margin-bottom: 16px;
+}
+
+.cartridge-about__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--input);
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.cartridge-about__toggle:active {
+  transform: none;
+  opacity: 1;
+}
+
+.cartridge-about .card__chevron {
+  color: var(--label);
+}
+
+.cartridge-about__text {
+  padding: 12px 14px;
+  color: var(--label);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.cartridge-about.open .card__body {
+  max-height: 2000px;
+}
+
+/* ── Day card (training = collapsible; rest/recovery = slim static) ── */
+.cartridge-day {
+  margin-bottom: 12px;
+}
+
+/* Long day titles ("Day 1 — Lower Body: Squat & Vertical Power") share the
+   amber bar with the summary pill + chevron: let the title take the slack and
+   wrap rather than shove the pill off-edge. */
+.cartridge-day__title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Generous cap: a training day (up to ~15 items across 4 blocks) blows past
+   the generic 1500px .card__body ceiling — same pattern as .str-section. */
+.cartridge-day.open .card__body {
+  max-height: 6000px;
+}
+
+.cartridge-day__body {
+  padding: 12px 14px 14px;
+}
+
+.cartridge-day__focus {
+  color: var(--label);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.cartridge-day--rest .cartridge-day__rest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.cartridge-day__rest-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.cartridge-day__rest-type {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+/* ── Block (quiet sub-header: thin accent + coloured label, no fill) ── */
+.cartridge-block {
+  margin-top: 16px;
+}
+
+.cartridge-block:first-child {
+  margin-top: 0;
+}
+
+.cartridge-block__head {
+  padding-left: 10px;
+  border-left: 3px solid var(--divider);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+  line-height: 1.2;
+}
+
+/* Distinct tint per kind so no two adjacent bands read the same. Green brackets
+   the session (mobility prep / cooldown), amber+gold mark the loud middle
+   (strength / conditioning). Kept to existing tokens — the full colour system
+   is the Playbook/Log redesign's remit. */
+.cartridge-block--mobility .cartridge-block__head {
+  border-left-color: var(--label);
+  color: var(--label);
+}
+
+.cartridge-block--strength .cartridge-block__head,
+.cartridge-block--core .cartridge-block__head {
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.cartridge-block--conditioning .cartridge-block__head {
+  border-left-color: var(--warn);
+  color: var(--warn);
+}
+
+.cartridge-block--cooldown .cartridge-block__head {
+  border-left-color: var(--primary);
+  color: var(--primary);
+}
+
+.cartridge-block__items {
+  margin-top: 8px;
+}
+
+.cartridge-block__item {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.cartridge-block__item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* ── Item internals ── */
 .cartridge-item-name {
   font-weight: 600;
   color: var(--text);
@@ -921,7 +1090,11 @@ input[type="checkbox"] {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--dim);
+  /* Discoverability (Stage-2 UX pass): inactive tabs were --dim (#5c8a5c) on
+     near-black — barely legible, so the 3 hub tabs read as one active + dead
+     space. --label lifts every tab to clearly-tappable; the amber underline
+     still marks the active one. */
+  color: var(--label);
   font-family: var(--font);
   font-size: 0.8rem;
   font-weight: 700;

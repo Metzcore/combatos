@@ -13,7 +13,7 @@
  * section-header / page-header classes) rather than the input-heavy
  * StrengthBlock.jsx, since this is a browsing surface, not a logging one.
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import CARTRIDGES from '../data/cartridges/index.js'
 import { blockKindLabel, blockKindColor, formatPrescription, formatPair } from '../utils/cartridgeFormat.js'
 
@@ -85,13 +85,13 @@ const ITEM_RENDERERS = {
 function BlockSection({ block }) {
     const ItemComponent = ITEM_RENDERERS[block.kind] || StrengthItem
     return (
-        <div className="cartridge-block">
-            <div className={`section-header ${blockKindColor(block.kind)}`} style={{ fontSize: '0.85rem' }}>
+        <div className={`cartridge-block cartridge-block--${blockKindColor(block.kind)}`}>
+            <div className="cartridge-block__head">
                 {block.label || blockKindLabel(block.kind)}
             </div>
-            <div style={{ padding: 12 }}>
+            <div className="cartridge-block__items">
                 {block.items.map((item) => (
-                    <div key={item.id} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--divider)' }}>
+                    <div key={item.id} className="cartridge-block__item">
                         <ItemComponent item={item} />
                     </div>
                 ))}
@@ -100,17 +100,42 @@ function BlockSection({ block }) {
     )
 }
 
-function DayCard({ day }) {
-    const isTraining = day.type === 'training' && Array.isArray(day.blocks) && day.blocks.length > 0
-    return (
-        <div className="card" style={{ marginBottom: 16 }}>
-            <div className="section-header red" style={{ fontSize: '0.9rem' }}>
-                {day.label || `Day ${day.day}`}
-                {!isTraining && <span style={{ float: 'right', color: 'var(--dim)' }}>{DAY_TYPE_LABEL[day.type] || day.type}</span>}
+function isTrainingDay(day) {
+    return day.type === 'training' && Array.isArray(day.blocks) && day.blocks.length > 0
+}
+
+function DayCard({ day, open, onToggle }) {
+    // Rest / recovery / custom days carry no blocks — a slim static row reads
+    // better than a collapsible with one trivial line inside.
+    if (!isTrainingDay(day)) {
+        return (
+            <div className="card cartridge-day cartridge-day--rest">
+                <div className="cartridge-day__rest-row">
+                    <span className="cartridge-day__rest-label">{day.label || `Day ${day.day}`}</span>
+                    <span className="cartridge-day__rest-type">{DAY_TYPE_LABEL[day.type] || day.type}</span>
+                </div>
             </div>
-            <div style={{ padding: 12 }}>
-                {day.focus && <div style={{ color: 'var(--label)', fontSize: '0.85rem', marginBottom: isTraining ? 12 : 0 }}>{day.focus}</div>}
-                {isTraining && day.blocks.map((block, i) => <BlockSection key={i} block={block} />)}
+        )
+    }
+
+    const blockCount = day.blocks.length
+    return (
+        <div className={`card card--collapsible cartridge-day${open ? ' open' : ''}`}>
+            <button
+                type="button"
+                className="section-header red card__toggle"
+                onClick={onToggle}
+                aria-expanded={open}
+            >
+                <span className="cartridge-day__title">{day.label || `Day ${day.day}`}</span>
+                <span className="card__summary">{blockCount} block{blockCount === 1 ? '' : 's'}</span>
+                <span className="card__chevron" aria-hidden="true">▾</span>
+            </button>
+            <div className="card__body">
+                <div className="cartridge-day__body">
+                    {day.focus && <div className="cartridge-day__focus">{day.focus}</div>}
+                    {day.blocks.map((block, i) => <BlockSection key={i} block={block} />)}
+                </div>
             </div>
         </div>
     )
@@ -118,8 +143,26 @@ function DayCard({ day }) {
 
 export default function CartridgeViewer() {
     const [activeId, setActiveId] = useState(CARTRIDGES[0]?.cartridgeId)
+    const [openDays, setOpenDays] = useState(() => new Set())
+    const [aboutOpen, setAboutOpen] = useState(false)
+
     const active = useMemo(() => CARTRIDGES.find((c) => c.cartridgeId === activeId), [activeId])
     const sortedDays = useMemo(() => (active ? [...active.days].sort((a, b) => a.day - b.day) : []), [active])
+
+    // On cartridge switch: open the first training day only, collapse the rest
+    // (and re-collapse the About blob). A user scans the week, then opens a day.
+    useEffect(() => {
+        const first = sortedDays.find(isTrainingDay)
+        setOpenDays(new Set(first ? [first.day] : []))
+        setAboutOpen(false)
+    }, [activeId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const toggleDay = (dayNum) => setOpenDays((prev) => {
+        const next = new Set(prev)
+        if (next.has(dayNum)) next.delete(dayNum)
+        else next.add(dayNum)
+        return next
+    })
 
     if (!active) {
         return (
@@ -151,10 +194,30 @@ export default function CartridgeViewer() {
             </div>
 
             <div className="content" style={{ padding: 0 }}>
-                <div className="card" style={{ marginBottom: 16, padding: 12 }}>
-                    <div style={{ color: 'var(--label)', fontSize: '0.85rem', lineHeight: 1.5 }}>{active.description}</div>
-                </div>
-                {sortedDays.map((day) => <DayCard key={day.day} day={day} />)}
+                {active.description && (
+                    <div className={`card card--collapsible cartridge-about${aboutOpen ? ' open' : ''}`}>
+                        <button
+                            type="button"
+                            className="cartridge-about__toggle"
+                            onClick={() => setAboutOpen((v) => !v)}
+                            aria-expanded={aboutOpen}
+                        >
+                            <span>About this program</span>
+                            <span className="card__chevron" aria-hidden="true" style={{ marginLeft: 'auto' }}>▾</span>
+                        </button>
+                        <div className="card__body">
+                            <div className="cartridge-about__text">{active.description}</div>
+                        </div>
+                    </div>
+                )}
+                {sortedDays.map((day) => (
+                    <DayCard
+                        key={day.day}
+                        day={day}
+                        open={openDays.has(day.day)}
+                        onToggle={() => toggleDay(day.day)}
+                    />
+                ))}
             </div>
         </div>
     )
