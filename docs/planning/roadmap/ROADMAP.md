@@ -63,28 +63,56 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 
 ## Track A / Stage-2 — Train + Playbook cartridge rebuild (ACTIVE — main line since 2026-07-21)
 The Train tab (incl. Playbook) becomes a universal player over a **cartridge** — one person's
-program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md`. Backend (Supabase) already
-live. Stage 0 (patch `playbook.csv`) skipped — the rebuild and the gym-change fix are the same work
-(decisions 2026-07-21 #3/#4).
+program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` (v2, block-composable).
+Backend (Supabase) already live. Stage 0 (patch `playbook.csv`) skipped — the rebuild and the
+gym-change fix are the same work (decisions 2026-07-21 #3/#4).
 
 - [x] **A1 · Program Authoring Kit** (model-agnostic docs) — `docs/authoring/`: `INTAKE-SCHEMA.md`,
-      `COACH-PROMPT.md` (v1), `REVIEWER-CHECKLIST.md` (Part A structural / Part B coaching-sanity),
+      `COACH-PROMPT.md`, `REVIEWER-CHECKLIST.md` (Part A structural / Part B coaching-sanity),
       `README.md`. Plain files so a future self-hosted model (Hermes) runs the same process with no
-      rework. Built + proven on the developer's own program. _2026-07-22._
+      rework. Built + proven on the developer's own program; updated to v2 (block model) doctrine
+      once A4 landed. _2026-07-22._
 - [x] **A2 · First cartridges** — `cartridges/combatos-foundation-2026.json` (Phase 1, 4-wk
       corrective/spine-friendly, run FIRST — developer under active chiropractic care) +
       `cartridges/combatos-operator-2026.json` (Phase 2, heavy strength). Periodization =
       cartridge-swap. Authored from `intake-developer-program.md`, validated. _2026-07-22._
 - [x] **A3 · `validateCartridge()`** — `app/src/utils/validateCartridge.js` implements reviewer
-      Part A (spec rules 1–7 + required fields + basic content-cartridge check); 33 vitest tests,
-      full suite green (294). The first tested brick of the rebuild; **W26-independent.** _2026-07-22._
-- [ ] **A4 · Train/Playbook renderer** — universal player rendering days/exercises/prescription
-      from a cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ the
-      LOGGING half is gated on the payload-shape lock (below); the read/render half is NOT.
-- [ ] **A5 · Apex cartridge** (2nd person) — adapt the brother's existing workout to the cartridge
-      format; a fast second test of the kit. Assign to his Supabase profile once assignment lands.
+      Part A; reworked alongside A4 for the block model (day.blocks[] → kind + items, kind-specific
+      shape checks, optional per-item prescription). Tested (318 total suite tests incl. a
+      permanent regression guard over every authored cartridge); W26-independent throughout. _2026-07-22._
+- [x] **A4 · Block-composable cartridge schema v2** — reading a SECOND real program (Apex Protocol)
+      surfaced that the v1 flat exercise list underserved both real users (Combat OS's own legacy
+      `playbook.csv` already used a block taxonomy the fresh spec had dropped). Redesigned as
+      `day.blocks[] → kind + items` (5 seed kinds: mobility/strength/conditioning/cooldown/core),
+      hand-proven against Apex's richest day before touching code (`BLOCK-MODEL-DRAFT.md`), then
+      promoted into `PROGRAM-CARTRIDGE-SPEC.md` v2. One composable engine, not two apps — a
+      "segment" (combat vs. generalist) is a curated block-kind bundle + theme, not a fork.
+      _2026-07-22._
+- [x] **A5 · Apex cartridge** (2nd person) — `cartridges/apex-protocol-phase1.json`, adapted from
+      his existing `playbook.csv`: 4 training days, all 5 block kinds, PAP pairing, round-structured
+      bag work, 49 items. The stress test that proved A4 before promotion. Not yet assigned to his
+      Supabase profile (assignment mechanism doesn't exist yet). _2026-07-22._
+- [x] **A6 · Cartridge Viewer (read-only render path)** — new "Cartridges" tab in the Train hub;
+      browses all 3 real cartridges with a renderer per block kind. Read-only, zero touch to
+      HUD.jsx/db/webhook — needs nothing from the payload-shape gate below. **Shipped, merged, LIVE
+      in production** — first real on-device review done. _2026-07-22._
+- [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
+      cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ gated on the
+      payload-shape lock below.
+- [ ] **A8 · Cartridge Viewer UX/UI pass** — from first on-device review: description text
+      readability + copy quality, collapsible exercise blocks, section-header visual redesign
+      (reads "dated/noisy" to a new user).
+- [ ] **A9 · Cartridge tagging + select/activate** — group cartridges by category as the library
+      grows (e.g. `25`, `ufcgymd1`; `em`/`fulltransformation` to clarify) + a real way to pick which
+      cartridge is "active" (browse-only today).
+- [ ] **A10 · Train hub discoverability** — the 3 top tabs aren't obvious to a new user at first
+      glance; needs a real UX solution.
 - [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed+substituted)
-      — open, gated on W26; blocks the renderer's logging path.
+      — open, gated on W26; blocks A7 only — A6 is unaffected and already live.
+
+**Also queued, separate & bigger scope (not a Track A item):** Playbook + Log tab full UX/UI
+redesign — dark/light mode, color system, best-in-class UX bar. Own design session; see
+`docs/handoff.md` Pending.
 
 New decision this track: **D10** (cartridge weekly structure = pool of day-templates + suggested
 order, not a fixed rotation; overlaps D9) — see OPEN-DECISIONS.md.

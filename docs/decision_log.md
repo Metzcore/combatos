@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-07-22 (cont'd) · Block model shipped live; first on-device UX review
+
+**Context:** Continuing the same 2026-07-22 session. After promoting the block model to spec v2,
+built and shipped a read-only Cartridge Viewer into the Train hub, verified via a temporary local
+auth-bypass (App.jsx swap, reverted before commit — the real app has no dev auth bypass), then
+reviewed live on the developer's phone after merge.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Cartridge Viewer ships as a THIRD, additive Train-hub tab, read-only, zero touch to HUD.jsx/db/webhook | Real live milestone today without touching the frozen logging contract or waiting on W26, which only blocks the interactive half |
+| 2 | Cartridge JSON mirrored into `app/src/data/cartridges/` rather than imported across the Vite project root | Avoids relying on undocumented `fs.allow` dev-server behavior; same precedent as `playbook.csv` → `playbook.js` |
+| 3 | On-device review treated as a hard stop before further renderer work — Cartridge Viewer UX/UI becomes its own session, not a tack-on | First real device feedback surfaced multiple real problems (dated/noisy header, unreadable description, no collapse, tab visibility) — worth solving deliberately |
+| 4 | Cartridge tagging + a "select/activate" mechanism requested; deferred to the UX session | Good instinct for scale (Apex + future clients), not yet urgent enough to interrupt the UX pass |
+| 5 | Playbook + Log tab redesign scoped as its OWN, bigger design session | Different altitude: colors, dark/light mode, best-in-class UX bar is a deliberate initiative, not a quick fix |
+| 6 | Dev auth-bypass for automated browser testing: NOT built tonight; two candidates identified (local-only long-lived Supabase session vs. Gmail-MCP magic-link auto-click) | Auth-adjacent changes warrant explicit discussion first, even for the developer's own account |
+
+**Also this session:** developer floated an **n8n scheduled workflow** (~every 3 days) to sync
+Notes/Checklist data, which would double as the Supabase free-tier keep-alive — not scoped or
+built. Spotted (not fixed): `PlaybookViewer.jsx` references undefined CSS vars `--red`/`--white`
+(harmless fallback; real tokens are `--alert`/`--text`).
+
+**Not done / deferred:** Cartridge Viewer UX/UI pass; cartridge tagging + activation; Train hub
+discoverability; Playbook/Log redesign; dev auth-bypass; Checklist/Notes backend + n8n idea; the
+interactive (logging) renderer (W26-gated); small housekeeping.
+
+**To do next session:** developer reviews and suggests a model for the UX/UI work — likely the
+smaller Cartridge Viewer polish before the bigger Playbook/Log redesign.
+
+---
+
 ## 2026-07-22 · Track A/Stage-2 — Program Authoring Kit + first cartridges + cartridge validator
 
 **Context:** First build session on the cartridge rebuild. Built the model-agnostic authoring

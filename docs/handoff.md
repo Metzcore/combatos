@@ -1,31 +1,40 @@
 ## Current state (one line)
-Supabase is **LIVE in production** (magic-link, cut over 2026-07-21). Track A / Stage-2 cartridge
-rebuild is now BUILDING: the model-agnostic **Program Authoring Kit** (`docs/authoring/`) is done
-and proven on the developer's own two-phase program (`cartridges/combatos-foundation-2026` +
-`-operator-2026`); `validateCartridge()` shipped as the first tested rebuild module. Next: the
-Train/Playbook renderer. Project `pckokypnxrimayjmjgcl` (free tier). Cartridges will attach to the
-sole Supabase user **at.25degrees@gmail.com** once assignment is built. Operator guide: `docs/OPERATIONS.md`.
+Supabase is **LIVE in production**; Track A/Stage-2 shipped its full read/render arc today — the
+Program Authoring Kit, block-composable cartridge spec v2, 3 real cartridges (Foundation, Operator,
+Apex Phase 1), and a live **Cartridge Viewer** in the Train hub (merged, deployed). First on-device
+review is in: works, but needs a real UX/UI pass before the interactive (logging) renderer, which
+stays gated on W26. Project `pckokypnxrimayjmjgcl` (free tier). Operator guide: `docs/OPERATIONS.md`.
 
 ## Pending
 
-- [ ] **Track A / Stage-2 — Train + Playbook RENDERER** (A4): the app player over a cartridge, per
-      `PROGRAM-CARTRIDGE-SPEC.md`, with inline per-session exercise substitution. Authoring kit +
-      first cartridges + `validateCartridge()` DONE 2026-07-22; the renderer's read/render path is
-      W26-independent, its logging path is gated on the payload-shape lock. Skips Stage 0. Main focus.
-- [x] **AI authoring framework (docs, not app code):** intake schema · versioned coach prompt ·
-      split reviewer checklist — DONE 2026-07-22 in `docs/authoring/`, proven on the developer's
-      two-phase program. `validateCartridge()` makes reviewer Part A executable. Re-authoring-from-
-      logged-data loop still deferred. Apex cartridge (A5) = the next quick test of the kit.
+- [ ] **Cartridge Viewer UX/UI pass** — description text alignment/readability, copy quality,
+      collapsible exercise blocks, section-header visual redesign (current styling reads
+      "dated/noisy" — a new user doesn't know what to do).
+- [ ] **Cartridge tagging** — group cartridges by category as the library grows (e.g. `25`,
+      `ufcgymd1`; developer also floated `em`/`fulltransformation` — clarify meaning next session)
+      + a way to "select/activate" a cartridge for real use (Cartridge Viewer is browse-only today).
+- [ ] **Train hub discoverability** — the 3 top tabs (Workout/Playbook/Cartridges) aren't obvious
+      to a new user at first glance; needs a real UX solution, not just a visual tweak.
+- [ ] **Playbook + Log tab redesign (own session, bigger scope)** — UX/UI aiming for a
+      best-in-class bar (reference TBD — Apple-tier framing, Obsidian floated); includes
+      dark/light mode + a full color-system pass. Model choice to be discussed at that session's start.
+- [ ] **Dev auth-bypass for agent browser testing** — two candidates: (a) a local-only, gitignored
+      long-lived Supabase session for dev-mode only; (b) using the connected Gmail to auto-click
+      the magic link. Neither built; discuss + pick next session.
+- [ ] **Checklist/Notes backend now that Supabase is live** — export/import flow reconsidered
+      (currently "could be improved or overcomplicated"). Idea floated: an n8n scheduled workflow
+      syncing notes/checklist data every ~3 days — would double as the Supabase free-tier keep-alive.
 - [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed per
-      exercise for the substitution model) — open decision, gated on W26; blocks renderer code.
-- [ ] **Habit / "mental side" = checklist-cartridge** extension of the existing Checklist hub
-      (curated daily-reset task bundles, à la TRW campus checklists). Out of scope until the Train
-      rebuild lands; study Trainerize/Everfit.
+      exercise) — gated on W26; blocks the INTERACTIVE (logging) half of the Train renderer only —
+      the read/render half is already live.
+- [ ] **Fix undefined `--red`/`--white` CSS vars in `PlaybookViewer.jsx`** — small, pre-existing,
+      spotted while building the Cartridge Viewer (harmless fallback). Flagged, not fixed.
+- [ ] **Habit / "mental side" = checklist-cartridge** extension of the existing Checklist hub.
+      Out of scope until Train UX work lands; study Trainerize/Everfit.
 - [ ] **Coach CRM foundation:** model clients in Supabase `profiles`; prompts + cartridges as
-      versioned files; AI Projects as the working surface. Dashboard app DEFERRED until the manual
-      process is the bottleneck (~5–10+ clients).
+      versioned files. Dashboard DEFERRED until manual process is the bottleneck (~5–10+ clients).
 - [ ] **D9** — off-programme activity logging: open, unruled; candidate input to W26.
-- [ ] **W26** — log-hub redesign research (parallel); informs the payload shape + fitness-stats Log subtab.
-- [ ] **Small:** subtle medical/AI disclaimer in Settings (once). Merge keep-alive PR + delete
-      merged `feat/supabase-foundation`. `docs/planning/CHECKLIST.md` → `archive/` move is
-      uncommitted-deliberate (developer's manual archival).
+- [ ] **W26** — log-hub redesign research (parallel); informs the payload shape + the Log redesign.
+- [ ] **Small housekeeping:** subtle medical/AI disclaimer in Settings (once); run the keep-alive
+      Action once manually to confirm; delete merged `feat/supabase-foundation` branch.
+      `docs/planning/CHECKLIST.md` → `archive/` move remains uncommitted-deliberate.
