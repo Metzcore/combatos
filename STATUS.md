@@ -1,5 +1,5 @@
 # STATUS
-_Last updated: 2026-07-22 · A9a live; A9b metadata complete and verified_
+_Last updated: 2026-07-22 · A9a/A9b live; A9c access/cache complete and verified_
 
 ## Last session
 Closed out the Cartridge Viewer's first on-device feedback: shipped a UX pass (quiet block
@@ -21,12 +21,13 @@ Track A / Stage-2. The Cartridge Viewer's UX debt is cleared and the Train produ
 documented. A9a is now live: `user_cartridges` records coach-managed availability,
 `profiles.assigned_cartridge` is constrained to one available program, and profile permissions are
 narrowed. The three initial accounts are assigned and RLS isolation is proven. No Train UI changed.
-A9b is now complete on its isolated branch: schema v3, structured benefit-led
-metadata, authoring kit, validator/tests, and all canonical/bundled cartridges agree. The approved
-Library list→detail direction is captured in `TRAIN-EXPERIENCE-PLAN.md`; A9c is next.
+A9b is complete: schema v3, structured benefit-led metadata, authoring kit, validator/tests, and all
+canonical/bundled cartridges agree. A9c is complete on `codex/a9c-cartridge-access-cache`: validated
+own-user cache, Supabase reads, confirmed online-only activation, unknown-ID reporting, and a
+controlled read-only offline-device fallback. No Train visual UI or Supabase schema changed.
 
 ## Up next
-1. A9c — account access loader and user-scoped offline cache; no visual redesign
+1. A9d — assigned-only Library list→detail UI over the A9c access provider
 2. Rotate the dev Supabase user's password (currently a placeholder, set during setup) to something
    long/random — low severity but a real loose end
 3. A10 — specify Today / Plan / Library on phone and responsive web; no new main-nav button

@@ -44,8 +44,8 @@ ID. The existing database trigger normally creates it automatically. Because the
 assignments by typing several values into `profiles.assigned_cartridge`; that field holds one active
 ID only and the database requires it to match one of the user's availability rows.
 
-> A9a is database-only. The current Train UI still shows all bundled cartridges until the A9c loader
-> and A9d assigned-only Library ship; the rows below prepare and protect that later behaviour.
+> A9c now loads and caches account access, but the current Train UI still shows all bundled
+> cartridges until the A9d assigned-only Library ships. The rows below already control the A9c data.
 
 The exact cartridge IDs are:
 
@@ -63,7 +63,7 @@ The exact cartridge IDs are:
 6. Go to **Table Editor → `profiles`**, open the same user's row, and set
    `assigned_cartridge` to exactly one of the IDs you just made available. This is their active
    program.
-7. After A9c/A9d ship, save, then have the user open Library while online and tap Retry/reopen the
+7. After A9d ships, save, then have the user open Library while online and tap Retry/reopen the
    app. After the first successful load, the list is cached for offline browsing.
 
 Initial rollout plan (emails deliberately kept out of this tracked file):

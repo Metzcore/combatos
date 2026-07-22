@@ -1,7 +1,7 @@
 # A9 diagnostic — cartridge availability and activation
 
-_2026-07-22. Diagnostic approved; A9a database foundation implemented and verified. No Train UI or
-other app code was changed._
+_2026-07-22. Diagnostic approved; A9a database foundation, A9b metadata, and A9c access/cache data
+layer implemented and verified. A9d visual Library work remains._
 
 ## A9a implementation outcome
 
@@ -19,6 +19,10 @@ other app code was changed._
 - A9b is complete: schema v3, authoring kit, reviewer, validator/tests, and all three canonical/
   bundled cartridge pairs now share validated summary/outcomes/tags/equipment metadata. No training
   prescription or Train UI changed.
+- A9c is complete: app-wide own-user access loading, a validated existing-store Dexie cache,
+  online-only confirmed activation, unknown-ID reporting, wrong-user/sign-out isolation, and a
+  controlled read-only offline-device Auth fallback. Verification: 25 focused tests, 355 full-suite
+  tests, production PWA build. No Supabase schema, service worker, or Train visual UI changed.
 
 ## Recommendation in one paragraph
 

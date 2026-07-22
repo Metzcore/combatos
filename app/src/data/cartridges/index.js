@@ -17,4 +17,8 @@ import apexProtocolPhase1 from './apex-protocol-phase1.json'
 
 export const CARTRIDGES = [combatosFoundation2026, combatosOperator2026, apexProtocolPhase1]
 
+export const CARTRIDGE_BY_ID = new Map(
+    CARTRIDGES.map((cartridge) => [cartridge.cartridgeId, cartridge])
+)
+
 export default CARTRIDGES

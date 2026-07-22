@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-07-22 (cont'd) · A9c cartridge access loader and offline cache complete
+
+**Context:** The A9a database rules and A9b metadata contract were already verified. The developer
+approved the A9c data layer plus a controlled answer to the expired-session/offline reopening case.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Cache only one complete, validated, server-confirmed access snapshot in the existing Dexie `settings` store | Gives instant/offline reads without a schema bump or partial-cache states |
+| 2 | Preserve and report unknown server cartridge IDs; never substitute the first bundled program | A stale app must fail visibly instead of silently loading the wrong training plan |
+| 3 | Activation is online-only and updates local active state only after Supabase confirms the exact ID | Avoids a second mutation queue and keeps server/cache/UI agreement deterministic |
+| 4 | If Auth cannot refresh solely because of a retryable network failure, a previously confirmed device may enter in read-only offline mode; normal signed-out/revoked states still fail closed | Supports the installed PWA in a gym without turning cached data into general authentication |
+| 5 | Explicit sign-out clears device trust and invalidates in-flight cache writes; a wrong-user cache is discarded when an online identity resolves | Prevents stale local access from surviving a deliberate logout or identity mismatch |
+
+**Implemented:** access model and registry mapping, existing-store Dexie cache, explicit own-user
+Supabase reads, confirmed activation, app-wide access provider, controlled Auth fallback, and 25
+focused tests. Full suite: 355 tests; production PWA build passed. No database migration, service
+worker change, Train visual redesign, cartridge prescription change, or logging/webhook change.
+
+---
+
 ## 2026-07-22 (cont'd) · A9b cartridge metadata v3 complete
 
 **Context:** Phone review found that variable-width program pills and a raw author-description blob
