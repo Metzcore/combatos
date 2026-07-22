@@ -112,8 +112,8 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       cartridges but exactly one active. Unassigned bundled programs are hidden, not private. Start
       with a Supabase/RLS diagnostic; no database change before approval. Metadata additions ride
       with the same spec revision. **A9a access foundation and A9b schema-v3 metadata are live and
-      verified. A9c loader/cache is complete and verified (355 tests + production build); A9d
-      assigned-only Library UI is next.**
+      verified. A9c loader/cache is complete. A9d assigned-only Library UI is built and verified
+      (362 tests + production build); Android portrait review remains before merge.**
       See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
 - [ ] **A10 · Train information architecture** — Workout / Playbook / Cartridges becomes Today /
       Plan / Library inside the existing Train hub; no new main-nav button. Produce the mobile and

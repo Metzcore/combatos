@@ -1,5 +1,5 @@
 # STATUS
-_Last updated: 2026-07-22 · A9a/A9b live; A9c access/cache complete and verified_
+_Last updated: 2026-07-22 · A9d assigned-only Library built; on-device review pending_
 
 ## Last session
 Closed out the Cartridge Viewer's first on-device feedback: shipped a UX pass (quiet block
@@ -24,10 +24,13 @@ narrowed. The three initial accounts are assigned and RLS isolation is proven. N
 A9b is complete: schema v3, structured benefit-led metadata, authoring kit, validator/tests, and all
 canonical/bundled cartridges agree. A9c is complete on `codex/a9c-cartridge-access-cache`: validated
 own-user cache, Supabase reads, confirmed online-only activation, unknown-ID reporting, and a
-controlled read-only offline-device fallback. No Train visual UI or Supabase schema changed.
+controlled read-only offline-device fallback. A9d is built on `codex/a9d-assigned-library`: equal
+assigned-only cards, active/viewing separation, benefit-led detail, collapsed week, explicit
+offline/error/update states, and confirmed activation sheet. Tests/build pass; Android review is the
+remaining merge gate. No Supabase schema, HUD, logging, or service-worker change.
 
 ## Up next
-1. A9d — assigned-only Library list→detail UI over the A9c access provider
+1. Review A9d on Android portrait, adjust only real device issues, then merge A9c/A9d
 2. Rotate the dev Supabase user's password (currently a placeholder, set during setup) to something
    long/random — low severity but a real loose end
 3. A10 — specify Today / Plan / Library on phone and responsive web; no new main-nav button

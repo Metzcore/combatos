@@ -23,6 +23,10 @@ layer implemented and verified. A9d visual Library work remains._
   online-only confirmed activation, unknown-ID reporting, wrong-user/sign-out isolation, and a
   controlled read-only offline-device Auth fallback. Verification: 25 focused tests, 355 full-suite
   tests, production PWA build. No Supabase schema, service worker, or Train visual UI changed.
+- A9d is built: assigned-only equal-width Library cards, active/viewing separation, benefit-led
+  detail, optional cycle-block display, collapsed week, offline/error/update-required states, and
+  BottomSheet activation. Verification: 362 full-suite tests, production PWA build, local HTTP 200.
+  Android portrait review remains before merge. No Supabase schema or logging path changed.
 
 ## Recommendation in one paragraph
 

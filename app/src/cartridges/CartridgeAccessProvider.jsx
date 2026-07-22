@@ -31,6 +31,7 @@ const EMPTY_STATE = {
     refreshing: false,
     offline: false,
     error: null,
+    errorKind: null,
     activatingId: null,
 }
 
@@ -61,6 +62,7 @@ export function CartridgeAccessProvider({ children }) {
             loading: previous.snapshot === null,
             refreshing: true,
             error: null,
+            errorKind: null,
         }))
 
         try {
@@ -82,6 +84,7 @@ export function CartridgeAccessProvider({ children }) {
                 refreshing: false,
                 offline: false,
                 error: cacheError,
+                errorKind: cacheError ? 'cache' : null,
                 activatingId: null,
             })
             return { data: snapshot, error: cacheError }
@@ -91,8 +94,9 @@ export function CartridgeAccessProvider({ children }) {
                 ...previous,
                 loading: false,
                 refreshing: false,
-                offline: previous.snapshot !== null && looksLikeNetworkFailure(error),
+                offline: looksLikeNetworkFailure(error),
                 error,
+                errorKind: 'refresh',
             }))
             return { data: null, error }
         }
@@ -136,6 +140,7 @@ export function CartridgeAccessProvider({ children }) {
                     refreshing: false,
                     offline: authMode === 'offline',
                     error: null,
+                    errorKind: null,
                     activatingId: null,
                 })
             }
@@ -186,7 +191,12 @@ export function CartridgeAccessProvider({ children }) {
 
         activatingRef.current = true
         const operation = ++operationRef.current
-        setState((previous) => ({ ...previous, activatingId: cartridgeId, error: null }))
+        setState((previous) => ({
+            ...previous,
+            activatingId: cartridgeId,
+            error: null,
+            errorKind: null,
+        }))
 
         try {
             const confirmedId = await setActiveCartridge(
@@ -218,12 +228,18 @@ export function CartridgeAccessProvider({ children }) {
                 refreshing: false,
                 offline: false,
                 error: cacheError,
+                errorKind: cacheError ? 'cache' : null,
                 activatingId: null,
             })
             return { data: snapshot, error: cacheError }
         } catch (error) {
             if (operation === operationRef.current) {
-                setState((previous) => ({ ...previous, activatingId: null, error }))
+                setState((previous) => ({
+                    ...previous,
+                    activatingId: null,
+                    error,
+                    errorKind: 'activation',
+                }))
             }
             return { data: null, error }
         } finally {

@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-07-22 (cont'd) · A9d assigned-only Library built
+
+**Context:** The A9c access provider was complete and the developer approved the diagnostic boundary
+for the first UI that consumes it. The previous variable-width selector pills conflated viewing with
+activation and exposed every bundled program.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Library is an equal-width vertical list with one whole-card tap target; active program sorts first | Fixes unstable geometry and the metadata/action collision while staying usable with one thumb |
+| 2 | Previewing is local navigation only; activation remains a separate, confirmed BottomSheet action | A user can inspect another plan without silently changing what the account marks active |
+| 3 | Detail order is summary → outcomes → equipment → tags → optional long notes → collapsed week | Leads with honest user benefit and gym fit instead of a raw author paragraph or a wall of exercises |
+| 4 | Ordinary day rows are neutral; amber marks active/important state rather than filling every header | Preserves Combat OS identity while making the week calmer and easier to scan |
+| 5 | Cached preview works offline; activation is disabled offline; missing IDs, empty assignment, refresh/cache failure and activation failure are explicit states | Keeps offline use honest and prevents any fallback to an unassigned or first bundled program |
+
+**Implemented:** account-scoped Library list/detail, activation confirmation/error handling, universal
+v3 metadata rendering, optional cycle-block display, collapsed read-only day renderer, responsive
+token-only CSS, and pure state/order tests. Full suite: 362 tests; production PWA build passed; local
+runtime returned HTTP 200. Android portrait review remains before merge. No Supabase migration,
+cartridge content, HUD/Playbook/logging, service worker, or main/top-navigation rename. Live
+read-only Supabase check remained consistent: 6 availability rows, 3 active profiles, 0 invalid
+active pointers.
+
+---
+
 ## 2026-07-22 (cont'd) · A9c cartridge access loader and offline cache complete
 
 **Context:** The A9a database rules and A9b metadata contract were already verified. The developer
