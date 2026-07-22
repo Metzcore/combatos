@@ -1,0 +1,207 @@
+{
+  "cartridgeId": "apex-protocol-phase1",
+  "type": "training",
+  "label": "Apex Protocol — Foundation (Phase 1)",
+  "description": "Phase 1 of a 3-phase striker programme (Foundation → Phase 2 → Peak), adapted from the athlete's existing Apex Protocol playbook.csv into the block-model cartridge format — content unchanged, format only. Each training day runs mobility → strength (with PAP pairing) → bag work → cooldown. Strength items originally prescribed as %1RM carry a dual-coded { percent, rpe } — the percent preserves the program's intended intensity curve; RPE 8 governs actual load until a tested 1RM is on file, then percent takes over. HIGH_ALERT (the source CSV's alternate mobility routine for hip-flare days) is intentionally NOT modelled here — it needs a tracked injury/mobility-profile state input (Combat OS roadmap item W13) that doesn't exist yet; only STANDARD content is authored. Next phase: Phase 2 (heavier %1RM, Trap Bar Deadlift replaces Romanian Deadlift, more PAP volume, body-shot bag work added) — author as apex-protocol-phase2 when ready to progress.",
+  "cycle": {
+    "dayCount": 7,
+    "weeksPerBlock": 4,
+    "blocks": [
+      { "id": "phase1", "label": "Phase 1 — Foundation (4 weeks)" }
+    ]
+  },
+  "days": [
+    {
+      "day": 1,
+      "label": "Day 1 — Lower Body: Squat & Vertical Power",
+      "type": "training",
+      "focus": "Squat strength, hip-hinge, vertical power, hip mobility/rehab priority",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Mobility & Prep",
+          "items": [
+            { "id": "d1-mob-1", "name": "90/90 Hip Internal/External Rotation", "dose": "2x60s each side", "note": "RIGHT side priority", "cue": "Breathe into the position, find end range." },
+            { "id": "d1-mob-2", "name": "Supine Figure-4 Piriformis", "dose": "2x45s each side", "note": "Feel the outer hip", "cue": "Cross ankle over knee, flex foot, gentle pressure." },
+            { "id": "d1-mob-3", "name": "Half-Kneeling Hip Flexor + PPT", "dose": "2x45s each side", "note": "RIGHT side priority", "cue": "Squeeze glute, tuck pelvis — actively stretch the psoas." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "d1-str-1", "name": "Barbell Back Squat", "target": "Quads / Glutes", "sets": 4, "reps": "4-5", "prescription": { "percent": 0.80, "rpe": 8 }, "pair": { "name": "Box Jump", "sets": 4, "reps": "3", "note": "Full reset between reps. Land soft." }, "cue": "Controlled 3s descent, drive through heels, full depth." },
+            { "id": "d1-str-2", "name": "Romanian Deadlift", "target": "Hamstrings / Glutes", "sets": 3, "reps": "8", "prescription": { "rir": 4, "note": "Moderate — feel the hamstring stretch" }, "pair": { "name": "Broad Jump", "sets": 3, "reps": "3" }, "cue": "Neutral spine, hip hinge, bar close, stretch at the bottom." },
+            { "id": "d1-str-3", "name": "Barbell Hip Thrust", "target": "Glutes", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Drive hips to ceiling, squeeze hard at top, 2s hold — reciprocal-inhibition work to release the hip flexor." }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Bag Work",
+          "items": [
+            { "id": "d1-bag-1", "name": "Jab-Cross Foundation", "rounds": 6, "roundLength": "3 min", "rest": "60s",
+              "perRound": ["R1: Technical Jab-Cross", "R2: Jab-Cross-Hook", "R3: Double Jab-Cross", "R4: + Step Out", "R5: Speed Round", "R6: Power Round"],
+              "cue": "Stay loose. Snap the jab, rotate the hip into the cross." }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown",
+          "items": [
+            { "id": "d1-clr-1", "name": "Pigeon Pose (Deep)", "dose": "3x90s each side", "note": "RIGHT hip: 3 sets. LEFT: 2 sets.", "cue": "Breathe deep, melt into the floor — this is your most important stretch." },
+            { "id": "d1-clr-2", "name": "Couch Stretch (Psoas/Quad)", "dose": "2x60s each side", "note": "RIGHT side priority", "cue": "Posterior pelvic tilt throughout — actively stretch the psoas." },
+            { "id": "d1-clr-3", "name": "Butterfly Adductor Stretch", "dose": "2x60s", "note": "Lean forward, feel the groin", "cue": "Elbows press knees gently, lean chest toward feet." },
+            { "id": "d1-clr-4", "name": "QL Side Bend (Standing)", "dose": "2x45s each side", "note": "Feel the lateral chain", "cue": "Arm overhead, reach across — thoracic side flexion." }
+          ]
+        }
+      ]
+    },
+    { "day": 2, "label": "Day 2 — Rest", "type": "rest", "focus": "Rest & Recovery" },
+    {
+      "day": 3,
+      "label": "Day 3 — Upper Body Push: Incline Strength & Rotational Power",
+      "type": "training",
+      "focus": "Incline pressing, dip strength, rotational (landmine) power",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Mobility & Prep",
+          "items": [
+            { "id": "d3-mob-1", "name": "Thoracic Rotation with Band", "dose": "2x10 each side", "note": "Full rotation — chin over shoulder", "cue": "Anchor band, rotate fully, hold 1s at end range." },
+            { "id": "d3-mob-2", "name": "World's Greatest Stretch", "dose": "1x5 each side", "note": "Slow and controlled", "cue": "Lunge + elbow to floor + thoracic rotation in one fluid move." },
+            { "id": "d3-mob-3", "name": "Active Hip Flexor Reach", "dose": "2x45s each side", "note": "Stretch hip flexor while reaching overhead", "cue": "Half-kneeling, reach opposite arm overhead and laterally." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "d3-str-1", "name": "Incline Barbell Press", "target": "Upper Chest / Shoulders", "sets": 4, "reps": "5", "prescription": { "percent": 0.75, "rpe": 8 }, "pair": { "name": "Explosive Push-up", "sets": 4, "reps": "5" }, "cue": "Controlled down, explosive up — this is PAP prep." },
+            { "id": "d3-str-2", "name": "Weighted Dip", "target": "Chest / Triceps", "sets": 3, "reps": "6", "prescription": { "addedLoad": "15kg", "note": "Phase 1 load" }, "pair": { "name": "Clap Push-up", "sets": 3, "reps": "5" }, "cue": "Full ROM — chest-to-bar depth, explosive press." },
+            { "id": "d3-str-3", "name": "Landmine Press (Rotational)", "target": "Shoulders / Rotational core", "sets": 3, "reps": "8 each side", "prescription": { "rpe": 7 }, "cue": "Press from the shoulder — this mirrors your cross movement, feel the rotation." }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Bag Work",
+          "items": [
+            { "id": "d3-bag-1", "name": "Cross-Hook-Cross Power", "rounds": 6, "roundLength": "3 min", "rest": "60s",
+              "perRound": ["R1-2: Technical 2-3-2", "R3-4: Combo with footwork", "R5: Defence + Counter", "R6: All-out power round"],
+              "cue": "RIGHT hand power focus every session — rotate the hip INTO the cross." }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown",
+          "items": [
+            { "id": "d3-clr-1", "name": "Doorway Chest Stretch", "dose": "2x60s", "note": "Multiple angles — high/mid/low", "cue": "Find the tightest angle and stay there." },
+            { "id": "d3-clr-2", "name": "Shoulder Cross-Body Rear Delt", "dose": "2x45s each side", "note": "Feel rear delt/capsule", "cue": "Arm across chest, opposite hand pulls at the elbow." },
+            { "id": "d3-clr-3", "name": "Thread-the-Needle T-Spine", "dose": "2x45s each side", "note": "Full thoracic rotation", "cue": "On all fours, thread arm under body, hold at deepest point." },
+            { "id": "d3-clr-4", "name": "Doorway Hip Flexor Lunge", "dose": "2x45s each side", "note": "RIGHT side priority — desk posture fix", "cue": "Posterior pelvic tilt throughout the stretch." }
+          ]
+        }
+      ]
+    },
+    { "day": 4, "label": "Day 4 — Rest", "type": "rest", "focus": "Rest & Recovery" },
+    {
+      "day": 5,
+      "label": "Day 5 — Lower Body: Hinge, Unilateral & Kick Power",
+      "type": "training",
+      "focus": "Single-leg strength, adductor/kick-strength work, hip rehab priority",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Mobility & Prep",
+          "items": [
+            { "id": "d5-mob-1", "name": "Cossack Squat", "dose": "2x6 each side", "note": "Load adductors through full range", "cue": "Slow descent, feel the inner thigh — this IS hip rehab." },
+            { "id": "d5-mob-2", "name": "Band Hip Abduction Standing", "dose": "2x15 each side", "note": "Straight leg — glute fires", "cue": "Slow and controlled — glute-med activation." },
+            { "id": "d5-mob-3", "name": "Adductor Stretch + Knee Drive", "dose": "2x45s each side", "note": "Inner thigh tension then release", "cue": "Wide stance, shift weight side to side." },
+            { "id": "d5-mob-4", "name": "Hip Flexion + External Rotation", "dose": "2x45s each side", "note": "RIGHT hip focus", "cue": "Seated — lift knee, rotate externally, hold at end range." },
+            { "id": "d5-mob-5", "name": "Supine Hip CARs", "dose": "2x5 each direction", "note": "Full controlled circles", "cue": "Controlled Articular Rotation — maximum range, no compensation." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "d5-str-1", "name": "Bulgarian Split Squat", "target": "Quads / Glutes (unilateral)", "sets": 4, "reps": "6 each leg", "prescription": { "rpe": 7, "note": "Bodyweight to start; add load once form is perfect" }, "pair": { "name": "Single-Leg Broad Jump", "sets": 4, "reps": "3" }, "cue": "RIGHT leg forward first — this exposes the imbalance. Control the descent." },
+            { "id": "d5-str-2", "name": "Single-Leg Romanian Deadlift", "target": "Hamstrings / Glutes (unilateral)", "sets": 3, "reps": "8 each side", "prescription": { "rir": 4 }, "cue": "Hinge from the hip, opposite arm hangs — balance is the point." },
+            { "id": "d5-str-3", "name": "Copenhagen Plank", "target": "Adductors (unilateral)", "sets": 3, "reps": "20s each side", "prescription": { "rpe": 7, "note": "THIS IS YOUR KICK STRENGTH EXERCISE" }, "cue": "Top leg on bench — the adductor holds you up. Critical for kick power." },
+            { "id": "d5-str-4", "name": "Single-Leg Hip Thrust", "target": "Glutes (unilateral)", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 7 }, "cue": "Drive through the heel, max glute contraction — forces the psoas to relax via reciprocal inhibition." }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Bag Work",
+          "items": [
+            { "id": "d5-bag-1", "name": "Roundhouse Kick Setup", "rounds": 6, "roundLength": "3 min", "rest": "60s",
+              "perRound": ["R1-2: Jab-Cross + Kick SETUP (no kick yet)", "R3-4: Full Roundhouse technique", "R5: Jab-Cross + LOW kick", "R6: Flow — all techniques"],
+              "cue": "Plant the foot fully, drive the hip through. Power comes from hip rotation." }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown",
+          "items": [
+            { "id": "d5-clr-1", "name": "Pigeon Pose EXTENDED", "dose": "3x90s each side", "note": "RIGHT side: 3 sets, non-negotiable", "cue": "Longest hold of the week — this is where the hip heals." },
+            { "id": "d5-clr-2", "name": "Prone Hip Extension", "dose": "2x60s each side", "note": "Feel glute activate — reciprocal inhibition at rest", "cue": "Squeeze glute, lift leg 5cm, hold. Psoas releases." },
+            { "id": "d5-clr-3", "name": "Child's Pose + Hip Shift", "dose": "2x60s each side", "note": "Shift hips to each side", "cue": "Walk hands to one corner, feel the QL and hip flexor." },
+            { "id": "d5-clr-4", "name": "Side-Lying Hip Abduction Hold", "dose": "2x45s each side", "note": "Target: pectineus & adductor longus", "cue": "Top leg lifted 30cm, hold. Feel the inner thigh/groin." },
+            { "id": "d5-clr-5", "name": "Supine Spinal Twist", "dose": "2x60s each side", "note": "Full lumbar decompression", "cue": "Arms out wide — let gravity rotate the spine." }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "label": "Day 6 — Upper Body Pull & Rotational Power",
+      "type": "training",
+      "focus": "Vertical + horizontal pulling, rotational pull power, defence/counter bag work",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Mobility & Prep",
+          "items": [
+            { "id": "d6-mob-1", "name": "Band Pull-Apart", "dose": "2x15", "note": "Scapular retraction — open the chest", "cue": "Slow and controlled. Hold the retraction 1s at the back." },
+            { "id": "d6-mob-2", "name": "Scapular Wall Slides", "dose": "2x10", "note": "Maintain contact with the wall throughout", "cue": "Elbows and wrists stay on the wall — full Y-W-T-L pattern." },
+            { "id": "d6-mob-3", "name": "T-Spine Extension over Foam Roller", "dose": "2x10", "note": "Target thoracic — not lumbar", "cue": "Arms across chest, extend over the roller at different levels." }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Strength",
+          "items": [
+            { "id": "d6-str-1", "name": "Weighted Pull-up", "target": "Lats / Biceps", "sets": 4, "reps": "4", "prescription": { "addedLoad": "20kg", "note": "Phase 1 load; tested max is +35kg — plenty of headroom this phase" }, "pair": { "name": "Explosive Pull-up (BW)", "sets": 4, "reps": "5", "note": "Max speed — like pulling yourself out of danger." }, "cue": "Controlled 3s descent, full hang, chest to bar." },
+            { "id": "d6-str-2", "name": "Chest-Supported Row", "target": "Lats / Mid-back", "sets": 3, "reps": "8", "prescription": { "rpe": 7 }, "cue": "Retract scapula first, then pull — 3s controlled eccentric, no momentum." },
+            { "id": "d6-str-3", "name": "Landmine Row + Rotation", "target": "Lats / Rotational core", "sets": 3, "reps": "8 each side", "prescription": { "rpe": 7 }, "cue": "Hip drive into the pull — trains the rotational pulling chain, your clinch strength." },
+            { "id": "d6-str-4", "name": "Cable High-to-Low Woodchop", "target": "Obliques / Rotational core", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 7 }, "cue": "Full rotation, belt to opposite knee — this generates rotational knockout power. Own every rep." }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Bag Work",
+          "items": [
+            { "id": "d6-bag-1", "name": "Defence + Counter", "rounds": 5, "roundLength": "3 min", "rest": "60s",
+              "perRound": ["R1-2: Slip + Return", "R3: Parry + Cross Counter", "R4: Clinch Exits", "R5: Full Defence into Power Counter"],
+              "cue": "Move your head FIRST. The counter is earned by the defence." }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown",
+          "items": [
+            { "id": "d6-clr-1", "name": "Lat/Serratus Band Stretch", "dose": "2x45s each side", "note": "Full overhead lat stretch with band", "cue": "Anchor band low, grip overhead, shift hips away." },
+            { "id": "d6-clr-2", "name": "Overhead Tricep Stretch", "dose": "2x45s each side", "note": "Elbow behind head — full stretch", "cue": "Gently pull the elbow further back with the opposite hand." },
+            { "id": "d6-clr-3", "name": "Doorway Hip Flexor", "dose": "2x45s each side", "note": "RIGHT side priority — desk/cycling fix", "cue": "Posterior pelvic tilt — psoas stretch." },
+            { "id": "d6-clr-4", "name": "Wrist + Forearm Flexor", "dose": "2x30s each side", "note": "Palm-down wrist extension", "cue": "Protect the wrists after bag work." }
+          ]
+        }
+      ]
+    },
+    { "day": 7, "label": "Day 7 — Active Recovery", "type": "recovery", "focus": "Active Recovery" }
+  ],
+  "features": {
+    "hipScoreRouting": false,
+    "bagWork": true
+  }
+}

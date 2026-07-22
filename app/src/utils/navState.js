@@ -25,7 +25,8 @@ export const DEFAULT_HUB = 'train'
 export const HUB_TOP_TABS = {
     train: [
         { key: 'workout', label: 'Workout' },
-        { key: 'playbook', label: 'Playbook' }
+        { key: 'playbook', label: 'Playbook' },
+        { key: 'cartridges', label: 'Cartridges' }
     ],
     timer: [
         { key: 'basic', label: 'Basic' },
