@@ -2,13 +2,15 @@
 
 > **What this is:** the model-agnostic list of what to learn about a person before authoring a
 > training cartridge. Hand this (plus the person's answers) to any capable LLM alongside
-> [`PROGRAM-CARTRIDGE-SPEC.md`](../planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md) and the
-> [`COACH-PROMPT.md`](COACH-PROMPT.md). It is plain text on purpose — it must work in Claude today
-> and a self-hosted model later, with no tooling.
+> [`PROGRAM-CARTRIDGE-SPEC.md`](../planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md) (v2, block model) and
+> the [`COACH-PROMPT.md`](COACH-PROMPT.md). It is plain text on purpose — it must work in Claude
+> today and a self-hosted model later, with no tooling.
 >
 > **Provenance:** lifted from the first proven intake (`intake-developer-program.md`), which
-> produced two validated cartridges (Foundation + Operator). Fields are ordered by how much they
-> shape the program. Version 1 (2026-07-22).
+> produced two validated cartridges (Foundation + Operator). A third cartridge (Apex Protocol,
+> adapted from an existing program rather than a fresh interview) proved the schema generalizes.
+> Fields are ordered by how much they shape the program. Version 2 (2026-07-22) — §8 updated for
+> the block model's per-item prescription.
 
 ---
 
@@ -78,11 +80,17 @@
   the coach should program a **corrective/foundation phase** (avoid contraindicated loading;
   prioritise the undertrained stabilisers) before a heavy block.
 
-## 8. Prescription model
-- The **coach recommends** one of the five spec models (`percent-1rm` · `rpe` · `straight-sets` ·
-  `time-distance` · `bodyweight`) and states why. The person confirms.
-- Most people don't know this — it's a coaching decision, not an intake answer. Capture only a
-  preference if they have one.
+## 8. Prescription style
+- **v2 note:** the cartridge spec no longer fixes one prescription model per program — the coach
+  chooses per exercise (RPE/RIR, %1RM, added load, or a plain descriptive note), and can mix
+  styles freely within one cartridge. This is a coaching decision made during authoring, not an
+  intake answer — most people don't know which style fits which lift.
+- **Capture only if the person has a strong preference** (e.g. "I like training to a number,"
+  or "I don't want to think about percentages"). Otherwise leave this to the coach.
+- **If adapting an existing program** (not a fresh interview — e.g. a sibling's current workout),
+  capture whether it already uses %1RM. If so and no tested max is on file, the coach should
+  dual-code load as `{ percent, rpe }` rather than blocking on missing data (see COACH-PROMPT
+  doctrine #8).
 
 ---
 
