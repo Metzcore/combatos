@@ -64,7 +64,7 @@ rather than proceeding.
      rewritten (not appended) on each close.
    - `docs/decision_log.md` — append-only log of actual decisions (rule/convention changes), not
      a log of routine activity.
-   Both skills explicitly warn that pending items and checklists can go stale: **treat their
+   Both skills explicitly warn that pending items and roadmap entries can go stale: **treat their
    contents as signal to verify against the user's stated goal for the current session, not as
    a spec to blindly execute.** If what a file says is "next" contradicts what the user just
    asked for, say so and ask which takes priority — don't silently follow the file.
