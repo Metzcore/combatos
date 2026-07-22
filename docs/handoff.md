@@ -1,26 +1,36 @@
 ## Current state (one line)
-Supabase is **LIVE in production**; Track A/Stage-2 shipped its full read/render arc today — the
-Program Authoring Kit, block-composable cartridge spec v2, 3 real cartridges (Foundation, Operator,
-Apex Phase 1), and a live **Cartridge Viewer** in the Train hub (merged, deployed). First on-device
-review is in: works, but needs a real UX/UI pass before the interactive (logging) renderer, which
-stays gated on W26. Project `pckokypnxrimayjmjgcl` (free tier). Operator guide: `docs/OPERATIONS.md`.
+Supabase is **LIVE in production**; the Cartridge Viewer UX pass and dev-only local sign-in are
+shipped. A9a is also live and verified: per-user cartridge availability, one constrained active
+program, hardened profile permissions, and the three initial account assignments. No Train UI code
+changed. Project `pckokypnxrimayjmjgcl` (free tier). Operator guide: `docs/OPERATIONS.md`.
 
 ## Pending
 
-- [ ] **Cartridge Viewer UX/UI pass** — description text alignment/readability, copy quality,
-      collapsible exercise blocks, section-header visual redesign (current styling reads
-      "dated/noisy" — a new user doesn't know what to do).
-- [ ] **Cartridge tagging** — group cartridges by category as the library grows (e.g. `25`,
-      `ufcgymd1`; developer also floated `em`/`fulltransformation` — clarify meaning next session)
-      + a way to "select/activate" a cartridge for real use (Cartridge Viewer is browse-only today).
-- [ ] **Train hub discoverability** — the 3 top tabs (Workout/Playbook/Cartridges) aren't obvious
-      to a new user at first glance; needs a real UX solution, not just a visual tweak.
+- [ ] **Train experience plan is now canonical:** read
+      `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md` before A9/A10/A6.5/A7 work. Decisions captured:
+      Today/Plan/Library; several available but one active; unassigned bundled cartridges hidden, not
+      private; coach controls availability; unfinished drafts stay local first; A6.5 is an explicit
+      prerequisite to A7. No Train code or Supabase schema was changed in the planning session.
+- [ ] **A9 — continue with A9b:** A9a is live and verified. `user_cartridges` controls availability;
+      `profiles.assigned_cartridge` is the one-active pointer and can only name an available program;
+      users can read only their own rows and cannot edit availability, role, or profile lifecycle.
+      Initial state: primary phone account has both Combat OS programs with Foundation active;
+      developer account has all three with Foundation active; brother has Apex active and has still
+      never signed in. Exact emails stay in Supabase, not repo docs. Next: A9b spec-v3 metadata, then
+      A9c offline access loader/cache, then A9d assigned-only Library UI. Manual assignment steps are
+      in `docs/OPERATIONS.md`.
+- [ ] **Rotate the dev Supabase password-login user's password** — set to a weak placeholder during
+      tonight's setup; swap for something long/random. Low severity (burner account, no real data)
+      but a real loose end — the account is a real row in the production Supabase project, reachable
+      by anyone who guesses the credentials via the public Auth API, not just through the app's UI.
+- [ ] **Train information architecture (A10)** — specify Today / Plan / Library inside the existing
+      Train hub, including optional-phase behaviour, responsive layout, touch targets, safe areas,
+      and the Library-card spacing fix. No new main-nav button.
+- [ ] **A6.5 — durable active-workout draft:** local Dexie autosave/resume before A7; temporary draft
+      shape is separate from the permanent logged-session payload and works fully offline.
 - [ ] **Playbook + Log tab redesign (own session, bigger scope)** — UX/UI aiming for a
       best-in-class bar (reference TBD — Apple-tier framing, Obsidian floated); includes
       dark/light mode + a full color-system pass. Model choice to be discussed at that session's start.
-- [ ] **Dev auth-bypass for agent browser testing** — two candidates: (a) a local-only, gitignored
-      long-lived Supabase session for dev-mode only; (b) using the connected Gmail to auto-click
-      the magic link. Neither built; discuss + pick next session.
 - [ ] **Checklist/Notes backend now that Supabase is live** — export/import flow reconsidered
       (currently "could be improved or overcomplicated"). Idea floated: an n8n scheduled workflow
       syncing notes/checklist data every ~3 days — would double as the Supabase free-tier keep-alive.
@@ -37,4 +47,3 @@ stays gated on W26. Project `pckokypnxrimayjmjgcl` (free tier). Operator guide: 
 - [ ] **W26** — log-hub redesign research (parallel); informs the payload shape + the Log redesign.
 - [ ] **Small housekeeping:** subtle medical/AI disclaimer in Settings (once); run the keep-alive
       Action once manually to confirm; delete merged `feat/supabase-foundation` branch.
-      `docs/planning/CHECKLIST.md` → `archive/` move remains uncommitted-deliberate.

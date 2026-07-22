@@ -34,9 +34,54 @@ Dashboard → **Authentication → Users → "Add user"** (top-right). Two optio
 - **"Create new user"** — email + a throwaway password + tick **"Auto Confirm User"**. They
   never use the password; they log in via magic link from the app afterwards.
 
+After the user exists, confirm that **Table Editor → `profiles`** contains a row with the same user
+ID. The existing database trigger normally creates it automatically. Because the app signs in with
+`shouldCreateUser: false`, adding the Auth user must happen before they request a magic link.
+
+### Assign programs to a user
+
+`user_cartridges` holds every program available to the user. Do not try to imitate multiple
+assignments by typing several values into `profiles.assigned_cartridge`; that field holds one active
+ID only and the database requires it to match one of the user's availability rows.
+
+> A9a is database-only. The current Train UI still shows all bundled cartridges until the A9c loader
+> and A9d assigned-only Library ship; the rows below prepare and protect that later behaviour.
+
+The exact cartridge IDs are:
+
+- `combatos-foundation-2026`
+- `combatos-operator-2026`
+- `apex-protocol-phase1`
+
+1. Go to **Authentication → Users** and copy the target user's UUID. Use the UUID, not their email,
+   in database rows.
+2. Go to **Table Editor → `user_cartridges` → Insert row**.
+3. Set `user_id` to that UUID and `cartridge_id` to one exact ID above.
+4. Leave `assigned_at` empty so Supabase fills the current time. `assigned_by` is optional; either
+   put your own Auth UUID there for an audit trail or leave it empty.
+5. Insert one row for every program that should appear in that user's Library.
+6. Go to **Table Editor → `profiles`**, open the same user's row, and set
+   `assigned_cartridge` to exactly one of the IDs you just made available. This is their active
+   program.
+7. After A9c/A9d ship, save, then have the user open Library while online and tap Retry/reopen the
+   app. After the first successful load, the list is cached for offline browsing.
+
+Initial rollout plan (emails deliberately kept out of this tracked file):
+
+- **Primary phone account:** Foundation + Operator available; Foundation active.
+- **Developer password-login account:** all three available, Foundation active, so it can test every
+  cartridge one at a time.
+- **Brother's account:** Auth user created and email-confirmed; automatic profile row verified;
+  Apex Phase 1 available and active; never signed in as of 2026-07-22.
+
+To make another program available later, add another `user_cartridges` row. To change the active
+program manually, update only `profiles.assigned_cartridge`. To remove availability, first change
+the active pointer if it currently names that cartridge, then delete the corresponding assignment
+row. Never edit `auth.users` through Table Editor.
+
 ### Remove a user
 **Authentication → Users →** click the row (or its ⋯) → **"Delete user"**. Irreversible.
-Cascades: their profile **and** all their logged sessions are deleted with them.
+Cascades: their profile, program assignments, **and** all their logged sessions are deleted with them.
 
 ### Turn signup on/off (invite-only switch)
 **Authentication → Sign In / Providers → Supabase Auth → User Signups →

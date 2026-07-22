@@ -2,6 +2,77 @@
 
 ---
 
+## 2026-07-22 (cont'd) · A9a cartridge access foundation live
+
+**Context:** The developer approved the A9 diagnostic's `user_cartridges` model and selected
+Foundation as the initial active program for the primary phone account.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Store coach-made-available programs in `user_cartridges`; keep `profiles.assigned_cartridge` as the one-active pointer | Supports several available programs without mixing account access into cartridge JSON |
+| 2 | Availability is server-managed; users read only their own rows and may update only their active pointer | Prevents self-assignment and profile-role escalation while still allowing later user activation |
+| 3 | Seed primary = both Combat OS/Foundation active; developer = all three/Foundation active; brother = Apex/Apex active | Matches the three real account purposes and gives the developer account full one-at-a-time rendering coverage |
+
+**Implemented:** two live/reproducible migrations, initial assignments, composite active/available
+constraint, explicit grants, RLS isolation checks, forbidden-action checks, and advisor rerun. No
+Train UI or workout/logging code changed. Next A9 slice is A9b metadata.
+
+---
+
+## 2026-07-22 (cont'd) · Train experience and persistence direction ruled
+
+**Context:** Documentation-only UX/planning session after reviewing the three current Train subtabs,
+the Library wireframe, the live cartridge spec, the current in-memory workout state, and Supabase's
+live `profiles`/`sessions` tables. No app code, database schema, build, or tests were changed.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Train's subtabs become **Today / Plan / Library**; the five-button main navigation does not grow | Today separates the sweaty-hands execution surface from programme understanding and programme choice |
+| 2 | A user can have several coach-made-available cartridges but exactly one active; unassigned bundled cartridges are hidden, not private | Matches the first three users without pretending bundled JSON is secure; another user may legitimately try a different person's programme |
+| 3 | Coach controls availability and may set active; v1 user may activate any available cartridge; no separate coach-lock system yet | Covers the real workflow with one active pointer and avoids speculative permissions/UI |
+| 4 | Cross-cartridge journeys are part of the next shared cartridge-spec revision for future Checklist work, but are out of Train scope | Keeps the universal format extensible without turning the Train redesign into progression-system work |
+| 5 | Unfinished workout drafts stay device-local initially; only deliberate completed logs sync to Supabase | Offline works as the primary path, saves are immediate, and half-finished form state does not create online conflict machinery |
+| 6 | Durable draft persistence is **A6.5**, an explicit prerequisite to A7; draft shape remains separate from W26's permanent logged-session payload decision | The interactive renderer must not ship with close/reload data loss, but draft storage must not pre-decide analytics and logging contracts |
+| 7 | Same-device account switching is unsupported | Removes multi-account draft merge/partition UI from v1; explicit sign-out still must not expose a previous draft |
+| 8 | Ethical attention only: prompts, progress, and defaults must help the user train/recover; no artificial urgency, streak punishment, random rewards, or infinite feeds | The product may guide attention, but only toward user-chosen real-world benefit |
+| 9 | Recommended additive metadata: `schemaVersion`, `cartridgeVersion`, short `summary`, normalized `tags`, and structured `requirements.equipment`; assignment/owner/active state stays in Supabase | These fields have a concrete renderer, compatibility, or equipment-fit use; identity and access are account state, not programme content |
+
+**Next:** Claude should read `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`, then run A9 as a
+diagnostic only: proposed assignment table, permissions/RLS, migration, Library states, and exact
+spec/validator updates. Stop for approval before code or database changes.
+
+---
+
+## 2026-07-22 (cont'd) · Cartridge Viewer UX pass + dev auth-bypass shipped
+
+**Context:** Continuing the same 2026-07-22 thread (third sitting) after the on-device review
+flagged the Cartridge Viewer as "dated/noisy." Closed that out, then unblocked local/agent testing
+with a dev-only sign-in, then kicked off research for the next real feature.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Cartridge Viewer redesign: quiet block sub-headers (thin accent + colored label, not full-bleed fill) + collapse whole DAYS (not individual blocks) | Developer's explicit choice between offered options; kills the "stack of loud bars" while keeping a full 7-day week scannable on one screen |
+| 2 | Cartridge description split (short user-facing summary vs. long author notes) deferred to ride along with A9's tagging/metadata spec bump, not done in the UX pass | Same file, same spec version bump — doing it twice would be wasted motion; the UX pass instead just collapses the existing description behind an "About this program" disclosure |
+| 3 | Dev auth-bypass built as a THIRD option — password sign-in behind `import.meta.env.DEV`, reading creds from gitignored `.env.local` — rather than either candidate floated last session (long-lived local session; Gmail-MCP auto-click) | Real Supabase auth (so RLS/DB/sync behave correctly) without an email round-trip; verified via a prod-bundle grep that the whole path is stripped from production — magic-link-only stays true for real users |
+| 4 | `docs/planning/CHECKLIST.md` → `archive/` move (left uncommitted-deliberate since 2026-07-10) committed now as its own tiny PR | Zero-risk, already-decided, disjoint from everything else in flight — no reason to keep carrying it as a loose end |
+
+**Also this session:** a rate-limit scare during dev-user setup (magic link + manual Supabase user
+creation both appeared to fail) turned out to be Supabase's free-tier email throttle, confirmed via
+the project's own auth logs — no damage to the magic-link feature or to manual user creation.
+Flagged a real (low-severity) security loose end: the dev password-login user was created with a
+placeholder password, which is a live credential against the production Supabase Auth API, not just
+the app's UI — needs rotating.
+
+**Not done / deferred:** A9 (cartridge tagging + select/activate) — two research prompts sent out
+(design/UX inspiration; DB-connected codebase/schema grounding) but no reports back yet, no plan
+made. A10 (Train hub discoverability) only partially addressed (tab contrast, as a side effect).
+Playbook/Log redesign; Checklist/Notes + n8n sync; interactive logging renderer (A7, gated on W26).
+
+**To do next session:** read back both A9 research reports, turn into an implementation plan;
+rotate the dev Supabase user's password.
+
+---
+
 ## 2026-07-22 (cont'd) · Block model shipped live; first on-device UX review
 
 **Context:** Continuing the same 2026-07-22 session. After promoting the block model to spec v2,
@@ -53,8 +124,7 @@ flexible off-plan logging; no schema change; overlaps D9) — in OPEN-DECISIONS.
 corrected (no hip-thrust → single-leg glute machine; face-pull/cuff flagged as a personal weak
 point). **Spec finding:** the five prescription models have no clean power/velocity axis — power
 work encoded as far-from-failure (`rir`) + explicit cue, flagged as a known limitation in the coach
-prompt. Cartridges will attach to the sole Supabase user **at.25degrees@gmail.com** once assignment
-is built.
+prompt. Cartridges will attach to the primary phone account once assignment is built.
 
 **Not done / deferred:** the Train/Playbook renderer (A4 — logging half gated on W26); the Apex
 cartridge (A5); the payload-shape lock; goodnight continuity close.

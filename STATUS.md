@@ -1,28 +1,32 @@
 # STATUS
-_Last updated: 2026-07-22 · Cartridge Viewer live + first real device feedback_
+_Last updated: 2026-07-22 · A9a access foundation live and verified_
 
 ## Last session
-Shipped the full Track A/Stage-2 arc in one sitting, four merged PRs: the model-agnostic Program
-Authoring Kit → block-composable cartridge schema v2 (reading a second real program, Apex Protocol,
-proved the v1 flat format underserved both real users) → Apex's cartridge authored + spec/kit
-promoted to v2 → a read-only **Cartridge Viewer** shipped into the Train hub (new "Cartridges" tab),
-live in production. Reviewed on-device: works as a first pass, but UX/UI needs real design work.
+Closed out the Cartridge Viewer's first on-device feedback: shipped a UX pass (quiet block
+sub-headers, collapsible days so a full week fits on one screen, a collapsed "About this program"
+disclosure, tab-contrast fix) — merged. Also built a dev-only password sign-in so agents and the
+developer can skip the magic-link email round-trip on localhost, verified fully stripped from the
+production bundle. Diagnosed a Supabase email-rate-limit scare during dev-user setup via the auth
+logs — confirmed nothing was broken, just the free-tier email throttle. Closed out remaining git
+housekeeping (archived the superseded CHECKLIST.md); `main` is now caught up with all four PRs.
+Kicked off research for the next real feature (A9: cartridge tagging + select/activate) — two
+prompts sent out, one for design/UX inspiration, one for a DB-connected agent to ground options
+against the actual Supabase schema and cartridge code. A documentation-only planning pass then
+resolved the Train direction and recorded it in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`:
+Today / Plan / Library, coach-controlled availability, one active cartridge, local unfinished
+drafts, and A6.5 as an explicit prerequisite to A7.
 
 ## Current focus
-Track A / Stage-2. Read/render path proven live; next is a design pass on the Cartridge Viewer +
-Train hub UX, informed by real on-device feedback, before going further into the interactive
-(logging) renderer.
+Track A / Stage-2. The Cartridge Viewer's UX debt is cleared and the Train product direction is
+documented. A9a is now live: `user_cartridges` records coach-managed availability,
+`profiles.assigned_cartridge` is constrained to one available program, and profile permissions are
+narrowed. The three initial accounts are assigned and RLS isolation is proven. No Train UI or other
+app code changed; A9b is the next A9 slice.
 
 ## Up next
-1. Cartridge Viewer UX/UI pass: description text readability + copy quality, collapsible exercise
-   blocks, section-header visual redesign (current styling reads "dated/noisy" to a new user)
-2. Cartridge tagging (category grouping as the library grows — e.g. `25`, `ufcgymd1`, candidates
-   `em`/`fulltransformation` need clarifying) + a way to "select/activate" a cartridge (not built yet)
-3. Train hub discoverability: the 3 top tabs (Workout/Playbook/Cartridges) aren't obvious to a new
-   user at first glance — needs an actual UX solution, not just visual polish
-4. Bigger design initiative (own session): Playbook + Log tab UX/UI rebuild aiming for a
-   best-in-class bar (reference apps TBD — Apple-tier framing, Obsidian floated); includes
-   dark/light mode + a full color-system pass
-5. Dev-auth-bypass for agent browser testing + Checklist/Notes backend now Supabase is live —
-   floated idea: an n8n scheduled workflow syncing notes/checklist data every ~3 days, which would
-   also double as the Supabase free-tier keep-alive
+1. A9b — additive cartridge spec-v3 metadata, validator/tests, and all three cartridge mirrors; no UI
+2. Rotate the dev Supabase user's password (currently a placeholder, set during setup) to something
+   long/random — low severity but a real loose end
+3. A10 — specify Today / Plan / Library on phone and responsive web; no new main-nav button
+4. A6.5 — local durable active-workout draft before A7; permanent payload remains gated on W26
+5. Bigger design initiative: Log tab UX/UI rebuild, then Checklist/Notes backend + n8n sync idea

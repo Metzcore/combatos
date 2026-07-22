@@ -67,6 +67,9 @@ program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` (v2, bloc
 Backend (Supabase) already live. Stage 0 (patch `playbook.csv`) skipped — the rebuild and the
 gym-change fix are the same work (decisions 2026-07-21 #3/#4).
 
+The approved product direction, metadata recommendation, persistence decision, and implementation
+order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
+
 - [x] **A1 · Program Authoring Kit** (model-agnostic docs) — `docs/authoring/`: `INTAKE-SCHEMA.md`,
       `COACH-PROMPT.md`, `REVIEWER-CHECKLIST.md` (Part A structural / Part B coaching-sanity),
       `README.md`. Plain files so a future self-hosted model (Hermes) runs the same process with no
@@ -90,23 +93,29 @@ gym-change fix are the same work (decisions 2026-07-21 #3/#4).
       _2026-07-22._
 - [x] **A5 · Apex cartridge** (2nd person) — `cartridges/apex-protocol-phase1.json`, adapted from
       his existing `playbook.csv`: 4 training days, all 5 block kinds, PAP pairing, round-structured
-      bag work, 49 items. The stress test that proved A4 before promotion. Not yet assigned to his
-      Supabase profile (assignment mechanism doesn't exist yet). _2026-07-22._
+      bag work, 49 items. The stress test that proved A4 before promotion. Assigned to his Supabase
+      profile by A9a; he has not signed in yet. _2026-07-22._
 - [x] **A6 · Cartridge Viewer (read-only render path)** — new "Cartridges" tab in the Train hub;
       browses all 3 real cartridges with a renderer per block kind. Read-only, zero touch to
       HUD.jsx/db/webhook — needs nothing from the payload-shape gate below. **Shipped, merged, LIVE
       in production** — first real on-device review done. _2026-07-22._
+- [ ] **A6.5 · Durable active-workout draft** — local Dexie autosave/resume for every unfinished
+      workout field; offline-first, cleared only by a successful local log or explicit discard.
+      Temporary draft shape stays separate from the permanent session payload. Explicit prerequisite
+      to A7; diagnostic first. See `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
 - [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
-      cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ gated on the
-      payload-shape lock below.
-- [ ] **A8 · Cartridge Viewer UX/UI pass** — from first on-device review: description text
-      readability + copy quality, collapsible exercise blocks, section-header visual redesign
-      (reads "dated/noisy" to a new user).
-- [ ] **A9 · Cartridge tagging + select/activate** — group cartridges by category as the library
-      grows (e.g. `25`, `ufcgymd1`; `em`/`fulltransformation` to clarify) + a real way to pick which
-      cartridge is "active" (browse-only today).
-- [ ] **A10 · Train hub discoverability** — the 3 top tabs aren't obvious to a new user at first
-      glance; needs a real UX solution.
+      cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ gated on
+      A6.5 and the payload-shape lock below.
+- [x] **A8 · Cartridge Viewer UX/UI pass** — quiet block headers, collapsible days, collapsed About
+      disclosure, and tab-contrast fix shipped. _2026-07-22._
+- [~] **A9 · Cartridge availability + activation** — a user may have several coach-made-available
+      cartridges but exactly one active. Unassigned bundled programs are hidden, not private. Start
+      with a Supabase/RLS diagnostic; no database change before approval. Metadata additions ride
+      with the same spec revision. **A9a access foundation is live and verified; A9b metadata is next.**
+      See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
+- [ ] **A10 · Train information architecture** — Workout / Playbook / Cartridges becomes Today /
+      Plan / Library inside the existing Train hub; no new main-nav button. Produce the mobile and
+      responsive interaction spec before implementation.
 - [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed+substituted)
       — open, gated on W26; blocks A7 only — A6 is unaffected and already live.
 
