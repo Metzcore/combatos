@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-07-23 · A9/A10 published and Train IA completed
+
+**Context:** A9’s assigned-only Library and A10’s Today / Plan / Library information architecture
+were verified, phone-approved and merged through PRs #51 and #52.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Train’s stable three-tab contract is Today / Plan / Library inside the existing five-button main navigation | Separates workout execution, active-programme understanding and programme choice without navigation growth |
+| 2 | The A9 Library hierarchy is the quality baseline shared by Plan; Library itself stays unchanged after approval | One calm, consistent presentation contract avoids Plan and Library drifting into parallel renderers |
+| 3 | User-facing day summaries say “training sections”; “block” remains internal cartridge/coaching terminology | The internal term is technically correct but ambiguous to users because blocks also describe multi-week programme structure |
+| 4 | Exercise demonstrations and a future Academy/Exercise Guides surface are separate diagnostic-first roadmap candidates, not additions to A10 | They need stable exercise identity, content ownership and layered-IA decisions; they must not create a sixth main-navigation button or leak URLs into account-assignment data |
+
+**Implemented:** A9 merged in PR #51. A10 merged in PR #52 at `229b574`: Today / Plan / Library,
+shared read-only programme presentation, explicit loading/offline states, narrow-phone navigation
+fixes and the final “training sections” wording. Verification: 369 tests, production PWA build,
+GitHub Build Check, Cloudflare deployment and phone review passed.
+
+**Not done / deferred:** Today is not yet cartridge-driven. No Dexie/Supabase schema, permanent
+logging payload, webhook, Sheets, service worker, exercise-media catalogue or Academy surface was
+changed.
+
+**Next:** run A6.5 diagnostic in a fresh task. Rotate the developer Supabase password. Lock the
+permanent payload before A7.
+
+---
+
 ## 2026-07-23 · A9d phone review and final visual standard
 
 **Context:** Two Android portrait reviews exposed hierarchy and copy problems that desktop

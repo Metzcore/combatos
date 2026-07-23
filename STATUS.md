@@ -1,24 +1,21 @@
 # STATUS
-_Last updated: 2026-07-23 · A9 complete and phone-approved_
+_Last updated: 2026-07-23 · A9/A10 published and phone-approved_
 
 ## Last session
-Completed A9d's assigned-only Program Library and refined it through two real-phone reviews. The
-Library now has stable full-width programme cards, clear active/preview states, benefit-led detail,
-calmer programme-week grouping, readable equipment and focus sections, and member-facing programme
-guidance instead of internal author notes. All three cartridges follow the same presentation
-contract.
+Published A9 through PR #51 and completed A10 through PR #52. Train now uses Today / Plan /
+Library inside the existing five-button navigation: Today preserves the current workout HUD, Plan
+explains the active cartridge, and Library handles assigned programmes, previewing and activation.
 
-A9a–A9d are complete on `codex/a9d-assigned-library`. The final suite has 363 passing tests and the
-production PWA build passes. No workout prescriptions, logging payloads, Supabase schema,
-service-worker behaviour, or main navigation changed.
+A10 passed real-phone review, 369 tests and the production PWA build. User-facing workout structure
+now says “training sections” instead of the internal “blocks” terminology.
 
 ## Current focus
-A9 is complete and ready to publish through the normal PR/merge workflow. The next product task is
-A10: specify Today / Plan / Library inside the existing Train hub before implementation.
+Begin A6.5 as a fresh diagnostic: durable, offline-first active-workout drafts before any
+cartridge-driven logging renderer is built.
 
 ## Up next
-1. Publish and merge `codex/a9d-assigned-library`
-2. Start A10 as a fresh diagnostic/specification task; no implementation before approval
-3. Rotate the developer Supabase password
-4. A6.5 — durable local active-workout drafts before A7
-5. Plan the Log-tab redesign in its own future task
+1. A6.5 — diagnostic and implementation plan for local Dexie workout-draft persistence
+2. Rotate the temporary Supabase developer password
+3. Lock the permanent session payload after the relevant W26 decision work
+4. A7 — interactive cartridge renderer, gated on A6.5 and the payload lock
+5. Exercise Reference layer and later Academy/Exercise Guides IA diagnostic

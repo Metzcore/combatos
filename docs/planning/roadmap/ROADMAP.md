@@ -32,7 +32,7 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [x] W10 · **IMPL**, then **REVIEW** · HUD visual hierarchy + collapsible bag-work and core/accessory blocks (auto-expand when logged). Diagnostic-first — HUD is the largest, most-used component. → `prompts/W10-hud-hierarchy.md` _Shipped in PRs #21 + #23 (Sonnet; reviewed by Fable), 2026-07-17 — the W10.1 follow-up extended collapse to all HUD blocks (mob/str/clr default open)._
 - [ ] W11 · **IMPL** · Playbook tab overhaul: collapse/group by phase→day→block. ⚠️ _Per the W19 proposal, this is absorbed into the Playbook rebuild inside the Train hub — run AFTER W20, using a revised prompt; the standalone `prompts/W11-playbook-overhaul.md` is superseded pending W19 sign-off._
 - [ ] W12 · **IMPL**, then **REVIEW** · Reusable exercise picker: save custom core/accessory/cooldown exercises once, pick from dropdown after (new Dexie store — schema version bump, handle with care). → `prompts/W12-exercise-picker.md`
-- [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md`
+- [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md` ⚠️ _The legacy mobility-video portion is now a candidate for absorption into A11’s cartridge-era Exercise Reference layer. The injury/profile toggle remains separate, and W13 must be re-scoped before execution._
 - [ ] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
 - [ ] W15 · **IMPL** · Timers page: drag-and-drop reordering of stopwatch/rest-timer blocks, order persisted in settings. → `prompts/W15-timer-reorder.md`
 - [x] W16 · **IMPL**, then **REVIEW** · Day-7 cycle extension (re-scoped per D2 ruling): keep sequential day counting, extend the cycle 6→7 with Day 7 as an optional/custom gym day (cardio/mobility/free-form notes — `FightGymDay.jsx` already supports these session types). Diagnostic-first. → `prompts/W16-next-day-semantics.md` (rewritten 2026-07-10) _Shipped in PR #18 (Sonnet; reviewed by Fable), 2026-07-17._
@@ -112,12 +112,25 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       active/viewing separation, schema-v3 metadata, account-scoped cache, controlled offline
       fallback and confirmed activation are implemented. Final visual hierarchy and member-facing
       programme guidance passed Android portrait review. 363 tests and production build pass.
-      _2026-07-23._ See `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
-- [ ] **A10 · Train information architecture** — Workout / Playbook / Cartridges becomes Today /
-      Plan / Library inside the existing Train hub; no new main-nav button. Produce the mobile and
-      responsive interaction spec before implementation.
+      _Merged through PR #51 and live, 2026-07-23._ See
+      `docs/planning/rebuild/A9-CARTRIDGE-ACCESS-DIAGNOSTIC.md`.
+- [x] **A10 · Train information architecture** — Today / Plan / Library shipped inside the existing
+      Train hub with no new main-navigation button. Plan renders the confirmed active cartridge;
+      Library preserves assigned-only preview/activation; Today preserves the existing HUD pending
+      A6.5/A7. Phone-approved; 369 tests and production build passed.
+      _Merged through PR #52, 2026-07-23._
 - [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed+substituted)
       — open, gated on W26; blocks A7 only — A6 is unaffected and already live.
+- [ ] **A11 · candidate · Exercise Reference layer** — design a stable canonical exercise identity
+      and curated external-resource catalogue that can support explicit “Watch demo” actions in Plan
+      and later Today. File-backed/offline-readable is the starting hypothesis, not yet a ruling.
+      Diagnostic must cover cartridge schema/authoring/validator impact, link validation, touch
+      targets, external-browser return, offline behaviour, link maintenance and future Supabase
+      migration. No new main-nav button.
+- [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
+      existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
+      and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do
+      not assume Supabase or embedded video.
 
 **Also queued, separate & bigger scope (not a Track A item):** Playbook + Log tab full UX/UI
 redesign — dark/light mode, color system, best-in-class UX bar. Own design session; see
