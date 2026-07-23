@@ -28,6 +28,14 @@ describe('hub definitions (W19 §6 rulings)', () => {
         expect(Object.keys(HUB_TOP_TABS).sort()).toEqual(['checklist', 'log', 'timer', 'train'])
     })
 
+    it('defines Today, Plan, and Library as Train\'s complete information architecture', () => {
+        expect(HUB_TOP_TABS.train).toEqual([
+            { key: 'today', label: 'Today' },
+            { key: 'plan', label: 'Plan' },
+            { key: 'library', label: 'Library' },
+        ])
+    })
+
     it('every hub with top tabs has at least two, each with key and label', () => {
         for (const tabs of Object.values(HUB_TOP_TABS)) {
             expect(tabs.length).toBeGreaterThanOrEqual(2)
@@ -44,7 +52,7 @@ describe('hub definitions (W19 §6 rulings)', () => {
 describe('initialTopTabs', () => {
     it('starts every tabbed hub on its first tab', () => {
         expect(initialTopTabs()).toEqual({
-            train: 'workout',
+            train: 'today',
             timer: 'basic',
             log: 'log',
             checklist: 'checklist'
@@ -57,9 +65,11 @@ describe('initialTopTabs', () => {
 })
 
 describe('setHubTab', () => {
-    it('updates the target hub selection', () => {
-        const next = setHubTab(initialTopTabs(), 'train', 'playbook')
-        expect(next.train).toBe('playbook')
+    it('accepts every Train information-architecture key', () => {
+        for (const key of ['today', 'plan', 'library']) {
+            const next = setHubTab(initialTopTabs(), 'train', key)
+            expect(next.train).toBe(key)
+        }
     })
 
     it('leaves every other hub selection untouched', () => {
@@ -69,17 +79,18 @@ describe('setHubTab', () => {
         state = setHubTab(state, 'timer', 'rounds')
         state = setHubTab(state, 'log', 'stats')
         state = setHubTab(state, 'checklist', 'notes')
-        state = setHubTab(state, 'train', 'playbook')
+        state = setHubTab(state, 'train', 'plan')
         expect(state).toEqual({
-            train: 'playbook', timer: 'rounds', log: 'stats', checklist: 'notes'
+            train: 'plan', timer: 'rounds', log: 'stats', checklist: 'notes'
         })
     })
 
     it('does not mutate the input state', () => {
         const before = initialTopTabs()
         const snapshot = { ...before }
-        setHubTab(before, 'train', 'playbook')
+        const after = setHubTab(before, 'train', 'plan')
         expect(before).toEqual(snapshot)
+        expect(after).not.toBe(before)
     })
 
     it('returns the same reference when the tab is already active (no-op render guard)', () => {
@@ -92,26 +103,33 @@ describe('setHubTab', () => {
         // it now HAS top tabs, so the case uses genuinely unknown keys.
         const state = initialTopTabs()
         expect(setHubTab(state, 'settings', 'anything')).toBe(state)
-        expect(setHubTab(state, 'nope', 'workout')).toBe(state)
+        expect(setHubTab(state, 'nope', 'today')).toBe(state)
     })
 
     it('returns the same reference for a tab the hub does not have', () => {
         const state = initialTopTabs()
         expect(setHubTab(state, 'train', 'rounds')).toBe(state)
-        expect(setHubTab(state, 'log', 'workout')).toBe(state)
+        expect(setHubTab(state, 'log', 'today')).toBe(state)
         // Cross-hub tab-name confusion (W23): another hub's tab key is
         // rejected by identity too.
-        expect(setHubTab(state, 'checklist', 'workout')).toBe(state)
+        expect(setHubTab(state, 'checklist', 'today')).toBe(state)
+    })
+
+    it('rejects Train\'s superseded tab keys', () => {
+        const state = initialTopTabs()
+        expect(setHubTab(state, 'train', 'workout')).toBe(state)
+        expect(setHubTab(state, 'train', 'playbook')).toBe(state)
+        expect(setHubTab(state, 'train', 'cartridges')).toBe(state)
     })
 
     it('round-trips: hub switch away and back preserves the selection', () => {
         // The state object is hub-agnostic — switching activeHub in AppShell
         // never touches it. Pin that flipping OTHER hubs' tabs any number of
         // times leaves train's selection intact.
-        let state = setHubTab(initialTopTabs(), 'train', 'playbook')
+        let state = setHubTab(initialTopTabs(), 'train', 'plan')
         state = setHubTab(state, 'timer', 'rounds')
         state = setHubTab(state, 'timer', 'basic')
         state = setHubTab(state, 'log', 'stats')
-        expect(state.train).toBe('playbook')
+        expect(state.train).toBe('plan')
     })
 })

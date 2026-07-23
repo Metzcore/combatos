@@ -13,6 +13,7 @@ export default function TopTabs({ tabs, active, onChange }) {
             {tabs.map(t => (
                 <button
                     key={t.key}
+                    type="button"
                     role="tab"
                     aria-selected={active === t.key}
                     className={`top-tabs__tab${active === t.key ? ' active' : ''}`}

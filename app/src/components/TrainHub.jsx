@@ -1,22 +1,16 @@
 /**
  * TrainHub.jsx — slot-1 hub wrapper (W20).
  *
- * Hosts today's HUD ("Workout") and the existing PlaybookViewer ("Playbook")
- * behind the shared TopTabs bar. HUD and PlaybookViewer are rendered exactly
- * as before — same all-or-nothing conditional mount the old AppShell used —
- * so HUD's context-backed state persistence and scroll restore (CHECKLIST.md
- * A1) go through the identical mount/unmount cycle they always have. Neither
- * file is modified by W20.
- *
- * Track A / Stage-2 adds a third, additive tab: CartridgeViewer ("Cartridges"),
- * a read-only browser for the new block-model program cartridges. It does not
- * touch HUD, PlaybookViewer, or the logging/session path.
+ * A10 gives Train three distinct jobs:
+ * - Today: the existing HUD and logging path, unchanged.
+ * - Plan: read-only orientation around the confirmed active cartridge.
+ * - Library: assigned programs and confirmed activation.
  *
  * Tab selection is owned by AppShell (survives hub switches); this component
  * is a pure passthrough.
  */
 import HUD from './HUD.jsx'
-import PlaybookViewer from './PlaybookViewer.jsx'
+import PlanViewer from './PlanViewer.jsx'
 import CartridgeViewer from './CartridgeViewer.jsx'
 import TopTabs from './TopTabs.jsx'
 import { HUB_TOP_TABS } from '../utils/navState.js'
@@ -31,9 +25,9 @@ export default function TrainHub({ activeTab, onTabChange }) {
                     onChange={onTabChange}
                 />
             </div>
-            {activeTab === 'workout' && <HUD />}
-            {activeTab === 'playbook' && <PlaybookViewer />}
-            {activeTab === 'cartridges' && <CartridgeViewer />}
+            {activeTab === 'today' && <HUD />}
+            {activeTab === 'plan' && <PlanViewer onOpenLibrary={() => onTabChange('library')} />}
+            {activeTab === 'library' && <CartridgeViewer />}
         </>
     )
 }
