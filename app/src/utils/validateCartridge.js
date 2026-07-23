@@ -1,9 +1,9 @@
 /**
- * validateCartridge.js — structural validation for program cartridges (block model, v2)
+ * validateCartridge.js — structural validation for program cartridges (block model, v3)
  *
  * Implements Part A (the deterministic half) of the authoring reviewer
  * checklist (docs/authoring/REVIEWER-CHECKLIST.md) against the block-composable
- * schema (docs/planning/rebuild/BLOCK-MODEL-DRAFT.md).
+ * schema (docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md).
  *
  * Model: a day is an ordered list of BLOCKS; each block has a `kind` that
  * decides its item shape:
@@ -21,6 +21,89 @@
 const KNOWN_KINDS = ['mobility', 'strength', 'conditioning', 'cooldown', 'core']
 const DAY_TYPES = ['training', 'rest', 'recovery', 'custom']
 const KNOWN_FEATURES = ['hipScoreRouting', 'bagWork']
+const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
+const LOWER_KEBAB_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+function trainingMetadataErrors(cartridge) {
+    const errors = []
+
+    if (cartridge.schemaVersion !== 3) {
+        errors.push('schemaVersion must be exactly 3')
+    }
+    if (typeof cartridge.cartridgeVersion !== 'string' || !SEMVER_PATTERN.test(cartridge.cartridgeVersion)) {
+        errors.push('cartridgeVersion must be a semantic version such as "1.0.0"')
+    }
+
+    if (typeof cartridge.summary !== 'string' || cartridge.summary.trim().length === 0 || cartridge.summary.length > 160 || /[\r\n]/.test(cartridge.summary)) {
+        errors.push('summary must be a single-line string between 1 and 160 characters')
+    }
+
+    if (cartridge.description != null) {
+        if (typeof cartridge.description !== 'string') {
+            errors.push('description must be a string')
+        } else {
+            const paragraphs = cartridge.description
+                .split(/\n\s*\n/)
+                .map((paragraph) => paragraph.trim())
+                .filter(Boolean)
+            if (paragraphs.length < 2 || paragraphs.length > 3) {
+                errors.push('description must contain two or three paragraphs separated by a blank line')
+            }
+            if (paragraphs.some((paragraph) => paragraph.length > 320)) {
+                errors.push('each description paragraph must be no more than 320 characters')
+            }
+        }
+    }
+
+    if (!Array.isArray(cartridge.outcomes)) {
+        errors.push('outcomes must be an array')
+    } else {
+        if (cartridge.outcomes.length < 2 || cartridge.outcomes.length > 4) {
+            errors.push('outcomes must contain between 2 and 4 items')
+        }
+        const normalizedOutcomes = new Set()
+        for (const outcome of cartridge.outcomes) {
+            if (typeof outcome !== 'string' || outcome.trim().length === 0 || outcome.length > 80 || /[\r\n]/.test(outcome)) {
+                errors.push('each outcome must be a single-line string between 1 and 80 characters')
+                continue
+            }
+            normalizedOutcomes.add(outcome.trim().toLowerCase())
+        }
+        if (normalizedOutcomes.size !== cartridge.outcomes.length) errors.push('outcomes must be unique')
+    }
+
+    if (!Array.isArray(cartridge.tags)) {
+        errors.push('tags must be an array')
+    } else {
+        if (cartridge.tags.length < 1 || cartridge.tags.length > 8) {
+            errors.push('tags must contain between 1 and 8 items')
+        }
+        const uniqueTags = new Set(cartridge.tags)
+        if (uniqueTags.size !== cartridge.tags.length) errors.push('tags must be unique')
+        for (const tag of cartridge.tags) {
+            if (typeof tag !== 'string' || !LOWER_KEBAB_PATTERN.test(tag)) {
+                errors.push('each tag must be a lowercase-kebab string')
+            }
+        }
+    }
+
+    const equipment = cartridge.requirements && cartridge.requirements.equipment
+    if (!Array.isArray(equipment)) {
+        errors.push('requirements.equipment must be an array')
+    } else {
+        const normalizedEquipment = new Set()
+        for (const item of equipment) {
+            if (typeof item !== 'string' || item.trim().length === 0) {
+                errors.push('each requirements.equipment item must be a non-empty string')
+                continue
+            }
+            normalizedEquipment.add(item.trim().toLowerCase())
+        }
+        if (normalizedEquipment.size !== equipment.length) errors.push('requirements.equipment items must be unique')
+    }
+
+    return errors
+}
 
 /** Kind-specific field checks for a single item (id/uniqueness handled by caller). */
 function itemFieldErrors(kind, item, label) {
@@ -102,6 +185,7 @@ export function validateCartridge(cartridge) {
     // Required fields
     if (!cartridge.cartridgeId) errors.push('cartridgeId is required')
     if (!cartridge.label) errors.push('label is required')
+    errors.push(...trainingMetadataErrors(cartridge))
 
     const dayCount = cartridge.cycle && cartridge.cycle.dayCount
     if (typeof dayCount !== 'number' || dayCount < 1) {

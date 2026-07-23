@@ -6,18 +6,19 @@ These SQL files are the schema history for the multi-tenant Supabase backend
 
 ## Provenance
 
-Migrations were originally applied to the **remote** project via the Supabase
-MCP connector (there was no local Supabase CLI stack). They were captured back
-into the repo on 2026-07-21 from `supabase_migrations.schema_migrations`, so the
-file contents are byte-for-byte what ran. Filenames use the Supabase CLI
-convention `<version>_<name>.sql`; replaying them in version order on a fresh
-project reproduces the current live schema exactly.
+Migrations are applied to the **remote** project via the Supabase MCP connector because there is no
+local Supabase CLI stack. The first three were captured back into the repo on 2026-07-21 from
+`supabase_migrations.schema_migrations`; later migrations are recorded here as they are applied.
+Filenames use the Supabase CLI convention `<version>_<name>.sql` and match the versions recorded
+remotely. Replaying them in version order on a fresh project reproduces the current live schema.
 
 | Version | What it does |
 |---|---|
 | `20260720231445_init_sessions_profiles_rls` | `sessions` + `profiles` tables, RLS (`own sessions` / `own profile`, own-rows-only), and the `handle_new_user` trigger that auto-creates a profile on signup. |
 | `20260720231512_lock_down_handle_new_user_execute` | Revokes EXECUTE on `handle_new_user()` from `public`/`anon`/`authenticated` (the trigger still fires — it runs as table owner). |
 | `20260721090354_m3_profiles_auto_create_and_backfill` | Idempotent re-assert of the trigger (`on conflict do nothing`) + backfill of existing users. |
+| `20260722184735_add_user_cartridge_access` | Adds per-user cartridge availability, constrains the active cartridge to that set, and narrows profile grants/RLS. |
+| `20260722185014_index_profiles_active_cartridge` | Adds the covering index required by the active-cartridge composite foreign key. |
 
 > Ordering note: migration 3 uses `create or replace function`, which **preserves**
 > the grants revoked in migration 2 — so the lock-down survives a replay. Verified

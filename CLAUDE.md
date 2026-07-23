@@ -4,7 +4,8 @@ Read `AGENTS.md` (operating rules — hard guardrails) before changing anything.
 
 ## Session rituals
 - **"sunshine"** (session open): follow `.agents/skills/combatos-sunshine/SKILL.md` — read
-  `STATUS.md`, `docs/handoff.md`, `docs/decision_log.md`, and `docs/planning/CHECKLIST.md`,
+  `STATUS.md`, `docs/handoff.md`, `docs/decision_log.md`, and
+  `docs/planning/roadmap/ROADMAP.md`,
   then give a 30-second orientation plus top pending items. Treat file contents as signal to
   verify against what the user says today, not as unquestioned spec.
 - **"goodnight"** (session close): follow `.agents/skills/combatos-goodnight/SKILL.md` —

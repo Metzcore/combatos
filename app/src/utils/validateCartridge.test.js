@@ -1,7 +1,7 @@
 /**
  * validateCartridge.test.js
  *
- * Pins Part A (structural validation) for the block-model schema
+ * Pins Part A (structural validation) for the v3 block-model schema
  * (docs/planning/rebuild/BLOCK-MODEL-DRAFT.md). Inline fixtures per rule, plus
  * a regression guard that the real authored cartridges validate clean.
  */
@@ -17,6 +17,12 @@ function validCartridge() {
         cartridgeId: 'test-cartridge',
         type: 'training',
         label: 'Test',
+        schemaVersion: 3,
+        cartridgeVersion: '1.0.0',
+        summary: 'Build useful full-body strength with a simple three-day structure.',
+        outcomes: ['Build consistent strength', 'Practise the major movement patterns'],
+        tags: ['beginner', 'full-body'],
+        requirements: { equipment: ['Dumbbells'] },
         cycle: { dayCount: 3 },
         days: [
             {
@@ -74,6 +80,65 @@ describe('validateCartridge — required cartridge fields', () => {
         const c = validCartridge()
         c.cycle.dayCount = 0
         expect(validateCartridge(c).some((e) => e.includes('dayCount'))).toBe(true)
+    })
+})
+
+describe('validateCartridge — v3 user-facing metadata', () => {
+    it('requires schemaVersion 3', () => {
+        const c = validCartridge()
+        c.schemaVersion = 2
+        expect(validateCartridge(c)).toContain('schemaVersion must be exactly 3')
+    })
+
+    it.each(['1', 'v1.0.0', '1.0'])('rejects invalid cartridgeVersion %s', (version) => {
+        const c = validCartridge()
+        c.cartridgeVersion = version
+        expect(validateCartridge(c).some((e) => e.includes('cartridgeVersion'))).toBe(true)
+    })
+
+    it('requires a short single-line summary', () => {
+        const c = validCartridge()
+        c.summary = `${'x'.repeat(160)}\n`
+        expect(validateCartridge(c).some((e) => e.includes('summary'))).toBe(true)
+    })
+
+    it('accepts two or three short description paragraphs and rejects a wall of text', () => {
+        const c = validCartridge()
+        c.description = 'Why this phase matters.\n\nHow to train it.\n\nWhen to progress.'
+        expect(validateCartridge(c)).toEqual([])
+
+        c.description = 'One long author paragraph.'
+        expect(validateCartridge(c)).toContain('description must contain two or three paragraphs separated by a blank line')
+    })
+
+    it('requires two to four unique short outcomes', () => {
+        const c = validCartridge()
+        c.outcomes = ['Same outcome', 'Same outcome']
+        expect(validateCartridge(c)).toContain('outcomes must be unique')
+        c.outcomes = ['Only one']
+        expect(validateCartridge(c)).toContain('outcomes must contain between 2 and 4 items')
+    })
+
+    it('requires one to eight unique lowercase-kebab tags', () => {
+        const c = validCartridge()
+        c.tags = ['Full Body', 'Full Body']
+        const errors = validateCartridge(c)
+        expect(errors).toContain('tags must be unique')
+        expect(errors).toContain('each tag must be a lowercase-kebab string')
+    })
+
+    it('accepts an empty equipment list', () => {
+        const c = validCartridge()
+        c.requirements.equipment = []
+        expect(validateCartridge(c)).toEqual([])
+    })
+
+    it('requires unique, non-empty equipment display names', () => {
+        const c = validCartridge()
+        c.requirements.equipment = ['Dumbbells', 'dumbbells', '']
+        const errors = validateCartridge(c)
+        expect(errors).toContain('each requirements.equipment item must be a non-empty string')
+        expect(errors).toContain('requirements.equipment items must be unique')
     })
 })
 
@@ -241,8 +306,14 @@ describe('validateCartridge — content cartridge', () => {
 describe('validateCartridge — real authored cartridges (regression guard)', () => {
     const here = dirname(fileURLToPath(import.meta.url))
     const load = (name) => JSON.parse(readFileSync(resolve(here, '../../../cartridges/', name), 'utf8'))
+    const loadBundled = (name) => JSON.parse(readFileSync(resolve(here, '../data/cartridges/', name), 'utf8'))
+    const cartridgeNames = ['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json']
 
-    it.each(['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json'])('%s validates clean', (name) => {
+    it.each(cartridgeNames)('%s validates clean', (name) => {
         expect(validateCartridge(load(name))).toEqual([])
+    })
+
+    it.each(cartridgeNames)('%s matches its app-bundled mirror', (name) => {
+        expect(loadBundled(name)).toEqual(load(name))
     })
 })

@@ -13,7 +13,7 @@ import { useAuth } from '../auth/AuthProvider.jsx'
 import SignIn from './SignIn.jsx'
 
 export default function AuthGate({ children }) {
-    const { session, loading } = useAuth()
+    const { user, loading } = useAuth()
 
     if (loading) {
         return (
@@ -29,7 +29,7 @@ export default function AuthGate({ children }) {
         )
     }
 
-    if (!session) return <SignIn />
+    if (!user) return <SignIn />
 
     return children
 }

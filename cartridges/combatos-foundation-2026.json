@@ -1,8 +1,28 @@
 {
+  "schemaVersion": 3,
+  "cartridgeVersion": "1.0.1",
   "cartridgeId": "combatos-foundation-2026",
   "type": "training",
   "label": "Combat OS — Foundation / Corrective (Phase 1, 4 weeks)",
-  "description": "A 4-week spine-friendly foundation block for a lean, advanced striker returning to full training after chiropractic spinal adjustments (cleared to train). Goal: rebuild the muscles striking neglects — glutes/pelvic stability, deep anti-movement core, rotator cuff, mid/lower traps, single-leg stability — while maintaining strength. Loads capped at RPE 7 on joint-friendly machine and single-leg lifts; no heavy axial barbell work. Run alongside heavy sport practice and yoga; if sessions feel short, bank the time in the recovery studio. Graduate to combatos-operator-2026 (Phase 2). Block-model v2.",
+  "summary": "Rebuild the strength and joint control hard training often misses, so you can return to heavier work with confidence.",
+  "outcomes": [
+    "Restore hip and pelvic stability without heavy spinal loading",
+    "Build a stronger trunk, shoulders and single-leg base",
+    "Maintain useful strength while recovery remains the priority"
+  ],
+  "tags": ["foundation", "corrective", "joint-resilience", "full-body-strength"],
+  "requirements": {
+    "equipment": [
+      "45° leg press",
+      "Glute kickback machine",
+      "Dumbbells",
+      "Plate-loaded chest-supported row",
+      "Shoulder press machine",
+      "Cable station",
+      "Lat pulldown machine"
+    ]
+  },
+  "description": "This four-week foundation block rebuilds the joint control and full-body strength that demanding training can leave behind, so heavier work feels secure rather than rushed.\n\nThree strength sessions use controlled, spine-friendly loading, single-leg work and deep-core training. Keep every set around RPE 7: smooth reps, no grinding, and enough energy left for sport practice and recovery.\n\nComplete the block with consistent, comfortable movement before progressing to the heavier Operator phase.",
   "cycle": {
     "dayCount": 7,
     "weeksPerBlock": 4,

@@ -1,26 +1,24 @@
 /**
- * CartridgeViewer.jsx — read-only browser for block-model program cartridges
- * (PROGRAM-CARTRIDGE-SPEC.md v2, Track A / Stage-2).
+ * Account-scoped program Library.
  *
- * Renders the bundled cartridges (app/src/data/cartridges/) day-by-day,
- * block-by-block. This is deliberately READ-ONLY: no logging, no Dexie/db
- * writes, no touch to HUD.jsx or the session/webhook path. It exists so the
- * developer can see their real authored programs live in the app before the
- * interactive renderer (which needs the still-open W26 payload-shape
- * decision) is built.
- *
- * Visual language mirrors the shipped PlaybookViewer.jsx (same card /
- * section-header / page-header classes) rather than the input-heavy
- * StrengthBlock.jsx, since this is a browsing surface, not a logging one.
+ * A9d keeps preview state separate from the Supabase-confirmed active pointer:
+ * opening a program never activates it. The existing block/day renderer stays
+ * read-only; activation delegates entirely to the tested A9c provider.
  */
-import { useState, useMemo, useEffect } from 'react'
-import CARTRIDGES from '../data/cartridges/index.js'
+import { useEffect, useMemo, useState } from 'react'
+import { useCartridgeAccess } from '../cartridges/CartridgeAccessProvider.jsx'
+import {
+    formatCartridgeTag,
+    getCartridgeLibraryState,
+    orderLibraryCartridges,
+} from '../utils/cartridgeLibrary.js'
 import { blockKindLabel, blockKindColor, formatPrescription, formatPair } from '../utils/cartridgeFormat.js'
+import BottomSheet from './BottomSheet.jsx'
 
 const DAY_TYPE_LABEL = {
     rest: 'Rest',
     recovery: 'Recovery',
-    custom: 'Custom / Free-form'
+    custom: 'Custom / Free-form',
 }
 
 function MobilityItem({ item }) {
@@ -66,7 +64,7 @@ function ConditioningItem({ item }) {
             </div>
             {Array.isArray(item.perRound) && item.perRound.length > 0 && (
                 <ul className="cartridge-perround">
-                    {item.perRound.map((line, i) => <li key={i}>{line}</li>)}
+                    {item.perRound.map((line, index) => <li key={index}>{line}</li>)}
                 </ul>
             )}
             {item.cue && <div className="cartridge-item-cue">💡 {item.cue}</div>}
@@ -79,7 +77,7 @@ const ITEM_RENDERERS = {
     cooldown: MobilityItem,
     strength: StrengthItem,
     core: StrengthItem,
-    conditioning: ConditioningItem
+    conditioning: ConditioningItem,
 }
 
 function BlockSection({ block }) {
@@ -105,8 +103,6 @@ function isTrainingDay(day) {
 }
 
 function DayCard({ day, open, onToggle }) {
-    // Rest / recovery / custom days carry no blocks — a slim static row reads
-    // better than a collapsible with one trivial line inside.
     if (!isTrainingDay(day)) {
         return (
             <div className="card cartridge-day cartridge-day--rest">
@@ -123,7 +119,7 @@ function DayCard({ day, open, onToggle }) {
         <div className={`card card--collapsible cartridge-day${open ? ' open' : ''}`}>
             <button
                 type="button"
-                className="section-header red card__toggle"
+                className="cartridge-day__toggle card__toggle"
                 onClick={onToggle}
                 aria-expanded={open}
             >
@@ -134,91 +130,406 @@ function DayCard({ day, open, onToggle }) {
             <div className="card__body">
                 <div className="cartridge-day__body">
                     {day.focus && <div className="cartridge-day__focus">{day.focus}</div>}
-                    {day.blocks.map((block, i) => <BlockSection key={i} block={block} />)}
+                    {day.blocks.map((block, index) => <BlockSection key={index} block={block} />)}
                 </div>
             </div>
         </div>
     )
 }
 
-export default function CartridgeViewer() {
-    const [activeId, setActiveId] = useState(CARTRIDGES[0]?.cartridgeId)
+function StatusPanel({ title, children, action, actionLabel = 'Retry' }) {
+    return (
+        <div className="library-state" role="status">
+            <div className="library-state__title">{title}</div>
+            {children && <div className="library-state__copy">{children}</div>}
+            {action && (
+                <button type="button" className="btn-secondary library-state__action" onClick={action}>
+                    {actionLabel}
+                </button>
+            )}
+        </div>
+    )
+}
+
+function LibraryNotice({ children, warning = false, action, actionLabel = 'Retry' }) {
+    return (
+        <div className={`library-notice${warning ? ' library-notice--warning' : ''}`} role="status">
+            <span>{children}</span>
+            {action && (
+                <button type="button" onClick={action}>{actionLabel}</button>
+            )}
+        </div>
+    )
+}
+
+function ProgramCard({ cartridge, active, onOpen }) {
+    const equipmentCount = cartridge.requirements?.equipment?.length ?? 0
+    const dayCount = cartridge.cycle?.dayCount ?? cartridge.days.length
+    const visibleTags = cartridge.tags.slice(0, 3)
+
+    return (
+        <button
+            type="button"
+            className={`library-card${active ? ' library-card--active' : ''}`}
+            onClick={onOpen}
+            aria-label={`${active ? 'Open active program' : 'Preview program'}: ${cartridge.label}`}
+        >
+            <span className="library-card__status">{active ? 'Active' : 'Available'}</span>
+            <span className="library-card__title">{cartridge.label}</span>
+            <span className="library-card__summary">{cartridge.summary}</span>
+            <span className="library-card__facts">
+                <span>{dayCount}-day plan</span>
+                <span>{equipmentCount} equipment item{equipmentCount === 1 ? '' : 's'}</span>
+            </span>
+            <span className="library-card__tags">
+                {visibleTags.map((tag) => (
+                    <span key={tag}>{formatCartridgeTag(tag)}</span>
+                ))}
+                {cartridge.tags.length > visibleTags.length && (
+                    <span>+{cartridge.tags.length - visibleTags.length}</span>
+                )}
+            </span>
+            <span className="library-card__action">
+                {active ? 'Open plan' : 'Preview'} <span aria-hidden="true">→</span>
+            </span>
+        </button>
+    )
+}
+
+function ProgramDetail({
+    cartridge,
+    active,
+    offline,
+    unknownActive,
+    onBack,
+    onRequestActivation,
+}) {
     const [openDays, setOpenDays] = useState(() => new Set())
     const [aboutOpen, setAboutOpen] = useState(false)
+    const sortedDays = useMemo(
+        () => [...cartridge.days].sort((a, b) => a.day - b.day),
+        [cartridge]
+    )
+    const cycleBlocks = Array.isArray(cartridge.cycle?.blocks) ? cartridge.cycle.blocks : []
+    const descriptionParagraphs = typeof cartridge.description === 'string'
+        ? cartridge.description.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
+        : []
 
-    const active = useMemo(() => CARTRIDGES.find((c) => c.cartridgeId === activeId), [activeId])
-    const sortedDays = useMemo(() => (active ? [...active.days].sort((a, b) => a.day - b.day) : []), [active])
-
-    // On cartridge switch: open the first training day only, collapse the rest
-    // (and re-collapse the About blob). A user scans the week, then opens a day.
     useEffect(() => {
-        const first = sortedDays.find(isTrainingDay)
-        setOpenDays(new Set(first ? [first.day] : []))
+        setOpenDays(new Set())
         setAboutOpen(false)
-    }, [activeId]) // eslint-disable-line react-hooks/exhaustive-deps
+        window.scrollTo(0, 0)
+    }, [cartridge.cartridgeId])
 
-    const toggleDay = (dayNum) => setOpenDays((prev) => {
-        const next = new Set(prev)
-        if (next.has(dayNum)) next.delete(dayNum)
-        else next.add(dayNum)
+    const toggleDay = (dayNumber) => setOpenDays((previous) => {
+        const next = new Set(previous)
+        if (next.has(dayNumber)) next.delete(dayNumber)
+        else next.add(dayNumber)
         return next
     })
 
-    if (!active) {
+    return (
+        <>
+            <header className="page-header library-page-header">
+                <h1>Library</h1>
+                <div className="subtitle">PROGRAM DETAIL</div>
+            </header>
+
+            <main className="library-detail">
+                <button type="button" className="library-back" onClick={onBack}>
+                    <span aria-hidden="true">←</span> All programs
+                </button>
+
+                <section className="library-detail__hero">
+                    <div className="library-detail__status">{active ? 'Active program' : 'Previewing'}</div>
+                    <h2>{cartridge.label}</h2>
+                    <p>{cartridge.summary}</p>
+                    <div className="library-detail__facts">
+                        <span>{cartridge.cycle?.dayCount ?? cartridge.days.length}-day cycle</span>
+                        {cartridge.cycle?.weeksPerBlock && (
+                            <span>{cartridge.cycle.weeksPerBlock}-week block</span>
+                        )}
+                    </div>
+                    {cycleBlocks.length > 0 && (
+                        <div className="library-detail__phases" aria-label="Program phases">
+                            {cycleBlocks.map((block) => <span key={block.id}>{block.label}</span>)}
+                        </div>
+                    )}
+                </section>
+
+                <section className="library-detail__section">
+                    <h3>What this helps you build</h3>
+                    <ul className="library-outcomes">
+                        {cartridge.outcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}
+                    </ul>
+                </section>
+
+                <section className="library-detail__section">
+                    <h3>Equipment</h3>
+                    {cartridge.requirements.equipment.length > 0 ? (
+                        <ul className="library-equipment">
+                            {cartridge.requirements.equipment.map((item) => <li key={item}>{item}</li>)}
+                        </ul>
+                    ) : (
+                        <p className="library-equipment-empty">No specific equipment required.</p>
+                    )}
+                </section>
+
+                <section className="library-detail__section">
+                    <h3>Focus</h3>
+                    <div className="library-detail__tags">
+                        {cartridge.tags.map((tag) => (
+                            <span key={tag}>{formatCartridgeTag(tag)}</span>
+                        ))}
+                    </div>
+                </section>
+
+                {descriptionParagraphs.length > 0 && (
+                    <div className={`card card--collapsible cartridge-about${aboutOpen ? ' open' : ''}`}>
+                        <button
+                            type="button"
+                            className="cartridge-about__toggle"
+                            onClick={() => setAboutOpen((value) => !value)}
+                            aria-expanded={aboutOpen}
+                        >
+                            <span>How this program works</span>
+                            <span className="card__chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div className="card__body">
+                            <div className="cartridge-about__text">
+                                {descriptionParagraphs.map((paragraph, index) => (
+                                    <p key={`${cartridge.cartridgeId}-description-${index}`}>{paragraph}</p>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <section className="library-week" aria-labelledby="library-week-title">
+                    <div className="library-week__heading">
+                        <h3 id="library-week-title">Program week</h3>
+                        <span>Tap a day to inspect it</span>
+                    </div>
+                    {sortedDays.map((day) => (
+                        <DayCard
+                            key={day.day}
+                            day={day}
+                            open={openDays.has(day.day)}
+                            onToggle={() => toggleDay(day.day)}
+                        />
+                    ))}
+                </section>
+
+                {active ? (
+                    <div className="library-active-footer">This is your active program.</div>
+                ) : (
+                    <div className="library-activation">
+                        {offline && <div>Connect to change your active program.</div>}
+                        {unknownActive && <div>Update the app before replacing the active program it cannot display.</div>}
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            disabled={offline || unknownActive}
+                            onClick={onRequestActivation}
+                        >
+                            Use this program
+                        </button>
+                    </div>
+                )}
+            </main>
+        </>
+    )
+}
+
+export default function CartridgeViewer() {
+    const {
+        snapshot,
+        availableCartridges,
+        activeCartridge,
+        unknownIds,
+        updateRequired,
+        loading,
+        refreshing,
+        offline,
+        error,
+        errorKind,
+        activatingId,
+        refresh,
+        activate,
+    } = useCartridgeAccess()
+    const [viewingId, setViewingId] = useState(null)
+    const [activationTarget, setActivationTarget] = useState(null)
+    const [activationError, setActivationError] = useState(null)
+    const [activationPending, setActivationPending] = useState(false)
+
+    const orderedCartridges = useMemo(
+        () => orderLibraryCartridges(availableCartridges, snapshot?.activeId),
+        [availableCartridges, snapshot?.activeId]
+    )
+    const viewing = useMemo(
+        () => availableCartridges.find((cartridge) => cartridge.cartridgeId === viewingId) ?? null,
+        [availableCartridges, viewingId]
+    )
+    const unknownActive = Boolean(snapshot?.activeId && !activeCartridge)
+    const libraryState = getCartridgeLibraryState({
+        loading,
+        snapshot,
+        offline,
+        error,
+        knownCount: availableCartridges.length,
+        unknownCount: unknownIds.length,
+    })
+
+    useEffect(() => {
+        if (viewingId && !viewing) setViewingId(null)
+    }, [viewing, viewingId])
+
+    const openProgram = (cartridgeId) => {
+        setViewingId(cartridgeId)
+        window.scrollTo(0, 0)
+    }
+
+    const closeActivation = () => {
+        if (activationPending || activatingId) return
+        setActivationTarget(null)
+        setActivationError(null)
+    }
+
+    const confirmActivation = async () => {
+        if (!activationTarget) return
+        setActivationError(null)
+        setActivationPending(true)
+        try {
+            const result = await activate(activationTarget.cartridgeId)
+            if (!result.data) {
+                setActivationError(result.error?.message || 'Could not change the active program.')
+                return
+            }
+            setActivationTarget(null)
+        } finally {
+            setActivationPending(false)
+        }
+    }
+
+    if (viewing) {
         return (
-            <div className="app">
-                <header className="page-header"><h1>Cartridges</h1></header>
-                <div className="content">No cartridges bundled yet.</div>
+            <div className="app library-app">
+                <ProgramDetail
+                    cartridge={viewing}
+                    active={viewing.cartridgeId === snapshot?.activeId}
+                    offline={offline}
+                    unknownActive={unknownActive}
+                    onBack={() => {
+                        setViewingId(null)
+                        window.scrollTo(0, 0)
+                    }}
+                    onRequestActivation={() => {
+                        setActivationError(null)
+                        setActivationTarget(viewing)
+                    }}
+                />
+
+                <BottomSheet
+                    open={Boolean(activationTarget)}
+                    onClose={closeActivation}
+                    title="Change active program"
+                >
+                    <p className="library-activation-sheet__copy">
+                        Make <strong>{activationTarget?.label}</strong> active? Your history stays.
+                        This becomes your selected training program.
+                    </p>
+                    {activationError && (
+                        <div className="library-activation-sheet__error" role="alert">
+                            {activationError}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={activationPending || Boolean(activatingId)}
+                        onClick={confirmActivation}
+                    >
+                        {activationPending || activatingId ? 'Making active…' : 'Make active'}
+                    </button>
+                    <button
+                        type="button"
+                        className="sheet__action"
+                        disabled={activationPending || Boolean(activatingId)}
+                        onClick={closeActivation}
+                    >
+                        Keep current program
+                    </button>
+                </BottomSheet>
             </div>
         )
     }
 
     return (
-        <div className="app">
-            <header className="page-header" style={{ marginBottom: 12 }}>
-                <h1>Cartridges</h1>
-                <div className="subtitle">PROGRAM LIBRARY</div>
+        <div className="app library-app">
+            <header className="page-header library-page-header">
+                <h1>Library</h1>
+                <div className="subtitle">YOUR PROGRAMS</div>
             </header>
 
-            <div className="selector-row" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
-                {CARTRIDGES.map((c) => (
-                    <button
-                        key={c.cartridgeId}
-                        className={activeId === c.cartridgeId ? 'btn-primary' : 'btn-secondary'}
-                        onClick={() => setActiveId(c.cartridgeId)}
-                        style={{ padding: '8px 14px', width: 'auto', fontSize: '0.8rem' }}
-                    >
-                        {c.label}
-                    </button>
-                ))}
-            </div>
-
-            <div className="content" style={{ padding: 0 }}>
-                {active.description && (
-                    <div className={`card card--collapsible cartridge-about${aboutOpen ? ' open' : ''}`}>
-                        <button
-                            type="button"
-                            className="cartridge-about__toggle"
-                            onClick={() => setAboutOpen((v) => !v)}
-                            aria-expanded={aboutOpen}
-                        >
-                            <span>About this program</span>
-                            <span className="card__chevron" aria-hidden="true" style={{ marginLeft: 'auto' }}>▾</span>
-                        </button>
-                        <div className="card__body">
-                            <div className="cartridge-about__text">{active.description}</div>
-                        </div>
-                    </div>
+            <main className="cartridge-library">
+                {refreshing && snapshot && (
+                    <div className="library-refreshing" role="status">Checking for updates…</div>
                 )}
-                {sortedDays.map((day) => (
-                    <DayCard
-                        key={day.day}
-                        day={day}
-                        open={openDays.has(day.day)}
-                        onToggle={() => toggleDay(day.day)}
-                    />
-                ))}
-            </div>
+                {offline && snapshot && (
+                    <LibraryNotice>Offline · showing programs saved on this device</LibraryNotice>
+                )}
+                {error && errorKind === 'refresh' && snapshot && !offline && (
+                    <LibraryNotice action={refresh}>Couldn’t refresh · showing saved programs</LibraryNotice>
+                )}
+                {error && errorKind === 'cache' && snapshot && (
+                    <LibraryNotice warning>
+                        Programs loaded, but this device couldn’t update its offline copy.
+                    </LibraryNotice>
+                )}
+                {updateRequired && (
+                    <LibraryNotice warning action={offline ? null : refresh}>
+                        {unknownActive
+                            ? 'Your active program needs a newer version of Combat OS.'
+                            : `${unknownIds.length} available program${unknownIds.length === 1 ? '' : 's'} need${unknownIds.length === 1 ? 's' : ''} a newer app version.`}
+                    </LibraryNotice>
+                )}
+
+                {libraryState === 'loading' && (
+                    <StatusPanel title="Loading your programs…" />
+                )}
+                {libraryState === 'offline-empty' && (
+                    <StatusPanel title="Connect once to load your programs">
+                        This device does not have a saved program list yet.
+                    </StatusPanel>
+                )}
+                {libraryState === 'error' && (
+                    <StatusPanel title="Couldn’t load your programs" action={refresh}>
+                        Check your connection and try again.
+                    </StatusPanel>
+                )}
+                {libraryState === 'empty' && (
+                    <StatusPanel title="No programs available" action={offline ? null : refresh}>
+                        Your coach has not made a program available yet.
+                    </StatusPanel>
+                )}
+                {libraryState === 'update-required' && (
+                    <StatusPanel title="Update Combat OS to view your program" action={offline ? null : refresh}>
+                        Your account is assigned to a program this app version cannot display.
+                    </StatusPanel>
+                )}
+                {libraryState === 'ready' && (
+                    <section className="library-list" aria-label="Programs available to you">
+                        {orderedCartridges.map((cartridge) => (
+                            <ProgramCard
+                                key={cartridge.cartridgeId}
+                                cartridge={cartridge}
+                                active={cartridge.cartridgeId === snapshot?.activeId}
+                                onOpen={() => openProgram(cartridge.cartridgeId)}
+                            />
+                        ))}
+                    </section>
+                )}
+            </main>
         </div>
     )
 }

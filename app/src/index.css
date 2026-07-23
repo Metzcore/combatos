@@ -228,12 +228,424 @@ input[type="checkbox"] {
 }
 
 /* ══════════════════════════════════════════════════════
-   Cartridge Viewer (Track A / Stage-2, read-only)
-   Stage-2 UX pass: quiet block sub-headers (one strong bar
-   per DAY, blocks demoted to a thin accent + coloured label
-   so a training day is no longer a stack of loud fills),
-   collapsible days, and a collapsed "About" disclosure.
+   Program Library (Track A / A9d, account-scoped)
+   Equal-width list → detail, calm metadata hierarchy, cached
+   offline browsing, confirmed activation, and the existing
+   read-only block renderer behind collapsed day rows.
    ══════════════════════════════════════════════════════ */
+
+/* ── Library list / shared states ── */
+.library-page-header {
+  margin-bottom: 0;
+}
+
+.cartridge-library,
+.library-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px 20px;
+}
+
+.library-refreshing {
+  color: var(--dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.library-notice {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--label);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.library-notice--warning {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.library-notice button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.library-state {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 20px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  text-align: center;
+}
+
+.library-state__title {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.library-state__copy {
+  max-width: 34ch;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.library-state__action {
+  width: auto;
+  min-width: 140px;
+  min-height: 46px;
+  margin-top: 8px;
+}
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.library-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+}
+
+.library-card--active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.library-card__status {
+  margin: 14px 14px 0;
+  padding: 3px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  color: var(--dim);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.library-card--active .library-card__status {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.library-card__title {
+  padding: 10px 14px 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.library-card__summary {
+  padding: 6px 14px 0;
+  color: var(--label);
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.library-card__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 10px 14px 0;
+  color: var(--dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.library-card__tags,
+.library-detail__tags,
+.library-detail__phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.library-card__tags {
+  padding: 10px 14px 14px;
+}
+
+.library-card__tags > span,
+.library-detail__tags > span,
+.library-detail__phases > span {
+  padding: 3px 7px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  color: var(--label);
+  font-size: 0.67rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: capitalize;
+}
+
+.library-card__action {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--divider);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Program detail ── */
+.library-back {
+  min-height: 48px;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--divider);
+  background: var(--panel);
+  color: var(--label);
+  font-size: 0.78rem;
+}
+
+.library-detail__hero,
+.library-detail__section {
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+}
+
+.library-detail__hero {
+  padding: 16px;
+}
+
+.library-detail__status {
+  display: inline-flex;
+  padding: 3px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.library-detail__hero h2 {
+  margin-top: 12px;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.library-detail__hero p {
+  margin-top: 8px;
+  color: var(--label);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.library-detail__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider);
+  color: var(--dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.library-detail__phases {
+  margin-top: 10px;
+}
+
+.library-detail__section {
+  padding: 14px;
+}
+
+.library-detail__section h3,
+.library-week__heading h3 {
+  color: var(--label);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+}
+
+.library-outcomes,
+.library-equipment {
+  margin-top: 10px;
+  list-style: none;
+}
+
+.library-outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.library-outcomes li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.library-outcomes li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.library-equipment {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px 14px;
+}
+
+.library-equipment li {
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--divider);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.library-equipment-empty {
+  margin-top: 10px;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+.library-detail__tags {
+  margin-top: 10px;
+}
+
+.library-detail__tags > span {
+  padding: 5px 9px;
+  background: var(--input);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.library-week {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.library-week__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+}
+
+.library-week__heading span {
+  color: var(--dim);
+  font-size: 0.75rem;
+}
+
+.library-activation,
+.library-active-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+}
+
+.library-activation > div {
+  color: var(--accent);
+  font-size: 0.78rem;
+}
+
+.library-activation .btn-primary {
+  min-height: 50px;
+}
+
+.library-activation .btn-primary:disabled,
+.library-activation-sheet__copy + .btn-primary:disabled,
+.library-activation-sheet__error + .btn-primary:disabled,
+.library-activation-sheet__copy ~ .sheet__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.library-active-footer {
+  align-items: center;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.library-activation-sheet__copy {
+  padding: 4px 2px 10px;
+  color: var(--label);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.library-activation-sheet__copy strong {
+  color: var(--text);
+}
+
+.library-activation-sheet__error {
+  padding: 10px 12px;
+  border: 1px solid var(--alert);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 17, 0, 0.08);
+  color: var(--alert);
+  font-size: 0.78rem;
+}
 
 /* ── About this program (collapsed by default) ── */
 /* Reuses .card--collapsible / .card__body / .card__chevron. Deliberately a
@@ -245,6 +657,7 @@ input[type="checkbox"] {
 }
 
 .cartridge-about__toggle {
+  min-height: 48px;
   width: 100%;
   display: flex;
   align-items: center;
@@ -254,7 +667,7 @@ input[type="checkbox"] {
   border-radius: 0;
   text-align: left;
   padding: 10px 14px;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -271,10 +684,20 @@ input[type="checkbox"] {
 }
 
 .cartridge-about__text {
-  padding: 12px 14px;
-  color: var(--label);
-  font-size: 0.85rem;
-  line-height: 1.6;
+  max-width: 58ch;
+  padding: 16px;
+}
+
+.cartridge-about__text p {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.cartridge-about__text p + p {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
 }
 
 .cartridge-about.open .card__body {
@@ -294,6 +717,29 @@ input[type="checkbox"] {
   min-width: 0;
 }
 
+.cartridge-day__toggle {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 0;
+  background: var(--input);
+  color: var(--label);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.cartridge-day__toggle:active {
+  transform: none;
+  opacity: 1;
+}
+
 /* Generous cap: a training day (up to ~15 items across 4 blocks) blows past
    the generic 1500px .card__body ceiling — same pattern as .str-section. */
 .cartridge-day.open .card__body {
@@ -305,10 +751,10 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__focus {
-  color: var(--label);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin-bottom: 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 16px;
 }
 
 .cartridge-day--rest .cartridge-day__rest-row {
@@ -320,7 +766,7 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__rest-label {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -328,16 +774,20 @@ input[type="checkbox"] {
 }
 
 .cartridge-day__rest-type {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dim);
   flex-shrink: 0;
 }
 
-/* ── Block (quiet sub-header: thin accent + coloured label, no fill) ── */
+/* ── Block (one clear group per training intent; exercises stay as rows) ── */
 .cartridge-block {
-  margin-top: 16px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--input);
 }
 
 .cartridge-block:first-child {
@@ -347,12 +797,12 @@ input[type="checkbox"] {
 .cartridge-block__head {
   padding-left: 10px;
   border-left: 3px solid var(--divider);
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--label);
-  line-height: 1.2;
+  line-height: 1.35;
 }
 
 /* Distinct tint per kind so no two adjacent bands read the same. Green brackets
@@ -381,13 +831,17 @@ input[type="checkbox"] {
 }
 
 .cartridge-block__items {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .cartridge-block__item {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  margin-bottom: 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--divider);
+}
+
+.cartridge-block__item:first-child {
+  padding-top: 2px;
 }
 
 .cartridge-block__item:last-child {
@@ -400,7 +854,8 @@ input[type="checkbox"] {
 .cartridge-item-name {
   font-weight: 600;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .cartridge-superset-badge {
@@ -410,33 +865,39 @@ input[type="checkbox"] {
 }
 
 .cartridge-item-meta {
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: var(--dim);
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
-  gap: 12px;
+  gap: 4px 12px;
   flex-wrap: wrap;
+  line-height: 1.45;
 }
 
 .cartridge-item-cue {
-  font-size: 0.8rem;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--divider);
+  font-size: 0.85rem;
   color: var(--label);
   font-style: italic;
-  margin-top: 6px;
+  line-height: 1.5;
 }
 
 .cartridge-pap {
-  font-size: 0.8rem;
-  color: var(--alert);
+  font-size: 0.85rem;
+  color: var(--accent);
   font-weight: 600;
-  margin-top: 6px;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 .cartridge-perround {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   padding-left: 18px;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--dim);
+  line-height: 1.5;
 }
 
 .cartridge-perround li {
