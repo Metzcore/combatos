@@ -1505,11 +1505,11 @@ input[type="checkbox"] {
   right: 0;
   background-color: var(--panel);
   border-top: 1px solid var(--divider);
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 8px 0;
   z-index: 1000;
-  padding-bottom: calc(10px + var(--safe-bottom));
+  padding-bottom: calc(8px + var(--safe-bottom));
 }
 
 .bottom-nav button {
@@ -1523,9 +1523,13 @@ input[type="checkbox"] {
   gap: 4px;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  min-width: 80px;
+  min-width: 0;
+  min-height: 48px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 2px;
 }
 
 .bottom-nav button.active {
@@ -1535,7 +1539,8 @@ input[type="checkbox"] {
 
 .bottom-nav__icon {
   font-size: 1.4rem;
-  margin-bottom: 2px;
+  line-height: 1;
+  margin-bottom: 0;
 }
 
 /* ── Top tabs — shared Layer-2 hub tab bar (W20) ── */
@@ -1548,6 +1553,11 @@ input[type="checkbox"] {
 
 .top-tabs__tab {
   flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1561,8 +1571,9 @@ input[type="checkbox"] {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 10px 0 8px;
+  padding: 0 4px;
   margin-bottom: -1px; /* underline sits on the bar's own border */
+  white-space: nowrap;
 }
 
 .top-tabs__tab.active {
@@ -1571,9 +1582,8 @@ input[type="checkbox"] {
   text-shadow: 0 0 8px rgba(232, 160, 32, 0.35);
 }
 
-/* Standalone tab bar above a hub's screens (Train). The screens below it
-   (HUD / PlaybookViewer render their own .app) already pad for the notch,
-   so the bar takes over that job and the sibling .app drops its top pad. */
+/* Standalone tab bar above Train's screens. Each screen renders its own .app,
+   so the bar takes over notch padding and the sibling drops its top pad. */
 .hub-tabs-bar {
   max-width: 640px;
   margin: 0 auto;
@@ -1589,7 +1599,31 @@ input[type="checkbox"] {
 }
 
 /* ── Desktop ────────────────────────────────────── */
+@media (max-width: 340px) {
+  .selector-row {
+    gap: 6px;
+    padding: 10px 8px;
+  }
+
+  .selector-group select {
+    background-position: right 7px center;
+    font-size: 0.75rem;
+    padding-left: 6px;
+    padding-right: 24px;
+  }
+
+  .bottom-nav button {
+    font-size: 0.64rem;
+    letter-spacing: 0.02em;
+  }
+}
+
 @media (min-width: 641px) {
+  .bottom-nav {
+    grid-template-columns: repeat(5, 128px);
+    justify-content: center;
+  }
+
   .app {
     padding: 20px;
     padding-bottom: calc(85px + var(--safe-bottom));

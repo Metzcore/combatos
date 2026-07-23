@@ -9,11 +9,13 @@ const HUB_BUTTONS = [
 
 export default function BottomNav({ activeHub, onChange }) {
     return (
-        <nav className="bottom-nav" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <nav className="bottom-nav" aria-label="Primary navigation">
             {HUB_BUTTONS.map(b => (
                 <button
                     key={b.key}
+                    type="button"
                     className={activeHub === b.key ? 'active' : ''}
+                    aria-current={activeHub === b.key ? 'page' : undefined}
                     onClick={() => onChange(b.key)}
                 >
                     <span className="bottom-nav__icon">{b.icon}</span>
