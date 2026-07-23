@@ -119,7 +119,7 @@ function DayCard({ day, open, onToggle }) {
                 aria-expanded={open}
             >
                 <span className="cartridge-day__title">{day.label || `Day ${day.day}`}</span>
-                <span className="card__summary">{blockCount} block{blockCount === 1 ? '' : 's'}</span>
+                <span className="card__summary">{blockCount} training section{blockCount === 1 ? '' : 's'}</span>
                 <span className="card__chevron" aria-hidden="true">▾</span>
             </button>
             <div className="card__body">
