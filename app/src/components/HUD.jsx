@@ -19,6 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
 import { useWorkoutDraftPersistence } from '../hooks/useWorkoutDraftPersistence.js'
+import { buildLegacyIdentity, requiresConflictGuard } from '../utils/workoutDraftState.js'
 import { nextDay } from '../utils/nextDay.js'
 import { PHASE_UNLOCK_THRESHOLD, phaseReady, isPhaseSelectable } from '../utils/phaseUnlock.js'
 import MobilityBlock from './MobilityBlock.jsx'
@@ -29,6 +30,7 @@ import CooldownBlock from './CooldownBlock.jsx'
 import CompletenessBar from './CompletenessBar.jsx'
 import FightGymDay from './FightGymDay.jsx'
 import PhaseUnlockBanner from './PhaseUnlockBanner.jsx'
+import WorkoutDraftSheet from './WorkoutDraftSheet.jsx'
 
 const DAY_LABELS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7']
 const HIP_LABELS = ['1 – Critical', '2 – High Alert', '3 – Moderate', '4 – Good', '5 – Excellent']
@@ -61,7 +63,8 @@ export default function HUD() {
         resetActiveWorkout,
         // A6.5 — durable active-workout draft
         ownerUserId, autosaveEnabled, immediateTick,
-        draftCreatedAt, draftLifecycleKey
+        draftCreatedAt, draftLifecycleKey, getLiveDraftRow,
+        continueDraft, draftIssue, resumeDraft, discardCurrentDraft
     } = useDB()
 
     // ── Playbook data ────────────────────────────
@@ -85,6 +88,50 @@ export default function HUD() {
         initialCreatedAt: draftCreatedAt,
         lifecycleKey: draftLifecycleKey
     })
+
+    // ── A6.5 — context-conflict preflight (plan v2 §7) ───────────────────
+    // Day/phase/hip-score changes pass through this: if the CURRENT live
+    // state is meaningful and the change would move to a different
+    // identity, gate it behind Keep/Discard-and-switch. Tab/hub navigation
+    // is never gated — only these three selectors reinterpret live values.
+    const pendingSwitchRef = useRef(null)
+    const [conflictOpen, setConflictOpen] = useState(false)
+
+    const attemptIdentityChange = useCallback((nextDayVal, nextPhaseVal, nextHipScoreVal, apply) => {
+        const targetIdentity = buildLegacyIdentity({ day: nextDayVal, phase: nextPhaseVal, hipScore: nextHipScoreVal })
+        if (requiresConflictGuard({ liveRow: getLiveDraftRow(), targetIdentity })) {
+            pendingSwitchRef.current = apply
+            setConflictOpen(true)
+            return
+        }
+        apply()
+    }, [getLiveDraftRow])
+
+    const handleDayChange = useCallback(val => {
+        attemptIdentityChange(val, phase, hipScore, () => setDay(val))
+    }, [attemptIdentityChange, phase, hipScore, setDay])
+
+    const handlePhaseSelectorChange = useCallback(val => {
+        attemptIdentityChange(day, val, hipScore, () => setPhase(val))
+    }, [attemptIdentityChange, day, hipScore, setPhase])
+
+    const handleHipScoreChange = useCallback(val => {
+        attemptIdentityChange(day, phase, val, () => setHipScore(val))
+    }, [attemptIdentityChange, day, phase, setHipScore])
+
+    const handleKeepWorkout = useCallback(() => {
+        pendingSwitchRef.current = null
+        setConflictOpen(false)
+    }, [])
+
+    const handleDiscardAndSwitch = useCallback(async () => {
+        const apply = pendingSwitchRef.current
+        pendingSwitchRef.current = null
+        setConflictOpen(false)
+        await discardCurrentDraft()
+        resetActiveWorkout()
+        if (apply) apply()
+    }, [discardCurrentDraft, resetActiveWorkout])
 
     // ── Day-7 default session type (D2 / W16) ─────
     // Day 7 is the optional/custom gym day — default the Session Type to
@@ -296,8 +343,32 @@ export default function HUD() {
                         // W27 invariant: never call setPhase with a non-selectable
                         // phase. Safe here — this banner only renders when phaseReady
                         // is true, so phase+1 is by definition already earned/selectable.
-                        onAdvance={() => setPhase(phase + 1)}
+                        // A6.5: routed through the same conflict preflight as the
+                        // selectors below — advancing phase reinterprets the day too.
+                        onAdvance={() => attemptIdentityChange(day, phase + 1, hipScore, () => setPhase(phase + 1))}
                     />
+                )}
+
+                {/* ── A6.5 — durable draft: Continue / needs-update / unavailable ── */}
+                {continueDraft && (
+                    <div className="draft-banner">
+                        <div className="draft-banner__title">Unfinished workout</div>
+                        <div>Resume where you left off, or start fresh.</div>
+                        <div className="draft-banner__actions">
+                            <button type="button" className="btn-primary" onClick={resumeDraft}>Continue</button>
+                            <button type="button" className="btn-secondary" onClick={discardCurrentDraft}>Discard</button>
+                        </div>
+                    </div>
+                )}
+                {draftIssue && (
+                    <div className="draft-banner">
+                        <div className="draft-banner__title">
+                            {draftIssue.reason === 'corrupt' ? 'Saved workout unavailable' : 'Saved workout needs an app update'}
+                        </div>
+                        <div className="draft-banner__actions">
+                            <button type="button" className="btn-secondary" onClick={discardCurrentDraft}>Discard</button>
+                        </div>
+                    </div>
                 )}
 
                 {/* ── Selector row ───────────────────── */}
@@ -305,7 +376,7 @@ export default function HUD() {
                 <div className="selector-row">
                     <div className="selector-group">
                         <label>Day</label>
-                        <select value={day} onChange={e => setDay(Number(e.target.value))}>
+                        <select value={day} onChange={e => handleDayChange(Number(e.target.value))}>
                             {DAY_LABELS.map((l, i) => (
                                 <option key={i + 1} value={i + 1}>{l}</option>
                             ))}
@@ -316,7 +387,7 @@ export default function HUD() {
                         {/* W27 invariant: never call setPhase with a non-selectable */}
                         {/* phase. Disabled options can't be picked by the user, so    */}
                         {/* onChange can only ever yield a selectable value.            */}
-                        <select value={phase} onChange={e => setPhase(Number(e.target.value))}>
+                        <select value={phase} onChange={e => handlePhaseSelectorChange(Number(e.target.value))}>
                             <option value={1} disabled={!isPhaseSelectable(1, sessionCount, phase)}>Phase 1</option>
                             <option value={2} disabled={!isPhaseSelectable(2, sessionCount, phase)}>Phase 2</option>
                             <option value={3} disabled={!isPhaseSelectable(3, sessionCount, phase)}>Phase 3</option>
@@ -324,13 +395,19 @@ export default function HUD() {
                     </div>
                     <div className="selector-group">
                         <label>Hip Score</label>
-                        <select value={hipScore} onChange={e => setHipScore(Number(e.target.value))}>
+                        <select value={hipScore} onChange={e => handleHipScoreChange(Number(e.target.value))}>
                             {HIP_LABELS.map((l, i) => (
                                 <option key={i + 1} value={i + 1}>{i + 1}</option>
                             ))}
                         </select>
                     </div>
                 </div>
+
+                <WorkoutDraftSheet
+                    open={conflictOpen}
+                    onKeep={handleKeepWorkout}
+                    onDiscardAndSwitch={handleDiscardAndSwitch}
+                />
 
                 {/* ── Stale-phase mismatch (W27, Touch C) ── */}
                 {/* Heads-up only, directly under the Phase selector: the last  */}

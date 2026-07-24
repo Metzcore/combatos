@@ -5,8 +5,10 @@
  * opening a program never activates it. The existing block/day renderer stays
  * read-only; activation delegates entirely to the tested A9c provider.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCartridgeAccess } from '../cartridges/CartridgeAccessProvider.jsx'
+import { useDB } from '../db/index.jsx'
+import { buildCartridgeIdentity, requiresConflictGuard } from '../utils/workoutDraftState.js'
 import {
     formatCartridgeTag,
     getCartridgeLibraryState,
@@ -15,6 +17,7 @@ import {
 import BottomSheet from './BottomSheet.jsx'
 import ProgramOverview from './ProgramOverview.jsx'
 import { ProgramNotice, ProgramStatusPanel } from './ProgramAccessState.jsx'
+import WorkoutDraftSheet from './WorkoutDraftSheet.jsx'
 
 function ProgramCard({ cartridge, active, onOpen }) {
     const equipmentCount = cartridge.requirements?.equipment?.length ?? 0
@@ -112,10 +115,16 @@ export default function CartridgeViewer() {
         refresh,
         activate,
     } = useCartridgeAccess()
+    // A6.5 — a current legacy draft has null cartridge identity, so this
+    // preflight is a no-op until A7 makes a cartridge-kind draft reachable;
+    // wired now so activation is already A7-ready (see workoutDraftState.js).
+    const { getLiveDraftRow, discardCurrentDraft, resetActiveWorkout } = useDB()
     const [viewingId, setViewingId] = useState(null)
     const [activationTarget, setActivationTarget] = useState(null)
     const [activationError, setActivationError] = useState(null)
     const [activationPending, setActivationPending] = useState(false)
+    const [conflictOpen, setConflictOpen] = useState(false)
+    const pendingActivationRef = useRef(null)
 
     const orderedCartridges = useMemo(
         () => orderLibraryCartridges(availableCartridges, snapshot?.activeId),
@@ -150,6 +159,37 @@ export default function CartridgeViewer() {
         setActivationError(null)
     }
 
+    const requestActivation = (cartridge) => {
+        const targetIdentity = buildCartridgeIdentity({
+            cartridgeId: cartridge.cartridgeId,
+            cartridgeVersion: cartridge.cartridgeVersion ?? null,
+            cartridgeSchemaVersion: cartridge.schemaVersion ?? null,
+            day: 1,
+        })
+        if (requiresConflictGuard({ liveRow: getLiveDraftRow(), targetIdentity })) {
+            pendingActivationRef.current = cartridge
+            setConflictOpen(true)
+            return
+        }
+        setActivationError(null)
+        setActivationTarget(cartridge)
+    }
+
+    const handleKeepWorkout = () => {
+        pendingActivationRef.current = null
+        setConflictOpen(false)
+    }
+
+    const handleDiscardAndSwitch = async () => {
+        const cartridge = pendingActivationRef.current
+        pendingActivationRef.current = null
+        setConflictOpen(false)
+        await discardCurrentDraft()
+        resetActiveWorkout()
+        setActivationError(null)
+        setActivationTarget(cartridge)
+    }
+
     const confirmActivation = async () => {
         if (!activationTarget) return
         setActivationError(null)
@@ -178,10 +218,13 @@ export default function CartridgeViewer() {
                         setViewingId(null)
                         window.scrollTo(0, 0)
                     }}
-                    onRequestActivation={() => {
-                        setActivationError(null)
-                        setActivationTarget(viewing)
-                    }}
+                    onRequestActivation={() => requestActivation(viewing)}
+                />
+
+                <WorkoutDraftSheet
+                    open={conflictOpen}
+                    onKeep={handleKeepWorkout}
+                    onDiscardAndSwitch={handleDiscardAndSwitch}
                 />
 
                 <BottomSheet

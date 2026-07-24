@@ -18,7 +18,10 @@ import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { workoutDraftController, loadActiveDraft } from './workoutDrafts.js'
-import { validateDraftRow, parseLegacyDay, parseLegacyPhase } from '../utils/workoutDraftState.js'
+import {
+    validateDraftRow, parseLegacyDay, parseLegacyPhase,
+    buildLegacyIdentity, pickFields, LEGACY_STATE_FIELD_KEYS,
+} from '../utils/workoutDraftState.js'
 
 // Re-export for backward compatibility (syncQueue.test.js and any external
 // consumer importing trySyncQueue from db/index.jsx keep working unchanged).
@@ -570,6 +573,24 @@ export function DBProvider({ children }) {
         setDraftIssue(null)
     }, [ownerUserId])
 
+    /** Current live (not-yet-necessarily-persisted) draft shape, for the
+     *  context-conflict preflight — shared by HUD's day/phase/hip selectors
+     *  and CartridgeViewer's activation, so both check the same thing. */
+    const getLiveDraftRow = useCallback(() => ({
+        workoutIdentity: buildLegacyIdentity({ day, phase, hipScore }),
+        state: {
+            kind: 'legacy-hud-v1',
+            fields: pickFields({
+                mobChecked, clrChecked, strSets, coreSets,
+                bagRounds, bagCourse, bagModules, bagWorkouts,
+                notes, gymSessionType, altRows, altDuration,
+                hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen,
+            }, LEGACY_STATE_FIELD_KEYS),
+        },
+    }), [day, phase, hipScore, mobChecked, clrChecked, strSets, coreSets,
+        bagRounds, bagCourse, bagModules, bagWorkouts, notes, gymSessionType, altRows, altDuration,
+        hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen])
+
     // A6.5 — best-effort flush on DBProvider's own unmount (sign-out via
     // AuthGate swapping to SignIn, or full app teardown). This flushes
     // whatever the controller already has pending — it has no access to
@@ -792,7 +813,7 @@ export function DBProvider({ children }) {
             // ── A6.5 — durable active-workout draft ──
             ownerUserId, autosaveEnabled, immediateTick,
             continueDraft, draftIssue, resumeDraft, discardCurrentDraft,
-            draftCreatedAt, draftLifecycleKey,
+            draftCreatedAt, draftLifecycleKey, getLiveDraftRow,
 
             // ── Timer state ──
             swTime, swRunning, toggleStopwatch, resetStopwatch,
