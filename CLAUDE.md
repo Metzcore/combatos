@@ -1,6 +1,8 @@
 # Combat OS — session bootstrap
 
-Read `AGENTS.md` (operating rules — hard guardrails) before changing anything.
+Read `AGENTS.md` (operating rules — hard guardrails) before changing anything. For how AI agents
+collaborate here — source-of-truth hierarchy, roles, evidence discipline — see
+`docs/engineering/AI-WORKFLOW.md`.
 
 ## Session rituals
 - **"sunshine"** (session open): follow `.agents/skills/combatos-sunshine/SKILL.md` — read
@@ -13,8 +15,9 @@ Read `AGENTS.md` (operating rules — hard guardrails) before changing anything.
 
 ## Where things live
 - Active plan: `docs/planning/roadmap/ROADMAP.md` (one W## item per PR, worker prompts in
-  `docs/planning/roadmap/prompts/`). `docs/planning/CHECKLIST.md` is historical.
-- Decisions: `docs/planning/roadmap/OPEN-DECISIONS.md` (all ruled; never silently default a new one).
+  `docs/planning/roadmap/prompts/`). `archive/CHECKLIST.md` is historical.
+- Decisions: `docs/planning/roadmap/OPEN-DECISIONS.md` (mostly ruled — D9 is still open; never
+  silently default an open one).
 - Architecture facts: `ARCHITECTURE.md`. App code: `app/`. Tests: `npm test` in `app/`.
 
 ## Workflow

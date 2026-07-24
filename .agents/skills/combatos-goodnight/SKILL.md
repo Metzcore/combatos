@@ -19,13 +19,24 @@ Ends a session cleanly so the next `sunshine` starts from certainty. Updates thr
 
 ---
 
-## Step 1: Synthesize the session
+## Step 1: Synthesize the session — from evidence, not memory
 
-Before writing anything, establish:
+Before writing anything, establish the following. Where a claim is checkable, check it this
+session (`git`, a test run, a build) rather than trusting what the conversation said happened —
+see `docs/engineering/AI-WORKFLOW.md` §6:
+
 - Session type: planning / feature work / backport / housekeeping / mixed
 - What was done: 3-5 items, plain English
+- **Evidence of state:** current branch + `HEAD` SHA; test count and result if tests ran; build
+  result if a build ran; PR/merge status from `git` or the PR page if a PR was involved.
 - Decisions made: ask "will a future session need to behave differently because of this?" — if yes, it's a decision
 - Pending items: unfinished carry-forwards from this session, plus anything still open from existing files
+
+**Use the precise verb** when recording status: *implemented* (in the working tree) → *committed*
+→ *pushed* → *merged* (in `main`) → *deployed* (a successful production deployment is live). These
+are not interchangeable; a PR that is open is not "merged," and a merged app change is not
+"deployed" until the Cloudflare Pages production deployment actually succeeds (and a `webhook.gs`
+change not until a manual Apps Script redeploy).
 
 ## Step 2: Read existing files first
 
@@ -56,14 +67,25 @@ Wait for confirmation before writing.
 2. `docs/handoff.md` — Pending section + current-state summary only
 3. `docs/decision_log.md` — append new entry
 
-## Step 5: Output the sunshine prompt
+## Step 5: Output the sunshine prompt (a self-contained task packet)
+
+The next session must be able to start cold from this alone (`AI-WORKFLOW.md` §5). Record the base
+honestly from verified `git` state: if the work merged to `main`, give the `main` HEAD SHA; if it
+is still on a feature branch (PR open or not), give the **branch name + its HEAD SHA + PR status**,
+not a "main base commit" it hasn't reached. The next `sunshine` uses this to confirm nothing shifted
+underneath it.
 
 ```
 Combat OS — continuing from [date].
+Base: [main HEAD SHA, or "branch <name> @ <SHA>, PR #<n> <status>"]
 Read first:
 · STATUS.md (30-second orientation)
 · docs/handoff.md (full context)
+· [any files the next task must read before acting]
 Session type: [type]
+Objective: [one sentence — what "done" looks like next session]
+Constraints: [relevant AGENTS.md hard rules / scope boundaries for the next task]
+Open decisions (do not silently default): [any unruled OPEN-DECISIONS items the work touches]
 Top pending:
 
 - [most urgent]
@@ -114,9 +136,13 @@ One list, one place — consolidate anything scattered elsewhere in the file.
 
 ---
 
-## Relationship to CHECKLIST.md
+## Relationship to the roadmap and archived CHECKLIST
 
-`docs/planning/CHECKLIST.md` is the longer-arc, project-level sequencing (Project A, Project B, etc.) — it doesn't get touched by this skill. `docs/handoff.md`'s Pending section is the short, session-to-session carry-forward (max 5 items) — a different granularity, not a duplicate. If a CHECKLIST.md item is fully done, note it in the session summary so the user can check it off there manually — this skill doesn't edit CHECKLIST.md directly.
+`docs/planning/roadmap/ROADMAP.md` is the active sequencing doc (one `W##`/`A#` item per PR). The
+older `archive/CHECKLIST.md` (moved to `archive/` on 2026-07-22) is a **historical** Project A /
+Project B record — superseded for sequencing and not touched by this skill. `docs/handoff.md`'s
+Pending section is the short, session-to-session carry-forward (max 5 items) — a different
+granularity, not a duplicate of the roadmap.
 
 ## Edge cases
 
