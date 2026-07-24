@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-07-24 · Cross-provider AI workflow codified + doc-state truth-up
+
+**Context:** A cross-provider review (GPT-5.6 Sol High auditing a Claude A6.5 diagnostic)
+surfaced both real gaps in the diagnostic and a spread of stale documentation. Rather than
+carry the workflow only as habit, it was written down, and the stale authoritative docs were
+corrected. Documentation-only; no app code, schema, or tests changed.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | The cross-provider workflow is codified in `docs/engineering/AI-WORKFLOW.md`; `AGENTS.md` stays the hard-rule authority and links to it | The repo is built by multiple AI providers across cold sessions — the collaboration rules needed a durable home, not just precedent in past decision-log entries |
+| 2 | Authority is split into two axes: **normative** (AGENTS.md hard rules → approved task → ruled decisions/plans) and **factual** (observed code/git/db/CI → reference docs → continuity files → chat). The axes don't cross: code describing current behaviour never overrides an AGENTS.md safety rule | Conflating "what is true" with "what is allowed" is how a code fact gets mistaken for a permission; separating them keeps safety rules supreme while still trusting the repo over stale docs |
+| 3 | Evidence discipline is a rule: no PR/CI/build/merge/deploy claim without observing it this session, and the five status verbs are not interchangeable (deploy = successful production deployment) | The audit found stale status claims; "implemented" quietly becoming "deployed" is how false handoffs start |
+| 4 | AGENTS.md rule 3 reworded: the shipped universal Apex *cartridge* is permitted; only Apex-specific *UI/features* are forbidden | The blanket prohibition contradicted the intentionally shipped `apex-protocol-phase1.json`; a wrong hard rule can freeze a future agent mid-task |
+| 5 | Sunshine verifies repo state from local evidence before orienting (remote refresh only when needed and authorized) and may continue when the task is already clear; Goodnight records evidence, uses precise verbs, and emits a self-contained task packet with an honest base (branch+SHA+PR when not yet merged) | Closes the gaps the audit hit — "clean tree" asserted with `.claude/` untracked, "merged" claimed from a continuity file, and a redundant confirmation turn when the task was unambiguous |
+
+**Also corrected (this PR):** stale `docs/planning/CHECKLIST.md` paths → `archive/CHECKLIST.md`;
+"all decisions ruled" → D9 open; Supabase "future migration" → live, in the live authoritative
+docs (AGENTS.md, CLAUDE.md, the two skills). Historical records (W06 report, prior decision-log
+entries, priming prompts) were deliberately left unchanged.
+
+**Not done / deferred:** PR2 (ROADMAP / OPEN-DECISIONS status index / README / ARCHITECTURE
+reconciliation) is the separate factual-cleanup PR. On A6.5: **neither existing diagnostic is
+approved** — the Claude diagnostic and Sol High's review still need reconciling into one plan,
+which happens after PR2, then goes to the developer for approval before any code.
+
+**Next:** land PR1, then PR2, then reconcile the A6.5 diagnostic into an approved plan.
+
+---
+
 ## 2026-07-23 · A9/A10 published and Train IA completed
 
 **Context:** A9’s assigned-only Library and A10’s Today / Plan / Library information architecture

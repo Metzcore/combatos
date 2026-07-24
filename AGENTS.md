@@ -8,6 +8,10 @@ with no team around to catch drift. Read this before making any change.
 These are hard rules, not suggestions. If a task seems to require breaking one, stop and ask
 rather than proceeding.
 
+For *how* agents collaborate — source-of-truth hierarchy, provider/model roles, evidence
+discipline, and the persistence/PWA risk gates — see `docs/engineering/AI-WORKFLOW.md`. This file
+is the hard-rule authority; where the two overlap, this file wins.
+
 ## Hard rules
 
 1. **Never modify %1RM / e1RM workout math without explicit instruction.** This is training-load
@@ -26,12 +30,15 @@ rather than proceeding.
    Script editor — a code change in this repo does not take effect until someone redeploys it by
    hand, so any change here has a real, separate deployment step attached.
 
-3. **Never import Apex Protocol content into this codebase.** Apex Protocol is a sibling app for
-   a different user (referenced as "Project B" in `docs/planning/CHECKLIST.md`), built by
-   duplicating a stable version of this app. Do not bring in an Apex tab, "Maintenance" features,
-   "Regla Cero" content, RPE (rate-of-perceived-exertion) components, or any other
-   Apex/Emmanuel-specific material into Combat OS. If a task references any of these terms,
-   confirm scope before touching anything.
+3. **Never leak Apex-specific UI or features into Combat OS.** Apex Protocol is a program for a
+   different user (referenced as "Project B" in `archive/CHECKLIST.md`). Do not bring an Apex
+   *tab*, "Maintenance" features, "Regla Cero" content, RPE (rate-of-perceived-exertion) UI
+   components, or any other Apex/Emmanuel-specific *interface or feature* into Combat OS. **The one
+   deliberate exception is the universal Apex training cartridge** (`cartridges/apex-protocol-phase1.json`,
+   shipped by A5): the cartridge system is one player over portable program data, so an assigned
+   Apex cartridge rendering through the shared engine is by design — that is program *data*, not an
+   Apex-specific app surface. If a task references any of these terms, confirm scope before
+   touching anything.
 
 4. **Never hand-edit `app/src/data/playbook.js`.** It is generated output — the file itself is
    marked "Auto-generated from playbook.csv — do not edit directly." All program-data changes
@@ -43,7 +50,8 @@ rather than proceeding.
 5. **Never disrupt the developer's self-hosted n8n stack.** It is described in the project's own
    roadmap as a "fixed, protected dependency" (see `docs/planning/roadmap/ROADMAP.md`,
    standing guardrail 5, and decision D7 in `OPEN-DECISIONS.md`, which notes n8n as the working
-   keep-alive theory for a possible future Supabase migration). This repo does not currently
+   keep-alive theory for the Supabase backend — now live in production, not a future migration).
+   This repo does not currently
    contain n8n configuration, but if a task ever touches infrastructure adjacent to it, treat it
    as untouchable without explicit instruction.
 
@@ -76,14 +84,16 @@ rather than proceeding.
    whether it's already scoped there — either as an active item, a gated one, or something
    already ruled out. Genuinely open decisions (multiple reasonable answers, no ruling yet)
    belong in `docs/planning/roadmap/OPEN-DECISIONS.md` — **never silently default one and move
-   on.** As of this writing every decision in that file (D1–D7) has already been ruled by the
-   developer; read the rulings before assuming a question is still open.
+   on.** Most decisions there are ruled (D1–D8 and D10), but **D9 (off-programme activity
+   logging) is still open** — inspect each decision's own ruling line before assuming a question
+   is settled.
 
 ## Other things worth knowing while working here
 
-- `docs/planning/CHECKLIST.md` is an older, longer-arc tracking document (Project A / Project B
-  framing) that predates `ROADMAP.md`. `ROADMAP.md` supersedes it for sequencing; `CHECKLIST.md`
-  remains a historical record and is not touched by the sunshine/goodnight skills.
+- `archive/CHECKLIST.md` is an older, longer-arc tracking document (Project A / Project B
+  framing) that predates `ROADMAP.md` and was moved into `archive/` on 2026-07-22. `ROADMAP.md`
+  supersedes it for sequencing; `CHECKLIST.md` remains a historical record and is not touched by
+  the sunshine/goodnight skills.
 - `archive/` holds retired systems (a legacy spreadsheet-based predecessor, a completed
   feature-backport kit) kept for reference — do not treat code there as live or import from it
   without checking why it was archived.
