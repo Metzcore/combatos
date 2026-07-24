@@ -1,21 +1,22 @@
 # STATUS
-_Last updated: 2026-07-23 · A9/A10 published and phone-approved_
+_Last updated: 2026-07-24 · Cross-provider workflow codified + doc truth-up_
 
 ## Last session
-Published A9 through PR #51 and completed A10 through PR #52. Train now uses Today / Plan /
-Library inside the existing five-button navigation: Today preserves the current workout HUD, Plan
-explains the active cartridge, and Library handles assigned programmes, previewing and activation.
-
-A10 passed real-phone review, 369 tests and the production PWA build. User-facing workout structure
-now says “training sections” instead of the internal “blocks” terminology.
+Ran the A6.5 read-only diagnostic, then a cross-provider review (GPT-5.6 Sol High) found real
+gaps in it plus a spread of stale docs. Codified the AI collaboration workflow and corrected the
+stale authoritative docs across two documentation PRs — both now merged: PR #54 (governance:
+docs/engineering/AI-WORKFLOW.md + AGENTS/CLAUDE/skills truth-up) and PR #55
+(ROADMAP/OPEN-DECISIONS/README/ARCHITECTURE reconciliation). Docs-only — no app code, schema, or
+tests changed.
 
 ## Current focus
-Begin A6.5 as a fresh diagnostic: durable, offline-first active-workout drafts before any
-cartridge-driven logging renderer is built.
+Reconcile the Codex/Sol diagnostic and Claude diagnostic, plus the cross-provider review
+findings, into one final A6.5 implementation plan — read-only, stop for approval before any code.
 
 ## Up next
-1. A6.5 — diagnostic and implementation plan for local Dexie workout-draft persistence
+1. A6.5 — reconcile the Codex/Sol diagnostic, Claude diagnostic, and review findings into one
+   final plan → stop for approval (implementation is a later task, after approval)
 2. Rotate the temporary Supabase developer password
-3. Lock the permanent session payload after the relevant W26 decision work
+3. Lock the permanent session payload after W26 decision work
 4. A7 — interactive cartridge renderer, gated on A6.5 and the payload lock
-5. Exercise Reference layer and later Academy/Exercise Guides IA diagnostic
+5. Exercise Reference layer (A11), later Academy/Exercise Guides IA (A12)
