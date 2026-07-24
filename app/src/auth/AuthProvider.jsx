@@ -10,11 +10,12 @@
  * app still works, it just has no cloud auth.
  */
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../sync/supabaseClient.js'
 import { clearCartridgeAccessCache, readCartridgeAccessCache } from '../db/cartridgeAccess.js'
 import { canResumeFromCartridgeCache } from './offlineAccess.js'
 import { CARTRIDGE_ACCESS_RESET_EVENT } from '../cartridges/accessModel.js'
+import { workoutDraftController } from '../db/workoutDrafts.js'
 
 const AuthContext = createContext(null)
 
@@ -22,6 +23,14 @@ export function AuthProvider({ children }) {
     const [session, setSession] = useState(null)
     const [offlineUserId, setOfflineUserId] = useState(null)
     const [loading, setLoading] = useState(true)
+
+    // A6.5 — the onAuthStateChange listener below is registered ONCE (empty
+    // effect deps) so its closure over `session`/`offlineUserId` is stale by
+    // the time SIGNED_OUT fires. Kept fresh every render so the event
+    // handler can resolve "whose draft was this" even though the session
+    // it needs to read is the one about to become null.
+    const ownerUserIdRef = useRef(null)
+    ownerUserIdRef.current = session?.user?.id ?? offlineUserId ?? null
 
     useEffect(() => {
         if (!isSupabaseConfigured) {
@@ -77,6 +86,12 @@ export function AuthProvider({ children }) {
                 setOfflineUserId(null)
                 window.dispatchEvent(new Event(CARTRIDGE_ACCESS_RESET_EVENT))
                 clearCartridgeAccessCache().catch(console.error)
+                // A6.5 — idempotent repeat of the explicit signOut() path
+                // below, for cross-tab / revoked-session / indirect sign-out
+                // (this event fires even when THIS tab didn't call signOut()
+                // itself). discardDraft() never rejects — safe to fire here.
+                const ownerUserId = ownerUserIdRef.current
+                if (ownerUserId) workoutDraftController.discardDraft(ownerUserId)
             }
         })
 
@@ -125,6 +140,15 @@ export function AuthProvider({ children }) {
 
     const signOut = useCallback(async () => {
         if (!isSupabaseConfigured) return
+        // A6.5 — invalidate the draft controller synchronously and attempt
+        // to delete this owner's draft BEFORE anything else, so a save
+        // already scheduled cannot land after sign-out and resurrect the
+        // draft under the just-signed-out identity. discardDraft() never
+        // rejects (failures are caught internally) — a failed local delete
+        // must not block sign-out; the composite owner key still prevents a
+        // later identity from ever hydrating the row regardless.
+        const ownerUserId = ownerUserIdRef.current
+        if (ownerUserId) await workoutDraftController.discardDraft(ownerUserId)
         // Remove local device trust first. Even if the network request fails,
         // this device cannot use the A9c offline fallback after explicit sign-out.
         window.dispatchEvent(new Event(CARTRIDGE_ACCESS_RESET_EVENT))

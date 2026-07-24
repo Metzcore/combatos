@@ -712,11 +712,30 @@ export function DBProvider({ children }) {
             : `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
         sessionData.sessionId = sessionId
-        const id = await db.sessions.add(sessionData)
 
-        // Wrap payload in action envelope
-        const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
-        await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+        // A6.5 — freeze autosave. The caller already flushed the newest
+        // snapshot before invoking logSession (see HUD's handleLog), so
+        // this leaves the freshest recoverable draft if the transaction
+        // below fails; invalidate() ensures nothing scheduled during the
+        // transaction can resurrect the draft this commit is about to
+        // clear. No permanent payload or sync-envelope field changes.
+        workoutDraftController.invalidate()
+
+        let id
+        await db.transaction('rw', db.sessions, db.syncQueue, db.workoutDrafts, async () => {
+            id = await db.sessions.add(sessionData)
+
+            // Wrap payload in action envelope
+            const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
+            await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+
+            if (ownerUserId) await db.workoutDrafts.delete([ownerUserId, 'active'])
+        })
+        // Reached only on a committed transaction — on failure this throws,
+        // the transaction rolls back sessions+syncQueue+workoutDrafts
+        // together, the draft remains, and nothing below runs (no success
+        // message, no in-memory reset). The remote drain below is
+        // deliberately outside the local commit boundary.
 
         await refreshCounts()
         await refreshPending()
@@ -724,7 +743,7 @@ export function DBProvider({ children }) {
         resetActiveWorkout()
         // Attempt to sync immediately if online
         trySyncQueue(refreshPending)
-    }, [refreshCounts, refreshPending, resetActiveWorkout])
+    }, [refreshCounts, refreshPending, resetActiveWorkout, ownerUserId])
 
     const resetSession = useCallback(() => {
         resetActiveWorkout()
