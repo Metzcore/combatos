@@ -1,13 +1,18 @@
 # Combat OS
 
-Combat OS (internal app name: **Fighter's OS**) is a single-user fitness and combat-training
-progressive web app (PWA). It runs a structured strength-and-conditioning + fight-gym program,
-tracks daily sessions, and syncs a copy of every logged session to a Google Sheet for
-longer-term record-keeping.
+Combat OS (internal app name: **Fighter's OS**) is a fitness and combat-training progressive
+web app (PWA). It runs a structured strength-and-conditioning + fight-gym program, tracks daily
+sessions, and syncs a copy of every logged session to a Google Sheet for longer-term
+record-keeping.
 
-It is fully client-side: no application backend, no user accounts. All workout state lives in
-the browser (IndexedDB via Dexie). The only outbound network call is a fire-and-forget POST to
-a Google Apps Script webhook, used purely as a remote log — the app itself never reads from it.
+It is **offline-first**: all workout state lives in the browser (IndexedDB via Dexie). Once an
+account and device access have been established, the core local workout / checklist / logging
+flow keeps working with no network — sessions logged offline are queued and POSTed once the
+network returns. First-time sign-in and cartridge activation do require a network. A **Supabase
+backend** (live since 2026-07-21) provides magic-link authentication and per-account programme
+(cartridge) access; logged sessions are additionally POSTed to a Google Apps Script webhook as an
+append-only remote record the app never reads back. Onboarding is invite-only — the app never
+self-mints accounts.
 
 The app is designed to be installed as an Android home-screen PWA (see `app/vite.config.js`'s
 `vite-plugin-pwa` manifest: `display: 'standalone'`, custom icons, offline caching via Workbox).
@@ -111,11 +116,13 @@ found no settings field for it).
 ```
 app/                     React + Vite PWA source (the actual product)
   src/components/        UI components (AppShell, HUD, tabs, blocks — see ARCHITECTURE.md)
-  src/db/                Dexie DB setup + DBProvider (React context) + sync logic
+  src/db/                Dexie DB setup + DBProvider (React context)
   src/hooks/              usePlaybook, useHistory, useRoundsTimer
   src/data/               Generated playbook.js + ignition.js (quote data)
-  src/sync/               Does not currently exist in this repo (see ARCHITECTURE.md — expected
-                          location for sync logic once roadmap item W8 lands)
+  src/sync/               Outbound queue + webhook push (syncQueue.js, extracted in W8),
+                          plus the Supabase client and cartridge-access sync
+  src/auth/               Supabase magic-link auth provider + offline-access gating
+  src/cartridges/         Cartridge access model + provider (assigned-programme access)
   vite.config.js          Vite + vite-plugin-pwa configuration
   package.json            Scripts and dependencies (see Stack above)
 scripts/                 csv_to_js.py (playbook generator), webhook.gs (Apps Script source)

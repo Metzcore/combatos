@@ -1,7 +1,23 @@
 # Deliverable 4 — Open Decisions (yours, not mine)
 _Each of these has more than one reasonable answer. Where the code has already picked one by default, that's noted — a default is not a decision until you ratify it._
 
-> **2026-07-10 — DEVELOPER RULINGS RECORDED.** All seven decisions were answered in the same session. Each section below now carries a **RULED:** line. Roadmap impacts are listed in the addendum at the bottom of `ROADMAP.md`.
+> **2026-07-10 — DEVELOPER RULINGS RECORDED.** The original seven decisions (D1–D7) were answered in the same session. Each section below carries a **RULED:** line. Roadmap impacts are listed in the addendum at the bottom of `ROADMAP.md`. Later decisions (D8–D10) were added as the work uncovered them: **D8 and D10 are ruled; D9 remains open.**
+
+## Status index
+_Quick reference for current decision status. Each section's **RULED:** / **Not ruled** line records the decision itself; its surrounding "current state," context and options are historical snapshots from when that decision was captured and may not describe today's implementation._
+
+| Decision | Topic | Status |
+|----------|-------|--------|
+| D1 | Delete semantics (hard vs soft) | **Ruled** — soft delete (W17) |
+| D2 | "Next day" semantics | **Ruled** — sequential + Day 7 |
+| D3 | Navigation IA | **Ruled** — layered-nav paradigm |
+| D4 | Notepad/capture + Hermes connector | **Ruled** — build notepad; connector deferred |
+| D5 | Planning layer visible on GitHub | **Ruled** — move durable docs into tracked tree |
+| D6 | Recover vs regenerate README/AGENTS/ARCHITECTURE | **Ruled** — regenerate fresh |
+| D7 | Supabase migration | **Ruled** — go; now live in production |
+| D8 | W24 tracking (standalone vs counted) | **Ruled** — counted tasks |
+| D9 | Off-programme activity logging | **OPEN — not yet ruled** |
+| D10 | Cartridge weekly structure | **Ruled** — flexible pool + suggested order |
 
 ## D1 — Delete Last Logged Day: hard vs. soft delete
 **Current state (shipped, by default not by decision):** hard delete on both ends — local Dexie record removed, `webhook.gs` removes the Sheet row entirely (`deleteRow`, with a code comment justifying it as avoiding formatting-inheritance bugs). The commit message and webhook header both *say* soft/strikethrough, which is wrong.
