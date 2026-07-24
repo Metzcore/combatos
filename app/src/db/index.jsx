@@ -61,6 +61,26 @@ db.version(3).stores({
     notes: 'id, groupId, deletedAt, *tags'
 })
 
+// A6.5 — durable active-workout draft store. ADDITIVE ONLY, same discipline
+// as v2/v3: every prior table restated verbatim (omitting one would drop
+// it and destroy real data), no .upgrade() callback needed. One row per
+// owner (`slot` is always 'active' today — reserved for future use), keyed
+// by the compound primary key so a signed-out owner's row can never be
+// hydrated under a different identity. workoutDrafts is LOCAL-ONLY and
+// temporary: it never reaches syncQueue or the webhook, and is deleted on
+// discard, successful log, or sign-out (see db/workoutDrafts.js).
+db.version(4).stores({
+    sessions: '++id, date, day, phase, hipScore',
+    syncQueue: '++id, sessionId, attempts',
+    settings: 'key',
+    checklistGroups: 'id, order',
+    checklistTasks: 'id, groupId, [groupId+order], deletedAt',
+    checklistCompletions: '[taskId+date], taskId',
+    noteGroups: 'id, order',
+    notes: 'id, groupId, deletedAt, *tags',
+    workoutDrafts: '[ownerUserId+slot], ownerUserId, updatedAt'
+})
+
 export { db }
 
 // ─── Default settings ─────────────────────────────────────────────────────────
