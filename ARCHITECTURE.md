@@ -1,8 +1,9 @@
 # ARCHITECTURE.md — Combat OS
 
 This describes the structure of the app as it exists in the repo today, based on reading the
-actual source (last full pass: 2026-07-17, post-W17). Where something is ambiguous or not
-directly confirmed in code, it's marked **unverified** rather than assumed.
+actual source (last full pass: 2026-07-17, post-W17; targeted reconciliation 2026-07-24 for the
+A10 Train IA and the live Supabase backend). Where something is ambiguous or not directly
+confirmed in code, it's marked **unverified** rather than assumed.
 
 ## Component map
 
@@ -14,9 +15,10 @@ for state survival (see "In-memory state" below).
 App.jsx
 ├── DailyIgnition             (fixed full-screen splash overlay, conditionally rendered)
 └── AppShell.jsx              (owns activeHub + per-hub top-tab state; renders exactly one hub)
-    ├── TrainHub.jsx           (hub: "train")
-    │   ├── HUD.jsx             (top tab: "Workout")
-    │   └── PlaybookViewer.jsx  (top tab: "Playbook")
+    ├── TrainHub.jsx           (hub: "train" — Today / Plan / Library, A10)
+    │   ├── HUD.jsx             (top tab: "Today" — the legacy workout HUD, pre-A7)
+    │   ├── PlanViewer.jsx      (top tab: "Plan" — read-only active-cartridge orientation)
+    │   └── CartridgeViewer.jsx (top tab: "Library" — assigned programmes + activation)
     ├── Timer.jsx              (hub: "timer")
     │   ├── BasicTimer.jsx      (top tab: "Basic")
     │   └── RoundsTimer.jsx     (top tab: "Custom Rounds")
@@ -50,7 +52,14 @@ state — is deliberately NOT held inside the hub/tab components. See "In-memory
 
 ### Train hub
 
-`HUD.jsx` is the controller for the workout-logging screen. It reads workout structure from
+**Current structure (A10, pre-A7):** `TrainHub.jsx` hosts three top tabs — **Today** (`HUD.jsx`),
+**Plan** (`PlanViewer.jsx`, read-only orientation around the confirmed active cartridge), and
+**Library** (`CartridgeViewer.jsx`, assigned-programme preview + confirmed activation). Today
+deliberately remains the legacy `playbook.js`-driven HUD until A7 makes it cartridge-driven; Plan
+and Library are cartridge-aware. This describes the architecture as it stands now — A7 will change
+how Today renders and logs.
+
+`HUD.jsx` is the controller for the workout-logging (Today) screen. It reads workout structure from
 `usePlaybook()` and renders (in order): a Day/Phase/Hip-Score selector row, an optional
 `PhaseUnlockBanner`, a "next up" indicator, a hip-score status banner, then either:
 
@@ -196,9 +205,37 @@ survive a hub/tab switch goes in `DBProvider` with a `WORKOUT_DEFAULTS` entry an
 `logSession()` and from the HUD's manual reset) but intentionally does **not** reset
 `day` — Day and Phase are kept.
 
-## Day structure: 3 phases × 7-day cycle
+### Auth & Supabase backend (live since 2026-07-21)
 
-The program is 3 phases, each cycling strictly sequentially through 7 days (1→…→7→1;
+Alongside the local Dexie layer, a Supabase backend provides identity and per-account programme
+access. It is **not** on the logged-session write path — that still goes to the Google Sheets
+webhook (repointing it to Supabase is separate, unstarted work).
+
+- **Auth** (`app/src/auth/AuthProvider.jsx`): Supabase magic-link, **invite-only** at two layers
+  (`shouldCreateUser: false` in the app; project signups off). A tightly-scoped offline mode lets a
+  previously-confirmed device resume read-only when auth cannot refresh purely due to a network
+  failure (A9c); explicit sign-out clears device trust. The publishable key is the
+  `VITE_SUPABASE_ANON_KEY` (RLS is the real protection).
+- **Schema** (captured as repo migrations under `supabase/migrations/`): `profiles` (one row per
+  user; `assigned_cartridge` is the single active-programme pointer), `sessions` (a generic JSONB
+  payload, so the cartridge rebuild changes the payload, not the table), and `user_cartridges`
+  (which programmes a coach has made available). RLS isolates each user to their own rows; a user
+  may update only their own active pointer.
+- **Cartridge access** (`app/src/cartridges/`, `app/src/sync/cartridgeAccess.js`): the confirmed
+  access snapshot is cached in the Dexie `settings` store for instant/offline reads; unknown server
+  cartridge IDs are preserved and reported, never silently substituted.
+- **On sign-out**, only the cartridge-access cache is cleared; workout/checklist/notes Dexie data
+  persists (see `AGENTS.md` and `docs/engineering/AI-WORKFLOW.md` for the persistence risk gates).
+
+## Day structure: 3 phases × 7-day cycle (legacy Today/HUD model)
+
+This section describes the **legacy `playbook.js`-driven model** that still powers the Today/HUD
+tab (pre-A7). Cartridge programmes do not use this fixed rotation: under decision **D10** a
+cartridge is a **flexible pool of day-templates with a suggested order** — any day-template is
+loggable on any date, the order is guidance, not a lock. A7 is what will connect that cartridge
+model to Today; until then, Today runs the sequential cycle below.
+
+The legacy program is 3 phases, each cycling strictly sequentially through 7 days (1→…→7→1;
 extended from 6 by decision D2 / W16). `getDailyFocus(day)` in `usePlaybook.js` names the
 S&C-focused days:
 
@@ -313,25 +350,33 @@ session is processed before its delete.
 - **Full-backup export** (`app/src/db/backup.js`): dumps every Dexie table into one JSON
   document (`format: 'combatos-full-backup'`, version, `exportedAt`, `schemaVersion`,
   `tables`). Tables are enumerated dynamically via `db.tables` — new stores are included
-  automatically. Export-only by design; restore/import is explicitly deferred to the
-  Supabase era, for which this JSON doubles as the migration seed (D7). Delivered via the
-  share-or-download path; `lastFullBackupAt` records the last delivered backup.
+  automatically. Export-only by design; a local restore/import path is still not built (Supabase
+  is now live, but the import half remains deferred), and this JSON doubles as a migration seed
+  (D7). Delivered via the share-or-download path; `lastFullBackupAt` records the last delivered
+  backup.
 
 ## Tests
 
 Vitest (`npm test` in `app/`; `vitest.config.js`), with `fake-indexeddb` for Dexie-touching
-suites. **206 tests across 15 files, all green as of 2026-07-17**, colocated with their
-subjects: `db/` (backup, checklist, notes, syncQueue), `utils/` (navState, checklistDate,
-checklistImport, checklistShare, checklistStreak, nextDay, noteChecklist, noteFilter,
-noteTags, weeklyStats), and `hooks/` (usePlaybook). Pure logic is deliberately extracted to
-`utils/` modules (no React/Dexie imports) precisely so it can be tested in a plain node
-environment. Browser globals in tests are stubbed via `vi.stubGlobal`.
+suites. The suite grows with each feature — **run `npm test` for the current count and
+pass/fail** rather than trusting a number here. Tests are colocated with their subjects. The
+list below is **not exhaustive** (`npm test` is the source of truth) — representative areas:
+
+- `db/` — backup, checklist, notes, syncQueue, cartridgeAccess (cache)
+- `utils/` — navState, checklistDate/Import/Share/Streak, nextDay, noteChecklist/Filter/Tags,
+  weeklyStats, blockOrder, phaseUnlock, validateCartridge, cartridgeFormat/Library/Plan
+- `hooks/` — usePlaybook
+- `auth/` — offlineAccess; `cartridges/` — accessModel; `sync/` — cartridgeAccess (Supabase reads)
+
+Pure logic is deliberately extracted to `utils/` modules (no React/Dexie imports) precisely so it
+can be tested in a plain node environment. Browser globals in tests are stubbed via `vi.stubGlobal`.
 
 ## Known structural debt
 
 - **`webhookUrl` has no Settings UI** — changing the target requires a direct Dexie write.
-  Acceptable for a single-user app whose default points at the live deployment; becomes
-  real debt only if a second deployment (e.g. Project B) ever shares this codebase.
+  Acceptable while the default points at the live deployment; becomes real debt only if the app
+  ever needs to write to more than one webhook target. (Apex is a cartridge inside this shared
+  app, not a separate deployment, so it does not by itself create that need.)
 - **The delete search window is the last 100 rows** of `FightLog` — a session older than
   ~100 logs can no longer be soft-deleted remotely. Accepted: the app only offers
   "Delete Last Session".
