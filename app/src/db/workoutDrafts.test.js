@@ -14,8 +14,13 @@ import 'fake-indexeddb/auto'
 import Dexie from 'dexie'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { db } from './index.jsx'
-import { createWorkoutDraftController, loadActiveDraft } from './workoutDrafts.js'
-import { buildDraftRow, buildLegacyIdentity, buildLegacyDefinitionSnapshot } from '../utils/workoutDraftState.js'
+import { enqueueSync } from '../sync/syncQueue.js'
+import { createWorkoutDraftController, loadActiveDraft, workoutDraftController } from './workoutDrafts.js'
+import {
+    buildDraftRow, buildLegacyIdentity, buildCartridgeIdentity,
+    buildLegacyDefinitionSnapshot, buildCartridgeDefinitionSnapshot,
+    validateDraftRow,
+} from '../utils/workoutDraftState.js'
 
 vi.stubGlobal('navigator', { onLine: true })
 
@@ -24,6 +29,8 @@ const OWNER_B = '22222222-2222-4222-8222-222222222222'
 
 beforeEach(async () => {
     await db.workoutDrafts.clear()
+    await db.sessions.clear()
+    await db.syncQueue.clear()
 })
 
 // ─── Schema / upgrade safety ────────────────────────────────────────────────
@@ -279,5 +286,139 @@ describe('createWorkoutDraftController — isolated instance', () => {
         await controller.saveNow({ broken: true }).catch(() => {})
         await controller.saveNow(makeRow(OWNER_A, 'recovered'))
         expect((await db.workoutDrafts.get([OWNER_A, 'active'])).state.fields.notes).toBe('recovered')
+    })
+
+    it('the exported production singleton (the exact object AuthProvider imports) resists the same resurrection race', async () => {
+        // Distinct from the isolated-instance tests above: this exercises
+        // workoutDraftController itself, so a bug specific to the shared
+        // singleton (vs. a fresh factory instance) would show up here.
+        // Real debounce timing (700ms) is required since the singleton
+        // can't take a custom debounceMs.
+        await workoutDraftController.saveNow(makeRow(OWNER_A, 'singleton signed in'))
+        workoutDraftController.schedule(makeRow(OWNER_A, 'singleton edit racing sign-out'))
+        await workoutDraftController.discardDraft(OWNER_A) // mirrors AuthProvider's signOut()/SIGNED_OUT call
+
+        expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
+        await wait(750)
+        expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
+    }, 2000)
+})
+
+// ─── Discriminated draft round-trip (plan v2 §12) ───────────────────────────
+
+describe('draft representations round-trip raw values through Dexie', () => {
+    it('legacy-hud-v1 round-trips every field untouched', async () => {
+        const fields = {
+            mobChecked: { 1: true, 2: false }, clrChecked: { 1: true },
+            strSets: { 'ex1-s1': { kg: '80', reps: '5', papReps: '3' } },
+            coreSets: { 1: { ex: 'Plank', sets: '3', reps: '30' } },
+            bagRounds: '6', bagCourse: 'Varga', bagModules: 'Counters 1', bagWorkouts: '4.1',
+            notes: 'felt strong', gymSessionType: 'Combat',
+            altRows: [{ id: 1, name: 'Sprints', v1: '10', v2: '20', v3: '30' }],
+            altDuration: '45', hudScrollY: 320,
+            bagBlockOpen: true, coreBlockOpen: false, mobBlockOpen: true, strBlockOpen: true, clrBlockOpen: false,
+        }
+        const row = buildDraftRow({
+            ownerUserId: OWNER_A,
+            workoutIdentity: buildLegacyIdentity({ day: 2, phase: 1, hipScore: 4 }),
+            definitionSnapshot: buildLegacyDefinitionSnapshot({ dailyFocus: 'Push' }),
+            state: { kind: 'legacy-hud-v1', fields },
+        })
+        await db.workoutDrafts.put(row)
+        const loaded = await loadActiveDraft(OWNER_A)
+        expect(loaded).toEqual(row)
+        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
+    })
+
+    it('cartridge-workout-v1 round-trips every field untouched', async () => {
+        const fields = {
+            itemStateById: { 'd1-str-1': { checked: true, kg: '100', reps: '5' } },
+            substitutions: { 'd1-str-1': 'Front Squat' },
+            itemNotes: { 'd1-str-1': 'felt heavy' },
+            notes: 'good session', customSessionContent: '',
+            conditioningProgress: { 'd1-bag-1': { roundsDone: 3 } },
+            blockOpen: { strength: true }, scrollY: 100,
+        }
+        const row = buildDraftRow({
+            ownerUserId: OWNER_A,
+            workoutIdentity: buildCartridgeIdentity({
+                cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3, day: 1,
+            }),
+            definitionSnapshot: buildCartridgeDefinitionSnapshot({ day: 1, label: 'Day 1', blocks: [] }),
+            state: { kind: 'cartridge-workout-v1', fields },
+        })
+        await db.workoutDrafts.put(row)
+        const loaded = await loadActiveDraft(OWNER_A)
+        expect(loaded).toEqual(row)
+        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
+    })
+})
+
+// ─── Hydration never writes ─────────────────────────────────────────────────
+
+describe('hydration is read-only', () => {
+    it('reading and validating a stored row for Continue never mutates it', async () => {
+        const row = makeRow(OWNER_A, 'untouched by hydration')
+        await db.workoutDrafts.put(row)
+        const before = await db.workoutDrafts.get([OWNER_A, 'active'])
+
+        // Simulates exactly what DBProvider's hydration effect does: read,
+        // then validate. Neither step is a write.
+        const loaded = await loadActiveDraft(OWNER_A)
+        validateDraftRow(loaded, OWNER_A)
+
+        const after = await db.workoutDrafts.get([OWNER_A, 'active'])
+        expect(after).toEqual(before)
+        expect(after.updatedAt).toBe(row.updatedAt) // untouched, not re-stamped
+    })
+})
+
+// ─── Atomic local logging (plan v2 §8, §12) ─────────────────────────────────
+// Mirrors db/index.jsx's logSession EXACTLY (same table set, same operation
+// order) but directly against Dexie — a React-render test isn't available
+// in this repo's test infra, so this proves the transaction pattern itself
+// is sound; the full flow (including the freshest-snapshot flush before it)
+// was additionally verified end-to-end in-browser.
+
+async function runLogTransaction({ ownerUserId, sessionData, sessionId, injectFailure = false }) {
+    let id
+    await db.transaction('rw', db.sessions, db.syncQueue, db.workoutDrafts, async () => {
+        id = await db.sessions.add(sessionData)
+        const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
+        await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+        if (injectFailure) throw new Error('injected failure')
+        if (ownerUserId) await db.workoutDrafts.delete([ownerUserId, 'active'])
+    })
+    return id
+}
+
+describe('atomic local logging transaction', () => {
+    it('a successful commit writes the session, enqueues the sync envelope, and clears the draft', async () => {
+        const row = makeRow(OWNER_A, 'about to be logged')
+        await db.workoutDrafts.put(row)
+        const sessionData = { date: '2026-07-24', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 50 }
+
+        const id = await runLogTransaction({ ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-1' })
+
+        expect(await db.sessions.count()).toBe(1)
+        const queue = await db.syncQueue.toArray()
+        expect(queue).toHaveLength(1)
+        expect(queue[0].payload).toEqual({ action: 'log', sessionId: 'uuid-log-1', payload: sessionData })
+        expect(queue[0].sessionId).toBe(id) // permanent payload/envelope shape unchanged
+        expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
+    })
+
+    it('an injected failure inside the transaction rolls back all three operations, leaving the draft intact', async () => {
+        const row = makeRow(OWNER_A, 'must survive a failed log')
+        await db.workoutDrafts.put(row)
+        const sessionData = { date: '2026-07-24', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 50 }
+
+        await expect(runLogTransaction({
+            ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-2', injectFailure: true,
+        })).rejects.toThrow('injected failure')
+
+        expect(await db.sessions.count()).toBe(0)
+        expect(await db.syncQueue.count()).toBe(0)
+        expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toEqual(row) // untouched, no success
     })
 })

@@ -7,9 +7,14 @@ confirmed in code, it's marked **unverified** rather than assumed.
 
 ## Component map
 
-Entry point: `app/src/main.jsx` mounts `<DBProvider><App /></DBProvider>`. `DBProvider`
-(from `app/src/db/index.jsx`) sits at the true root and is never unmounted — this matters
-for state survival (see "In-memory state" below).
+Entry point: `app/src/main.jsx` mounts `<AuthProvider><App /></AuthProvider>`. Inside `App.jsx`,
+`AuthGate` renders only `<SignIn/>` while signed out, so `DBProvider` (from `app/src/db/index.jsx`,
+nested `AuthProvider > AuthGate > CartridgeAccessProvider > DBProvider`) mounts only for a
+resolved owner and **does** unmount on sign-out — corrected 2026-07-24 (A6.5); an earlier
+revision of this doc predating the live Supabase auth work claimed `DBProvider` sat at the true
+root and was never unmounted, which stopped being true once `AuthGate` was introduced. What still
+holds: `DBProvider` is mounted once per signed-in session and never remounted by hub/tab
+navigation, which is what matters for state survival (see "In-memory state" below).
 
 ```
 App.jsx
@@ -139,14 +144,14 @@ a hardcoded default (below).
 
 ## Data model
 
-### Dexie database: `FightersOS` (schema v3)
+### Dexie database: `FightersOS` (schema v4)
 
-Defined in `app/src/db/index.jsx`. Three additive versions, each restating **all** tables
+Defined in `app/src/db/index.jsx`. Four additive versions, each restating **all** tables
 verbatim (Dexie requires the full schema per version; omitting a table would drop it and
 destroy real data). No `.upgrade()` callbacks — all changes so far are purely additive.
 
 ```js
-db.version(3).stores({
+db.version(4).stores({
     sessions: '++id, date, day, phase, hipScore',
     syncQueue: '++id, sessionId, attempts',
     settings: 'key',
@@ -154,7 +159,8 @@ db.version(3).stores({
     checklistTasks: 'id, groupId, [groupId+order], deletedAt',     // v2 (W21)
     checklistCompletions: '[taskId+date], taskId',                 // v2 (W21)
     noteGroups: 'id, order',                                       // v3 (W23)
-    notes: 'id, groupId, deletedAt, *tags'                         // v3 (W23)
+    notes: 'id, groupId, deletedAt, *tags',                        // v3 (W23)
+    workoutDrafts: '[ownerUserId+slot], ownerUserId, updatedAt'     // v4 (A6.5)
 })
 ```
 
@@ -173,6 +179,11 @@ db.version(3).stores({
   `lastFullBackupAt` (W23.5).
 - Checklist/notes tables (W21/W23) — local-only; nothing from them may ever reach
   `syncQueue` or the webhook payload.
+- **`workoutDrafts`** (A6.5) — at most one row per owner (`[ownerUserId+slot]`, `slot`
+  always `'active'` today). Durable mirror of the active-workout HUD state; see "Durable
+  active-workout draft" below. Local-only and temporary — cleared on log, discard, or
+  sign-out; never reaches `syncQueue` or the webhook payload, and is never the permanent
+  logged-session shape.
 
 **`webhookUrl` has a hardcoded default** in `DEFAULTS.webhookUrl` (`app/src/db/index.jsx`)
 pointing at the live Apps Script deployment. No Settings UI exists to change it; overriding
@@ -180,7 +191,8 @@ it requires writing to the Dexie `settings` table directly.
 
 **Test discipline:** tests never hardcode current-schema facts (`verno === 3`) — they use
 capture-before/assert-unchanged or `>=` floors (a decision earned when the v3 bump broke
-three such tests).
+three such tests; the newest feature's own test owns the exact `verno` pin — see
+`db/workoutDrafts.test.js`).
 
 ### In-memory state (NOT persisted to Dexie)
 
@@ -205,6 +217,66 @@ survive a hub/tab switch goes in `DBProvider` with a `WORKOUT_DEFAULTS` entry an
 `logSession()` and from the HUD's manual reset) but intentionally does **not** reset
 `day` — Day and Phase are kept.
 
+### Durable active-workout draft (A6.5)
+
+Active-workout state above is React state — ephemeral by default, gone on a full reload.
+A6.5 adds a **durable mirror** in the `workoutDrafts` Dexie table so an unfinished workout
+survives a reload, phone lock, or PWA update, without changing where that state actually
+lives during a session (still `DBProvider`) or the shape of the permanent logged-session
+payload (still frozen — `AGENTS.md` rule 2).
+
+- **Row shape** — one row per owner: `{ ownerUserId, slot: 'active', draftSchemaVersion,
+  createdAt, updatedAt, workoutIdentity, definitionSnapshot, state }`.
+  `workoutIdentity` is `{ kind: 'legacy-playbook' | 'cartridge', cartridgeId,
+  cartridgeVersion, cartridgeSchemaVersion, dayTemplateKey, phaseId, hipScore }` — legacy
+  rows null every cartridge field and encode day/phase as `legacy-day:{n}` /
+  `legacy-phase:{n}` (parsed back by `parseLegacyDay`/`parseLegacyPhase`). `cartridge`-kind
+  rows exist as a tested representation only — A7's renderer is what will make one
+  reachable. `definitionSnapshot` freezes the resolved workout/day so a later `playbook.js`
+  regeneration or cartridge update can't reinterpret a live draft's values.
+- **Persistence controller** (`app/src/db/workoutDrafts.js`) — a **module-scope** singleton
+  (`workoutDraftController`), not a hook. It owns the debounce timer, latest pending
+  snapshot, a monotonic generation counter, and a serialized write chain. Module scope
+  matters because `signOut()` lives in `AuthProvider`, an ancestor of any hook in the tree
+  (`AuthProvider > AuthGate > CartridgeAccessProvider > DBProvider`) — only an object both
+  can import directly can be invalidated synchronously from there. Every write captures its
+  generation at schedule time and re-checks it immediately before committing; `invalidate()`
+  bumps the generation synchronously (no Dexie access), so a debounced edit queued before a
+  discard/sign-out/log can never resurrect a cleared row.
+- **Meaningful-input gating** (`app/src/utils/workoutDraftState.js`) — identity, selection
+  (day/phase/hip/session-type) and UI-only fields (scroll, collapse) never create a draft by
+  themselves; a row is written only once real content exists (a check, a performed value, a
+  note, …). Once one exists, everything is saved with it. Same module owns hydration
+  validation (owner mismatch / unsupported schema-or-kind / corrupt all fail closed without
+  hydrating or rewriting) and the identity-conflict matrix used below.
+- **Autosave + flush** (`app/src/hooks/useWorkoutDraftPersistence.js`, called from `HUD.jsx`
+  — the only place `usePlaybook`'s resolved `workout` is available for the
+  `definitionSnapshot`) — checks/substitutions save immediately; text/numeric edits debounce
+  at 700ms (the `NoteEditor.jsx` precedent). Flushes fresh (not just re-sent stale) state on
+  `visibilitychange`(hidden), `pagehide`, and its own unmount (a Today→Plan/Library tab
+  switch, this app's most common backgrounding event). `DBProvider`'s own unmount flushes
+  whatever the controller already has pending as a belt-and-suspenders net for the sign-out/
+  teardown case, where no `workout` is available to rebuild a fresh row.
+- **Continue / conflict UX** — a valid draft puts Today in a non-blocking "Continue" banner
+  state (not a modal); `resumeDraft()`/`discardCurrentDraft()` live on `DBProvider`. Day/
+  phase/hip-score changes (and cartridge activation, wired but currently inert — see below)
+  pass through a shared `attemptIdentityChange` preflight: if the live draft is meaningful
+  *and* the change would move to a different identity, `WorkoutDraftSheet.jsx` (a
+  `BottomSheet`) gates it — Keep/backdrop/close all preserve the workout; only "Discard and
+  switch" clears the draft first. A legacy draft's null cartridge identity never conflicts
+  with a cartridge activation target, so `CartridgeViewer.jsx`'s wiring is a no-op until A7
+  makes a `cartridge`-kind draft reachable.
+- **Atomic local logging** — `logSession()` freezes autosave (`invalidate()`) then runs one
+  Dexie transaction across `sessions` + `syncQueue` + `workoutDrafts`: add the session,
+  enqueue the sync envelope (`enqueueSync()` joins the ambient transaction unmodified — no
+  change to `sync/syncQueue.js`), delete the draft. Only a committed transaction triggers the
+  in-memory reset/success message; a failure rolls all three back and the draft survives.
+- **Sign-out isolation** — both explicit `signOut()` and the Supabase `SIGNED_OUT` event
+  invalidate the controller and attempt to delete the resolved owner's draft
+  (`discardDraft()` never rejects, so a failed local delete cannot block sign-out); the
+  composite `[ownerUserId+slot]` key means a later identity can never hydrate a prior
+  owner's row regardless.
+
 ### Auth & Supabase backend (live since 2026-07-21)
 
 Alongside the local Dexie layer, a Supabase backend provides identity and per-account programme
@@ -224,8 +296,9 @@ webhook (repointing it to Supabase is separate, unstarted work).
 - **Cartridge access** (`app/src/cartridges/`, `app/src/sync/cartridgeAccess.js`): the confirmed
   access snapshot is cached in the Dexie `settings` store for instant/offline reads; unknown server
   cartridge IDs are preserved and reported, never silently substituted.
-- **On sign-out**, only the cartridge-access cache is cleared; workout/checklist/notes Dexie data
-  persists (see `AGENTS.md` and `docs/engineering/AI-WORKFLOW.md` for the persistence risk gates).
+- **On sign-out**, the cartridge-access cache and the owner's `workoutDrafts` row (A6.5) are both
+  cleared; logged `sessions`/checklist/notes Dexie data persists (see `AGENTS.md` and
+  `docs/engineering/AI-WORKFLOW.md` for the persistence risk gates).
 
 ## Day structure: 3 phases × 7-day cycle (legacy Today/HUD model)
 
@@ -362,9 +435,11 @@ suites. The suite grows with each feature — **run `npm test` for the current c
 pass/fail** rather than trusting a number here. Tests are colocated with their subjects. The
 list below is **not exhaustive** (`npm test` is the source of truth) — representative areas:
 
-- `db/` — backup, checklist, notes, syncQueue, cartridgeAccess (cache)
+- `db/` — backup, checklist, notes, syncQueue, cartridgeAccess (cache), workoutDrafts (schema
+  upgrade, controller, atomic-transaction pattern)
 - `utils/` — navState, checklistDate/Import/Share/Streak, nextDay, noteChecklist/Filter/Tags,
-  weeklyStats, blockOrder, phaseUnlock, validateCartridge, cartridgeFormat/Library/Plan
+  weeklyStats, blockOrder, phaseUnlock, validateCartridge, cartridgeFormat/Library/Plan,
+  workoutDraftState (meaningful-input, hydration validation, identity-conflict matrix)
 - `hooks/` — usePlaybook
 - `auth/` — offlineAccess; `cartridges/` — accessModel; `sync/` — cartridgeAccess (Supabase reads)
 
@@ -384,6 +459,13 @@ can be tested in a plain node environment. Browser globals in tests are stubbed 
   session delete in the UI.
 - **`Calendar.jsx` sorts by `id` descending** as a proxy for recency — correct as long as
   sessions are only created live (never backfilled with older dates).
+- **No React-render test infra exists in this repo** — all Vitest coverage drives Dexie
+  tables and pure `utils/` logic directly, never a mounted component. A6.5's hydration
+  effect, autosave field-wiring, and the visibilitychange/pagehide/unmount flush paths are
+  therefore verified by direct code review plus manual/E2E browser testing, not by an
+  automated test that renders `HUD`/`DBProvider`. The underlying persistence primitives
+  (debounce, generation, resurrection-race prevention, the atomic-transaction pattern) are
+  fully unit tested in `db/workoutDrafts.test.js` independent of React.
 - Historical notes: W7 (test bootstrap) and W8 (sync extraction), described as pending in
   older revisions of this file, are long shipped; `app/src/sync/` exists and is the real
   home of sync logic.
