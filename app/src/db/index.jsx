@@ -16,6 +16,9 @@ import { useState, useEffect, useRef, useCallback, createContext, useContext } f
 import useRoundsTimer from '../hooks/useRoundsTimer.js'
 import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
+import { useAuth } from '../auth/AuthProvider.jsx'
+import { workoutDraftController, loadActiveDraft } from './workoutDrafts.js'
+import { validateDraftRow, parseLegacyDay, parseLegacyPhase } from '../utils/workoutDraftState.js'
 
 // Re-export for backward compatibility (syncQueue.test.js and any external
 // consumer importing trySyncQueue from db/index.jsx keep working unchanged).
@@ -139,6 +142,14 @@ const DBContext = createContext(null)
  * DBProvider — wraps the app and provides DB access via useDB()
  */
 export function DBProvider({ children }) {
+    // ── A6.5 — owner resolution ────────────────────────────────────────────────
+    // AuthProvider wraps App in main.jsx, so DBProvider (nested under
+    // AuthGate/CartridgeAccessProvider) is a descendant of its context.
+    // AuthGate renders only <SignIn/> while !user, so DBProvider never
+    // mounts without a resolved (online or validated-offline) owner.
+    const { user } = useAuth()
+    const ownerUserId = user?.id ?? null
+
     // ── Persistent DB-backed state ─────────────────────────────────────────────
     const [phase, _setPhase] = useState(1)
     const [appName, _setAppName] = useState(DEFAULTS.appName)
@@ -152,6 +163,28 @@ export function DBProvider({ children }) {
     // W23.5 — persistent-storage status: null = unknown/checking,
     // true = PERSISTENT granted, false = best-effort (or API unavailable).
     const [storagePersisted, setStoragePersisted] = useState(null)
+
+    // ── A6.5 — durable active-workout draft state ──────────────────────────────
+    // draftPhase: 'idle' (no owner yet) | 'hydrating' | 'ready'.
+    // continueDraft: a validated, hydratable row offered as "Continue" —
+    //   NOT yet applied to live state (resumeDraft() does that explicitly).
+    // draftIssue: { reason } for a PRESERVED but unhydratable row (unsupported
+    //   schema/state, or corrupt) — never exposes row contents.
+    // Autosave stays OFF while either is set, so a fresh save can never
+    // silently overwrite a row the user hasn't explicitly resolved yet.
+    const [draftPhase, setDraftPhase] = useState('idle')
+    const [continueDraft, setContinueDraft] = useState(null)
+    const [draftIssue, setDraftIssue] = useState(null)
+    const [draftCreatedAt, setDraftCreatedAt] = useState(null)
+    // Bumped whenever the active-workout lifecycle resets (log success /
+    // manual reset), so useWorkoutDraftPersistence knows to start a fresh
+    // createdAt for the next draft rather than reusing the old one.
+    const [draftLifecycleKey, setDraftLifecycleKey] = useState(0)
+    // Bumped by discrete-action setters (checks) so the persistence hook can
+    // tell "checkbox tap — save now" apart from "text edit — debounce".
+    const [immediateTick, setImmediateTick] = useState(0)
+
+    const autosaveEnabled = draftPhase === 'ready' && !continueDraft && !draftIssue
 
     // ── In-memory active workout state (not persisted to Dexie) ───────────────
     const [day, setDay] = useState(WORKOUT_DEFAULTS.day)
@@ -381,6 +414,7 @@ export function DBProvider({ children }) {
 
     const toggleMobilityCheck = useCallback((slot, val) => {
         setMobChecked(prev => ({ ...prev, [slot]: val }))
+        setImmediateTick(t => t + 1) // A6.5 — discrete action, save now (not debounced)
     }, [])
 
     const updateStrengthSet = useCallback((key, field, val) => {
@@ -393,6 +427,7 @@ export function DBProvider({ children }) {
 
     const toggleCooldownCheck = useCallback((slot, val) => {
         setClrChecked(prev => ({ ...prev, [slot]: val }))
+        setImmediateTick(t => t + 1) // A6.5 — discrete action, save now (not debounced)
     }, [])
 
     const addAltRow = useCallback(() => {
@@ -433,6 +468,118 @@ export function DBProvider({ children }) {
         setMobBlockOpen(WORKOUT_DEFAULTS.mobBlockOpen)
         setStrBlockOpen(WORKOUT_DEFAULTS.strBlockOpen)
         setClrBlockOpen(WORKOUT_DEFAULTS.clrBlockOpen)
+        // A6.5 — the NEXT meaningful draft gets a fresh createdAt/lifecycle,
+        // never inherits the just-cleared one's.
+        setDraftCreatedAt(null)
+        setDraftLifecycleKey(k => k + 1)
+    }, [])
+
+    // ── A6.5 — draft hydration ─────────────────────────────────────────────────
+    // Resolve owner → load [ownerUserId,'active'] only → validate → offer
+    // Continue (valid) or preserve+flag (unsupported/corrupt), never both.
+    // Owner mismatch is never exposed — treated exactly as "no draft".
+    // Nothing here ever WRITES; the row is only read and classified.
+    useEffect(() => {
+        let cancelled = false
+        setDraftPhase('idle')
+        setContinueDraft(null)
+        setDraftIssue(null)
+
+        if (!ownerUserId) return
+
+        async function hydrate() {
+            setDraftPhase('hydrating')
+            let row
+            try {
+                row = await loadActiveDraft(ownerUserId)
+            } catch (err) {
+                console.error('workoutDrafts: hydration read failed', err)
+                row = null
+            }
+            if (cancelled) return
+
+            if (!row) {
+                setDraftPhase('ready')
+                return
+            }
+
+            const result = validateDraftRow(row, ownerUserId)
+            if (!result.ok) {
+                if (result.reason !== 'owner-mismatch') {
+                    // Preserve the row; surface an explicit, content-free state.
+                    // 'owner-mismatch' behaves exactly like "no draft" instead —
+                    // never hydrated, exposed, rewritten or merged.
+                    setDraftIssue({ reason: result.reason })
+                }
+                setDraftPhase('ready')
+                return
+            }
+
+            setContinueDraft(result.row)
+            setDraftPhase('ready')
+        }
+        hydrate()
+
+        return () => { cancelled = true }
+    }, [ownerUserId])
+
+    /** Applies an offered Continue draft onto live state. Legacy only — a
+     *  cartridge-kind draft is not reachable until A7 ships the renderer. */
+    const resumeDraft = useCallback(() => {
+        if (!continueDraft) return
+        const { workoutIdentity, state } = continueDraft
+        if (workoutIdentity.kind === 'legacy-playbook') {
+            const resumedDay = parseLegacyDay(workoutIdentity.dayTemplateKey)
+            const resumedPhase = parseLegacyPhase(workoutIdentity.phaseId)
+            if (resumedDay != null) setDay(resumedDay)
+            if (resumedPhase != null) setPhase(resumedPhase)
+            if (workoutIdentity.hipScore != null) setHipScore(workoutIdentity.hipScore)
+
+            const f = state.fields || {}
+            if (f.mobChecked) setMobChecked(f.mobChecked)
+            if (f.clrChecked) setClrChecked(f.clrChecked)
+            if (f.strSets) setStrSets(f.strSets)
+            if (f.coreSets) setCoreSets(f.coreSets)
+            if (f.bagRounds !== undefined) setBagRounds(f.bagRounds)
+            if (f.bagCourse !== undefined) setBagCourse(f.bagCourse)
+            if (f.bagModules !== undefined) setBagModules(f.bagModules)
+            if (f.bagWorkouts !== undefined) setBagWorkouts(f.bagWorkouts)
+            if (f.notes !== undefined) setNotes(f.notes)
+            if (f.gymSessionType !== undefined) setGymSessionType(f.gymSessionType)
+            if (f.altRows) setAltRows(f.altRows)
+            if (f.altDuration !== undefined) setAltDuration(f.altDuration)
+            if (f.hudScrollY !== undefined) setHudScrollY(f.hudScrollY)
+            if (f.bagBlockOpen !== undefined) setBagBlockOpen(f.bagBlockOpen)
+            if (f.coreBlockOpen !== undefined) setCoreBlockOpen(f.coreBlockOpen)
+            if (f.mobBlockOpen !== undefined) setMobBlockOpen(f.mobBlockOpen)
+            if (f.strBlockOpen !== undefined) setStrBlockOpen(f.strBlockOpen)
+            if (f.clrBlockOpen !== undefined) setClrBlockOpen(f.clrBlockOpen)
+        }
+        setDraftCreatedAt(continueDraft.createdAt)
+        setContinueDraft(null)
+    }, [continueDraft])
+
+    /** Deletes the stored draft (offered-Continue or preserved-issue row) and
+     *  clears whichever hydration state was showing it. Does NOT itself touch
+     *  live in-memory fields — callers that are discarding an ACTIVE draft
+     *  (the context-conflict preflight) pair this with resetActiveWorkout(). */
+    const discardCurrentDraft = useCallback(async () => {
+        if (!ownerUserId) return
+        await workoutDraftController.discardDraft(ownerUserId)
+        setContinueDraft(null)
+        setDraftIssue(null)
+    }, [ownerUserId])
+
+    // A6.5 — best-effort flush on DBProvider's own unmount (sign-out via
+    // AuthGate swapping to SignIn, or full app teardown). This flushes
+    // whatever the controller already has pending — it has no access to
+    // `workout`/definitionSnapshot, so it cannot rebuild a fresh row; the
+    // fresher visibilitychange/pagehide/tab-switch flush lives in
+    // useWorkoutDraftPersistence (called from HUD, which has `workout`).
+    useEffect(() => {
+        return () => {
+            workoutDraftController.flush()
+        }
     }, [])
 
     // ── Persistent-storage request (W23.5) ────────────────────────────────────
@@ -641,6 +788,11 @@ export function DBProvider({ children }) {
             clrBlockOpen, setClrBlockOpen,
             coreBlockOpen, setCoreBlockOpen,
             resetActiveWorkout,
+
+            // ── A6.5 — durable active-workout draft ──
+            ownerUserId, autosaveEnabled, immediateTick,
+            continueDraft, draftIssue, resumeDraft, discardCurrentDraft,
+            draftCreatedAt, draftLifecycleKey,
 
             // ── Timer state ──
             swTime, swRunning, toggleStopwatch, resetStopwatch,

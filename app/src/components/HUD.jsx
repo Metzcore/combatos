@@ -15,9 +15,10 @@
  * remain presentational and receive props as before.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
+import { useWorkoutDraftPersistence } from '../hooks/useWorkoutDraftPersistence.js'
 import { nextDay } from '../utils/nextDay.js'
 import { PHASE_UNLOCK_THRESHOLD, phaseReady, isPhaseSelectable } from '../utils/phaseUnlock.js'
 import MobilityBlock from './MobilityBlock.jsx'
@@ -57,11 +58,33 @@ export default function HUD() {
         mobBlockOpen, setMobBlockOpen,
         strBlockOpen, setStrBlockOpen,
         clrBlockOpen, setClrBlockOpen,
-        resetActiveWorkout
+        resetActiveWorkout,
+        // A6.5 — durable active-workout draft
+        ownerUserId, autosaveEnabled, immediateTick,
+        draftCreatedAt, draftLifecycleKey
     } = useDB()
 
     // ── Playbook data ────────────────────────────
     const workout = usePlaybook(phase, day, hipScore)
+
+    // ── A6.5 — durable draft autosave ─────────────
+    const draftFields = useMemo(() => ({
+        mobChecked, clrChecked, strSets, coreSets,
+        bagRounds, bagCourse, bagModules, bagWorkouts,
+        notes, gymSessionType, altRows, altDuration,
+        hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen
+    }), [mobChecked, clrChecked, strSets, coreSets, bagRounds, bagCourse, bagModules, bagWorkouts,
+        notes, gymSessionType, altRows, altDuration, hudScrollY, bagBlockOpen, coreBlockOpen,
+        mobBlockOpen, strBlockOpen, clrBlockOpen])
+
+    const { flushNow: flushDraftNow } = useWorkoutDraftPersistence({
+        enabled: autosaveEnabled,
+        ownerUserId, day, phase, hipScore, workout,
+        fields: draftFields,
+        immediateTick,
+        initialCreatedAt: draftCreatedAt,
+        lifecycleKey: draftLifecycleKey
+    })
 
     // ── Day-7 default session type (D2 / W16) ─────
     // Day 7 is the optional/custom gym day — default the Session Type to
@@ -176,6 +199,12 @@ export default function HUD() {
             altString = altRows.map(r => `${r.name || 'Movement'} — ${r.v1 || ''} | ${r.v2 || ''} | ${r.v3 || ''}`).join('\n')
         }
 
+        // A6.5 — persist the newest edits before the atomic log transaction,
+        // so a failed log leaves the freshest recoverable draft (not a
+        // stale, up-to-700ms-old one). logSession() itself invalidates the
+        // controller and deletes the draft inside the same transaction.
+        await flushDraftNow()
+
         const parseNum = (val) => (val === '' || val == null || isNaN(val)) ? '' : Number(val)
 
         const strength = (workout.strSlots || []).map((s, idx) => ({
@@ -210,7 +239,7 @@ export default function HUD() {
             completeness: pct
         })
         alert(`✅ Session logged!\nDay ${day} | Phase ${phase}\nCompleteness: ${pct}%`)
-    }, [workout, completeness, strSets, coreSets, mobChecked, clrChecked, bagRounds, bagCourse, bagModules, bagWorkouts, notes, day, phase, hipScore, logSession, gymSessionType, altRows, altDuration])
+    }, [workout, completeness, strSets, coreSets, mobChecked, clrChecked, bagRounds, bagCourse, bagModules, bagWorkouts, notes, day, phase, hipScore, logSession, gymSessionType, altRows, altDuration, flushDraftNow])
 
     // ── Reset HUD ────────────────────────────────
     // Day is intentionally preserved (matches original behaviour: "Day and Phase are kept")
