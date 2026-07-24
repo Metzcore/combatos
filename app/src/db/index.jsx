@@ -17,9 +17,9 @@ import useRoundsTimer from '../hooks/useRoundsTimer.js'
 import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
-import { workoutDraftController, loadActiveDraft } from './workoutDrafts.js'
+import { workoutDraftController, loadActiveDraft, commitLoggedSession } from './workoutDrafts.js'
 import {
-    validateDraftRow, parseLegacyDay, parseLegacyPhase,
+    classifyHydratedDraft, parseLegacyDay, parseLegacyPhase,
     buildLegacyIdentity, pickFields, LEGACY_STATE_FIELD_KEYS,
 } from '../utils/workoutDraftState.js'
 
@@ -179,6 +179,10 @@ export function DBProvider({ children }) {
     const [continueDraft, setContinueDraft] = useState(null)
     const [draftIssue, setDraftIssue] = useState(null)
     const [draftCreatedAt, setDraftCreatedAt] = useState(null)
+    // Bumped by retryHydration() to re-run the hydration effect after a
+    // read failure — the effect's own deps ([ownerUserId]) don't change on
+    // retry, so this is what actually triggers the re-attempt.
+    const [hydrationRetryKey, setHydrationRetryKey] = useState(0)
     // Bumped whenever the active-workout lifecycle resets (log success /
     // manual reset), so useWorkoutDraftPersistence knows to start a fresh
     // createdAt for the next draft rather than reusing the old one.
@@ -477,11 +481,37 @@ export function DBProvider({ children }) {
         setDraftLifecycleKey(k => k + 1)
     }, [])
 
+    /**
+     * discardAndResetActiveWorkout — Reset HUD's action. Invalidates pending
+     * writes and deletes the durable draft FIRST; only clears live state if
+     * that succeeds. If the delete fails, live state is left untouched —
+     * clearing it anyway would desync the screen from the still-persisted
+     * row (a later reload/Continue would offer content the user believed
+     * they'd cleared). logSession's own post-commit reset does NOT go
+     * through this path: the transaction already deleted the row, so
+     * redoing it here would be a redundant delete that could only ever
+     * spuriously fail and mask an already-successful log.
+     */
+    const discardAndResetActiveWorkout = useCallback(async () => {
+        if (ownerUserId) {
+            await workoutDraftController.discardDraft(ownerUserId)
+        }
+        resetActiveWorkout()
+    }, [ownerUserId, resetActiveWorkout])
+
     // ── A6.5 — draft hydration ─────────────────────────────────────────────────
-    // Resolve owner → load [ownerUserId,'active'] only → validate → offer
-    // Continue (valid) or preserve+flag (unsupported/corrupt), never both.
-    // Owner mismatch is never exposed — treated exactly as "no draft".
-    // Nothing here ever WRITES; the row is only read and classified.
+    // Resolve owner → load [ownerUserId,'active'] only → classify → offer
+    // Continue (valid), preserve+flag (unsupported/corrupt), or protect as a
+    // read-error state — never more than one. Owner mismatch is never
+    // exposed — treated exactly as "no draft". Nothing here ever WRITES;
+    // the row is only read and classified (classifyHydratedDraft is pure).
+    //
+    // A READ FAILURE is its own protected state, never collapsed into "no
+    // draft exists": the underlying row may still be there and valid — we
+    // simply failed to read it. Falling through to 'ready' with nothing set
+    // would enable autosave and let a fresh draft silently overwrite it the
+    // moment content became meaningful. retryHydration() re-runs this via
+    // hydrationRetryKey; there is no Discard for this state, only Retry.
     useEffect(() => {
         let cancelled = false
         setDraftPhase('idle')
@@ -492,39 +522,29 @@ export function DBProvider({ children }) {
 
         async function hydrate() {
             setDraftPhase('hydrating')
-            let row
+            let row = null
+            let readError = null
             try {
                 row = await loadActiveDraft(ownerUserId)
             } catch (err) {
                 console.error('workoutDrafts: hydration read failed', err)
-                row = null
+                readError = err
             }
             if (cancelled) return
 
-            if (!row) {
-                setDraftPhase('ready')
-                return
-            }
-
-            const result = validateDraftRow(row, ownerUserId)
-            if (!result.ok) {
-                if (result.reason !== 'owner-mismatch') {
-                    // Preserve the row; surface an explicit, content-free state.
-                    // 'owner-mismatch' behaves exactly like "no draft" instead —
-                    // never hydrated, exposed, rewritten or merged.
-                    setDraftIssue({ reason: result.reason })
-                }
-                setDraftPhase('ready')
-                return
-            }
-
-            setContinueDraft(result.row)
+            const outcome = classifyHydratedDraft({ row, readError, ownerUserId })
+            setContinueDraft(outcome.continueDraft)
+            setDraftIssue(outcome.draftIssue)
             setDraftPhase('ready')
         }
         hydrate()
 
         return () => { cancelled = true }
-    }, [ownerUserId])
+    }, [ownerUserId, hydrationRetryKey])
+
+    const retryHydration = useCallback(() => {
+        setHydrationRetryKey(k => k + 1)
+    }, [])
 
     /** Applies an offered Continue draft onto live state. Legacy only — a
      *  cartridge-kind draft is not reachable until A7 ships the renderer. */
@@ -721,21 +741,16 @@ export function DBProvider({ children }) {
         // clear. No permanent payload or sync-envelope field changes.
         workoutDraftController.invalidate()
 
-        let id
-        await db.transaction('rw', db.sessions, db.syncQueue, db.workoutDrafts, async () => {
-            id = await db.sessions.add(sessionData)
-
-            // Wrap payload in action envelope
-            const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
-            await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
-
-            if (ownerUserId) await db.workoutDrafts.delete([ownerUserId, 'active'])
-        })
-        // Reached only on a committed transaction — on failure this throws,
-        // the transaction rolls back sessions+syncQueue+workoutDrafts
-        // together, the draft remains, and nothing below runs (no success
-        // message, no in-memory reset). The remote drain below is
-        // deliberately outside the local commit boundary.
+        // commitLoggedSession (db/workoutDrafts.js) is the exact atomic
+        // transaction under test in workoutDrafts.test.js — extracted so
+        // production and the test call the SAME function, not a hand-copied
+        // mirror that could drift silently (no React-render test infra
+        // exists here to exercise this path directly). On failure this
+        // throws, the transaction rolls back sessions+syncQueue+
+        // workoutDrafts together, the draft remains, and nothing below runs
+        // (no success message, no in-memory reset). The remote drain below
+        // is deliberately outside the local commit boundary.
+        await commitLoggedSession({ sessionData, sessionId, ownerUserId })
 
         await refreshCounts()
         await refreshPending()
@@ -827,12 +842,12 @@ export function DBProvider({ children }) {
             strBlockOpen, setStrBlockOpen,
             clrBlockOpen, setClrBlockOpen,
             coreBlockOpen, setCoreBlockOpen,
-            resetActiveWorkout,
+            resetActiveWorkout, discardAndResetActiveWorkout,
 
             // ── A6.5 — durable active-workout draft ──
             ownerUserId, autosaveEnabled, immediateTick,
             continueDraft, draftIssue, resumeDraft, discardCurrentDraft,
-            draftCreatedAt, draftLifecycleKey, getLiveDraftRow,
+            draftCreatedAt, draftLifecycleKey, getLiveDraftRow, retryHydration,
 
             // ── Timer state ──
             swTime, swRunning, toggleStopwatch, resetStopwatch,

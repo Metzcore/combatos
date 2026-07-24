@@ -13,13 +13,20 @@
  * Workout session state is now held in DBProvider (db/index.jsx) so it
  * survives tab switches. HUD remains the controller; all child components
  * remain presentational and receive props as before.
+ *
+ * A6.5 gate: while a Continue offer or a preserved unsupported/corrupt/
+ * read-failed draft is unresolved, the ENTIRE interactive HUD below the
+ * resolution banner is withheld — no selectors, no blocks, no Log/Reset.
+ * Editing or logging over an unresolved draft would silently create a
+ * second, conflicting version of "what's live" before the user has chosen
+ * Continue or Discard.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { usePlaybook } from '../hooks/usePlaybook.js'
 import { db, useDB } from '../db/index.jsx'
 import { useWorkoutDraftPersistence } from '../hooks/useWorkoutDraftPersistence.js'
-import { buildLegacyIdentity, requiresConflictGuard } from '../utils/workoutDraftState.js'
+import { buildLegacyIdentity, requiresConflictGuard, isLegacyStateMeaningful } from '../utils/workoutDraftState.js'
 import { nextDay } from '../utils/nextDay.js'
 import { PHASE_UNLOCK_THRESHOLD, phaseReady, isPhaseSelectable } from '../utils/phaseUnlock.js'
 import MobilityBlock from './MobilityBlock.jsx'
@@ -60,15 +67,15 @@ export default function HUD() {
         mobBlockOpen, setMobBlockOpen,
         strBlockOpen, setStrBlockOpen,
         clrBlockOpen, setClrBlockOpen,
-        resetActiveWorkout,
+        resetActiveWorkout, discardAndResetActiveWorkout,
         // A6.5 — durable active-workout draft
         ownerUserId, autosaveEnabled, immediateTick,
-        draftCreatedAt, draftLifecycleKey, getLiveDraftRow,
+        draftCreatedAt, draftLifecycleKey, getLiveDraftRow, retryHydration,
         continueDraft, draftIssue, resumeDraft, discardCurrentDraft
     } = useDB()
 
     // ── Playbook data ────────────────────────────
-    const workout = usePlaybook(phase, day, hipScore)
+    const livePlaybookWorkout = usePlaybook(phase, day, hipScore)
 
     // ── A6.5 — durable draft autosave ─────────────
     const draftFields = useMemo(() => ({
@@ -80,7 +87,50 @@ export default function HUD() {
         notes, gymSessionType, altRows, altDuration, hudScrollY, bagBlockOpen, coreBlockOpen,
         mobBlockOpen, strBlockOpen, clrBlockOpen])
 
-    const { flushNow: flushDraftNow } = useWorkoutDraftPersistence({
+    // ── A6.5 — frozen workout definition ──────────
+    // Once a draft is meaningful (fresh) or resumed (Continue), rendering
+    // AND autosave both use this FROZEN snapshot instead of the live
+    // playbook. Without this, a PWA/playbook update mid-session (or a
+    // resumed draft whose exercises have since been renumbered/renamed)
+    // would reinterpret already-saved slot values under different
+    // exercises, and every subsequent autosave would silently overwrite
+    // the protective definitionSnapshot with fresh, possibly-different
+    // live data — defeating the entire point of capturing it.
+    const [frozenWorkout, setFrozenWorkout] = useState(null)
+
+    // Cleared whenever the draft lifecycle resets (log success / Reset
+    // HUD), so the NEXT draft freezes fresh rather than inheriting this one.
+    const prevLifecycleKeyRef = useRef(draftLifecycleKey)
+    useEffect(() => {
+        if (draftLifecycleKey !== prevLifecycleKeyRef.current) {
+            prevLifecycleKeyRef.current = draftLifecycleKey
+            setFrozenWorkout(null)
+        }
+    }, [draftLifecycleKey])
+
+    // Freeze the moment content becomes meaningful for a FRESH (non-resumed)
+    // draft. Never freezes while a Continue/issue resolution is pending —
+    // live fields are still defaults at that point, not real content.
+    useEffect(() => {
+        if (frozenWorkout) return
+        if (continueDraft || draftIssue) return
+        if (isLegacyStateMeaningful(draftFields)) {
+            setFrozenWorkout(livePlaybookWorkout)
+        }
+    }, [frozenWorkout, continueDraft, draftIssue, draftFields, livePlaybookWorkout])
+
+    // The effective workout used for BOTH rendering and the definitionSnapshot
+    // fed into autosave below — frozen once one exists, live otherwise.
+    const workout = frozenWorkout || livePlaybookWorkout
+
+    const handleContinueDraft = useCallback(() => {
+        if (continueDraft?.definitionSnapshot?.value) {
+            setFrozenWorkout(continueDraft.definitionSnapshot.value)
+        }
+        resumeDraft()
+    }, [continueDraft, resumeDraft])
+
+    const { flushNow: flushDraftNow, status: draftSaveStatus } = useWorkoutDraftPersistence({
         enabled: autosaveEnabled,
         ownerUserId, day, phase, hipScore, workout,
         fields: draftFields,
@@ -96,11 +146,14 @@ export default function HUD() {
     // is never gated — only these three selectors reinterpret live values.
     const pendingSwitchRef = useRef(null)
     const [conflictOpen, setConflictOpen] = useState(false)
+    const [conflictPending, setConflictPending] = useState(false)
+    const [conflictError, setConflictError] = useState(null)
 
     const attemptIdentityChange = useCallback((nextDayVal, nextPhaseVal, nextHipScoreVal, apply) => {
         const targetIdentity = buildLegacyIdentity({ day: nextDayVal, phase: nextPhaseVal, hipScore: nextHipScoreVal })
         if (requiresConflictGuard({ liveRow: getLiveDraftRow(), targetIdentity })) {
             pendingSwitchRef.current = apply
+            setConflictError(null)
             setConflictOpen(true)
             return
         }
@@ -121,17 +174,47 @@ export default function HUD() {
 
     const handleKeepWorkout = useCallback(() => {
         pendingSwitchRef.current = null
+        setConflictError(null)
         setConflictOpen(false)
     }, [])
 
     const handleDiscardAndSwitch = useCallback(async () => {
-        const apply = pendingSwitchRef.current
-        pendingSwitchRef.current = null
-        setConflictOpen(false)
-        await discardCurrentDraft()
-        resetActiveWorkout()
-        if (apply) apply()
+        // discardCurrentDraft() can reject on a real delete failure — the
+        // sheet stays open and nothing is applied/reset until it succeeds,
+        // so the current workout/context is preserved on failure.
+        setConflictError(null)
+        setConflictPending(true)
+        try {
+            await discardCurrentDraft()
+            resetActiveWorkout()
+            const apply = pendingSwitchRef.current
+            pendingSwitchRef.current = null
+            setConflictOpen(false)
+            if (apply) apply()
+        } catch (err) {
+            console.error('discard-and-switch failed', err)
+            setConflictError('Could not discard the saved workout. Try again.')
+        } finally {
+            setConflictPending(false)
+        }
     }, [discardCurrentDraft, resetActiveWorkout])
+
+    // ── A6.5 — discarding an OFFERED draft (Continue/issue banner) ───────
+    const [offerDiscardPending, setOfferDiscardPending] = useState(false)
+    const [offerDiscardError, setOfferDiscardError] = useState(null)
+
+    const handleDiscardOffered = useCallback(async () => {
+        setOfferDiscardError(null)
+        setOfferDiscardPending(true)
+        try {
+            await discardCurrentDraft()
+        } catch (err) {
+            console.error('discard failed', err)
+            setOfferDiscardError('Could not discard. Try again.')
+        } finally {
+            setOfferDiscardPending(false)
+        }
+    }, [discardCurrentDraft])
 
     // ── Day-7 default session type (D2 / W16) ─────
     // Day 7 is the optional/custom gym day — default the Session Type to
@@ -289,11 +372,27 @@ export default function HUD() {
     }, [workout, completeness, strSets, coreSets, mobChecked, clrChecked, bagRounds, bagCourse, bagModules, bagWorkouts, notes, day, phase, hipScore, logSession, gymSessionType, altRows, altDuration, flushDraftNow])
 
     // ── Reset HUD ────────────────────────────────
-    // Day is intentionally preserved (matches original behaviour: "Day and Phase are kept")
-    const handleReset = useCallback(() => {
+    // Day is intentionally preserved (matches original behaviour: "Day and Phase are kept").
+    // A6.5: invalidates pending writes and deletes the durable draft BEFORE
+    // clearing live state (discardAndResetActiveWorkout). If the delete
+    // fails, live state is left untouched and an error shows — clearing
+    // fields anyway would desync the screen from the still-persisted row.
+    const [resetPending, setResetPending] = useState(false)
+    const [resetError, setResetError] = useState(null)
+
+    const handleReset = useCallback(async () => {
         if (!confirm('Clear all inputs for next session? (Day and Phase are kept)')) return
-        resetActiveWorkout()
-    }, [resetActiveWorkout])
+        setResetError(null)
+        setResetPending(true)
+        try {
+            await discardAndResetActiveWorkout()
+        } catch (err) {
+            console.error('reset failed', err)
+            setResetError('Could not clear the saved workout. Try again.')
+        } finally {
+            setResetPending(false)
+        }
+    }, [discardAndResetActiveWorkout])
 
     // ── Scroll Restoration ────────────────────────
     const scrollRef = useRef(hudScrollY)
@@ -325,6 +424,11 @@ export default function HUD() {
         }
     }, [hudScrollY])
 
+    // ── A6.5 — resolution gate (plan v2 §5/§10, Sol review blocker #2) ────
+    // While an offered draft or a protected error state is unresolved, the
+    // entire interactive HUD below is withheld.
+    const resolutionPending = Boolean(continueDraft || draftIssue)
+
     return (
         <div className="app">
             {/* ── Header ──────────────────────────── */}
@@ -334,233 +438,293 @@ export default function HUD() {
             </header>
 
             <main className="content">
-                {/* ── Phase unlock banner ────────────── */}
-                {phaseUnlocked && (
-                    <PhaseUnlockBanner
-                        currentPhase={phase}
-                        sessionsDone={gymSessionsThisPhase}
-                        threshold={PHASE_UNLOCK_THRESHOLD}
-                        // W27 invariant: never call setPhase with a non-selectable
-                        // phase. Safe here — this banner only renders when phaseReady
-                        // is true, so phase+1 is by definition already earned/selectable.
-                        // A6.5: routed through the same conflict preflight as the
-                        // selectors below — advancing phase reinterprets the day too.
-                        onAdvance={() => attemptIdentityChange(day, phase + 1, hipScore, () => setPhase(phase + 1))}
-                    />
-                )}
-
-                {/* ── A6.5 — durable draft: Continue / needs-update / unavailable ── */}
-                {continueDraft && (
-                    <div className="draft-banner">
-                        <div className="draft-banner__title">Unfinished workout</div>
-                        <div>Resume where you left off, or start fresh.</div>
-                        <div className="draft-banner__actions">
-                            <button type="button" className="btn-primary" onClick={resumeDraft}>Continue</button>
-                            <button type="button" className="btn-secondary" onClick={discardCurrentDraft}>Discard</button>
-                        </div>
-                    </div>
-                )}
-                {draftIssue && (
-                    <div className="draft-banner">
-                        <div className="draft-banner__title">
-                            {draftIssue.reason === 'corrupt' ? 'Saved workout unavailable' : 'Saved workout needs an app update'}
-                        </div>
-                        <div className="draft-banner__actions">
-                            <button type="button" className="btn-secondary" onClick={discardCurrentDraft}>Discard</button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Selector row ───────────────────── */}
-
-                <div className="selector-row">
-                    <div className="selector-group">
-                        <label>Day</label>
-                        <select value={day} onChange={e => handleDayChange(Number(e.target.value))}>
-                            {DAY_LABELS.map((l, i) => (
-                                <option key={i + 1} value={i + 1}>{l}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="selector-group">
-                        <label>Phase</label>
-                        {/* W27 invariant: never call setPhase with a non-selectable */}
-                        {/* phase. Disabled options can't be picked by the user, so    */}
-                        {/* onChange can only ever yield a selectable value.            */}
-                        <select value={phase} onChange={e => handlePhaseSelectorChange(Number(e.target.value))}>
-                            <option value={1} disabled={!isPhaseSelectable(1, sessionCount, phase)}>Phase 1</option>
-                            <option value={2} disabled={!isPhaseSelectable(2, sessionCount, phase)}>Phase 2</option>
-                            <option value={3} disabled={!isPhaseSelectable(3, sessionCount, phase)}>Phase 3</option>
-                        </select>
-                    </div>
-                    <div className="selector-group">
-                        <label>Hip Score</label>
-                        <select value={hipScore} onChange={e => handleHipScoreChange(Number(e.target.value))}>
-                            {HIP_LABELS.map((l, i) => (
-                                <option key={i + 1} value={i + 1}>{i + 1}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <WorkoutDraftSheet
-                    open={conflictOpen}
-                    onKeep={handleKeepWorkout}
-                    onDiscardAndSwitch={handleDiscardAndSwitch}
-                />
-
-                {/* ── Stale-phase mismatch (W27, Touch C) ── */}
-                {/* Heads-up only, directly under the Phase selector: the last  */}
-                {/* logged session's phase differs from the phase now selected. */}
-                {/* Self-clears when the selector matches or a new session logs.*/}
-                {phaseMismatch && (
-                    <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
-                        ⚠️ Last logged Phase {lastSession.phase} — you're on Phase {phase}
-                    </div>
-                )}
-
-                {/* ── Phase progress line (W14) ───────── */}
-                {/* Signal only — derives from the SAME sessionCount +      */}
-                {/* phaseReady() the unlock check reads. When the phase is  */}
-                {/* ready, the PhaseUnlockBanner above already says so, so  */}
-                {/* this line only renders while still locked.              */}
-                {phase < 3 && !phaseUnlocked && (
-                    <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
-                        🔒 Phase {phase + 1} unlocks after {PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase} more S&amp;C session{PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase === 1 ? '' : 's'} ({gymSessionsThisPhase}/{PHASE_UNLOCK_THRESHOLD})
-                    </div>
-                )}
-
-                {/* ── Next Day indicator ──────────────── */}
-                {progressLoaded && (
-                    <div style={{
-                        background: 'linear-gradient(135deg, rgba(255,165,0,0.12) 0%, rgba(255,100,0,0.08) 100%)',
-                        border: '1px solid rgba(255,165,0,0.25)',
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        marginTop: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                    }}>
-                        <span style={{ fontSize: '1.2rem' }}>📅</span>
-                        <div>
-                            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,165,0,0.7)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Next Up</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#FFA500', letterSpacing: '1px' }}>{progressSummary}</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Hip score status ────────────────── */}
-                {hipScore <= 2 && (
-                    <div className="hip-alert-banner">
-                        🔴 HIGH ALERT — Hip protocol active. mobility exercises adjusted.
-                    </div>
-                )}
-                {hipScore === 3 && (
-                    <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
-                        🟡 MODERATE — Monitor closely
-                    </div>
-                )}
-                {hipScore >= 4 && (
-                    <div className="badge badge-green" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
-                        🟢 GOOD — Standard protocol active
-                    </div>
-                )}
-
-                {/* ── Fight Gym Day ────────────────────── */}
-                {workout.isFightGymDay ? (
-                    <FightGymDay
-                        day={day}
-                        sessionType={gymSessionType}
-                        onSessionTypeChange={setGymSessionType}
-                        bagRounds={bagRounds}
-                        onBagRoundsChange={setBagRounds}
-                        altRows={altRows}
-                        onAltRowsChange={setAltRows}
-                        altDuration={altDuration}
-                        onAltDurationChange={setAltDuration}
-                        notes={notes}
-                        onNotesChange={setNotes}
-                        onLog={handleLog}
-                    />
-                ) : (
+                {resolutionPending ? (
                     <>
-                        {/* ── Mobility ───────────────────── */}
-                        <MobilityBlock
-                            slots={workout.mobSlots}
-                            checked={mobChecked}
-                            onCheck={toggleMobilityCheck}
-                            open={mobBlockOpen}
-                            onToggle={() => setMobBlockOpen(!mobBlockOpen)}
-                        />
-
-                        {/* ── Strength + PAP ─────────────── */}
-                        {workout.dailyFocus && (
-                            <div style={{ textAlign: 'center', margin: '8px 0', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text)', letterSpacing: '0.5px' }}>
-                                🔥 {workout.dailyFocus}
+                        {/* ── A6.5 — Continue offer ────────────── */}
+                        {continueDraft && (
+                            <div className="draft-banner">
+                                <div className="draft-banner__title">Unfinished workout</div>
+                                <div>Resume where you left off, or start fresh.</div>
+                                {offerDiscardError && (
+                                    <div className="library-activation-sheet__error" role="alert">{offerDiscardError}</div>
+                                )}
+                                <div className="draft-banner__actions">
+                                    <button
+                                        type="button" className="btn-primary"
+                                        onClick={handleContinueDraft} disabled={offerDiscardPending}
+                                    >
+                                        Continue
+                                    </button>
+                                    <button
+                                        type="button" className="btn-secondary"
+                                        onClick={handleDiscardOffered} disabled={offerDiscardPending}
+                                    >
+                                        {offerDiscardPending ? 'Discarding…' : 'Discard'}
+                                    </button>
+                                </div>
                             </div>
                         )}
-                        <StrengthBlock
-                            slots={workout.strSlots}
-                            sets={strSets}
-                            onSetChange={updateStrengthSet}
-                            phase={phase}
-                            day={day}
-                            open={strBlockOpen}
-                            onToggle={() => setStrBlockOpen(!strBlockOpen)}
+
+                        {/* ── A6.5 — protected error state: read failure / unsupported / corrupt ── */}
+                        {draftIssue && (
+                            <div className="draft-banner">
+                                <div className="draft-banner__title">
+                                    {draftIssue.reason === 'read-failed'
+                                        ? "Couldn't load your saved workout"
+                                        : draftIssue.reason === 'corrupt'
+                                            ? 'Saved workout unavailable'
+                                            : 'Saved workout needs an app update'}
+                                </div>
+                                {offerDiscardError && (
+                                    <div className="library-activation-sheet__error" role="alert">{offerDiscardError}</div>
+                                )}
+                                <div className="draft-banner__actions">
+                                    {draftIssue.reason === 'read-failed' ? (
+                                        <button type="button" className="btn-primary" onClick={retryHydration}>
+                                            Retry
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button" className="btn-secondary"
+                                            onClick={handleDiscardOffered} disabled={offerDiscardPending}
+                                        >
+                                            {offerDiscardPending ? 'Discarding…' : 'Discard'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* ── Phase unlock banner ────────────── */}
+                        {phaseUnlocked && (
+                            <PhaseUnlockBanner
+                                currentPhase={phase}
+                                sessionsDone={gymSessionsThisPhase}
+                                threshold={PHASE_UNLOCK_THRESHOLD}
+                                // W27 invariant: never call setPhase with a non-selectable
+                                // phase. Safe here — this banner only renders when phaseReady
+                                // is true, so phase+1 is by definition already earned/selectable.
+                                // A6.5: routed through the same conflict preflight as the
+                                // selectors below — advancing phase reinterprets the day too.
+                                onAdvance={() => attemptIdentityChange(day, phase + 1, hipScore, () => setPhase(phase + 1))}
+                            />
+                        )}
+
+                        {/* ── Selector row ───────────────────── */}
+
+                        <div className="selector-row">
+                            <div className="selector-group">
+                                <label>Day</label>
+                                <select value={day} onChange={e => handleDayChange(Number(e.target.value))}>
+                                    {DAY_LABELS.map((l, i) => (
+                                        <option key={i + 1} value={i + 1}>{l}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="selector-group">
+                                <label>Phase</label>
+                                {/* W27 invariant: never call setPhase with a non-selectable */}
+                                {/* phase. Disabled options can't be picked by the user, so    */}
+                                {/* onChange can only ever yield a selectable value.            */}
+                                <select value={phase} onChange={e => handlePhaseSelectorChange(Number(e.target.value))}>
+                                    <option value={1} disabled={!isPhaseSelectable(1, sessionCount, phase)}>Phase 1</option>
+                                    <option value={2} disabled={!isPhaseSelectable(2, sessionCount, phase)}>Phase 2</option>
+                                    <option value={3} disabled={!isPhaseSelectable(3, sessionCount, phase)}>Phase 3</option>
+                                </select>
+                            </div>
+                            <div className="selector-group">
+                                <label>Hip Score</label>
+                                <select value={hipScore} onChange={e => handleHipScoreChange(Number(e.target.value))}>
+                                    {HIP_LABELS.map((l, i) => (
+                                        <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <WorkoutDraftSheet
+                            open={conflictOpen}
+                            onKeep={handleKeepWorkout}
+                            onDiscardAndSwitch={handleDiscardAndSwitch}
+                            pending={conflictPending}
+                            error={conflictError}
                         />
 
-                        {/* ── Bag Work ───────────────────── */}
-                        <BagBlock
-                            slot={workout.bagSlot}
-                            open={bagBlockOpen}
-                            onToggle={() => setBagBlockOpen(!bagBlockOpen)}
-                            bagRounds={bagRounds}
-                            onBagRoundsChange={setBagRounds}
-                            bagCourse={bagCourse}
-                            onBagCourseChange={setBagCourse}
-                            bagModules={bagModules}
-                            onBagModulesChange={setBagModules}
-                            bagWorkouts={bagWorkouts}
-                            onBagWorkoutsChange={setBagWorkouts}
-                            notes={notes}
-                            onNotesChange={setNotes}
-                        />
+                        {/* ── Stale-phase mismatch (W27, Touch C) ── */}
+                        {/* Heads-up only, directly under the Phase selector: the last  */}
+                        {/* logged session's phase differs from the phase now selected. */}
+                        {/* Self-clears when the selector matches or a new session logs.*/}
+                        {phaseMismatch && (
+                            <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                                ⚠️ Last logged Phase {lastSession.phase} — you're on Phase {phase}
+                            </div>
+                        )}
 
-                        {/* ── Core & Accessories ─────────── */}
-                        <CoreBlock
-                            sets={coreSets}
-                            onSetChange={updateCoreSet}
-                            open={coreBlockOpen}
-                            onToggle={() => setCoreBlockOpen(!coreBlockOpen)}
-                        />
+                        {/* ── Phase progress line (W14) ───────── */}
+                        {/* Signal only — derives from the SAME sessionCount +      */}
+                        {/* phaseReady() the unlock check reads. When the phase is  */}
+                        {/* ready, the PhaseUnlockBanner above already says so, so  */}
+                        {/* this line only renders while still locked.              */}
+                        {phase < 3 && !phaseUnlocked && (
+                            <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                                🔒 Phase {phase + 1} unlocks after {PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase} more S&amp;C session{PHASE_UNLOCK_THRESHOLD - gymSessionsThisPhase === 1 ? '' : 's'} ({gymSessionsThisPhase}/{PHASE_UNLOCK_THRESHOLD})
+                            </div>
+                        )}
 
-                        {/* ── Cooldown ───────────────────── */}
-                        <CooldownBlock
-                            slots={workout.clrSlots}
-                            checked={clrChecked}
-                            onCheck={toggleCooldownCheck}
-                            open={clrBlockOpen}
-                            onToggle={() => setClrBlockOpen(!clrBlockOpen)}
-                        />
+                        {/* ── Next Day indicator ──────────────── */}
+                        {progressLoaded && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(255,165,0,0.12) 0%, rgba(255,100,0,0.08) 100%)',
+                                border: '1px solid rgba(255,165,0,0.25)',
+                                borderRadius: '10px',
+                                padding: '12px 16px',
+                                marginTop: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <span style={{ fontSize: '1.2rem' }}>📅</span>
+                                <div>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,165,0,0.7)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Next Up</div>
+                                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#FFA500', letterSpacing: '1px' }}>{progressSummary}</div>
+                                </div>
+                            </div>
+                        )}
 
-                        {/* ── Completeness ───────────────── */}
-                        <CompletenessBar pct={completeness()} />
+                        {/* ── Hip score status ────────────────── */}
+                        {hipScore <= 2 && (
+                            <div className="hip-alert-banner">
+                                🔴 HIGH ALERT — Hip protocol active. mobility exercises adjusted.
+                            </div>
+                        )}
+                        {hipScore === 3 && (
+                            <div className="badge badge-amber" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                                🟡 MODERATE — Monitor closely
+                            </div>
+                        )}
+                        {hipScore >= 4 && (
+                            <div className="badge badge-green" style={{ alignSelf: 'flex-start', padding: '6px 12px' }}>
+                                🟢 GOOD — Standard protocol active
+                            </div>
+                        )}
+
+                        {/* ── Fight Gym Day ────────────────────── */}
+                        {workout.isFightGymDay ? (
+                            <FightGymDay
+                                day={day}
+                                sessionType={gymSessionType}
+                                onSessionTypeChange={setGymSessionType}
+                                bagRounds={bagRounds}
+                                onBagRoundsChange={setBagRounds}
+                                altRows={altRows}
+                                onAltRowsChange={setAltRows}
+                                altDuration={altDuration}
+                                onAltDurationChange={setAltDuration}
+                                notes={notes}
+                                onNotesChange={setNotes}
+                                onLog={handleLog}
+                            />
+                        ) : (
+                            <>
+                                {/* ── Mobility ───────────────────── */}
+                                <MobilityBlock
+                                    slots={workout.mobSlots}
+                                    checked={mobChecked}
+                                    onCheck={toggleMobilityCheck}
+                                    open={mobBlockOpen}
+                                    onToggle={() => setMobBlockOpen(!mobBlockOpen)}
+                                />
+
+                                {/* ── Strength + PAP ─────────────── */}
+                                {workout.dailyFocus && (
+                                    <div style={{ textAlign: 'center', margin: '8px 0', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text)', letterSpacing: '0.5px' }}>
+                                        🔥 {workout.dailyFocus}
+                                    </div>
+                                )}
+                                <StrengthBlock
+                                    slots={workout.strSlots}
+                                    sets={strSets}
+                                    onSetChange={updateStrengthSet}
+                                    phase={phase}
+                                    day={day}
+                                    open={strBlockOpen}
+                                    onToggle={() => setStrBlockOpen(!strBlockOpen)}
+                                />
+
+                                {/* ── Bag Work ───────────────────── */}
+                                <BagBlock
+                                    slot={workout.bagSlot}
+                                    open={bagBlockOpen}
+                                    onToggle={() => setBagBlockOpen(!bagBlockOpen)}
+                                    bagRounds={bagRounds}
+                                    onBagRoundsChange={setBagRounds}
+                                    bagCourse={bagCourse}
+                                    onBagCourseChange={setBagCourse}
+                                    bagModules={bagModules}
+                                    onBagModulesChange={setBagModules}
+                                    bagWorkouts={bagWorkouts}
+                                    onBagWorkoutsChange={setBagWorkouts}
+                                    notes={notes}
+                                    onNotesChange={setNotes}
+                                />
+
+                                {/* ── Core & Accessories ─────────── */}
+                                <CoreBlock
+                                    sets={coreSets}
+                                    onSetChange={updateCoreSet}
+                                    open={coreBlockOpen}
+                                    onToggle={() => setCoreBlockOpen(!coreBlockOpen)}
+                                />
+
+                                {/* ── Cooldown ───────────────────── */}
+                                <CooldownBlock
+                                    slots={workout.clrSlots}
+                                    checked={clrChecked}
+                                    onCheck={toggleCooldownCheck}
+                                    open={clrBlockOpen}
+                                    onToggle={() => setClrBlockOpen(!clrBlockOpen)}
+                                />
+
+                                {/* ── Completeness ───────────────── */}
+                                <CompletenessBar pct={completeness()} />
+                            </>
+                        )}
+
+                        {/* ── A6.5 — persistent save-failure banner ───── */}
+                        {draftSaveStatus.status === 'error' && (
+                            <div className="draft-banner">
+                                <div className="draft-banner__title">Draft not saved</div>
+                                <div className="draft-banner__actions">
+                                    <button type="button" className="btn-primary" onClick={flushDraftNow}>Retry</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Pending sync indicator ──────────── */}
+                        {pendingSync > 0 && (
+                            <div className="sync-indicator">
+                                ⏳ {pendingSync} session{pendingSync > 1 ? 's' : ''} pending sync to Google Sheets
+                            </div>
+                        )}
+
+                        {/* ── A6.5 — Reset HUD error ──────────── */}
+                        {resetError && (
+                            <div className="draft-banner">
+                                <div className="draft-banner__title">{resetError}</div>
+                            </div>
+                        )}
+
+                        {/* ── Actions ─────────────────────────── */}
+                        <div className="actions-bar">
+                            <button className="btn-primary" onClick={handleLog}>▶ LOG SESSION</button>
+                            <button className="btn-secondary" onClick={handleReset} disabled={resetPending}>
+                                {resetPending ? '↺ CLEARING…' : '↺ RESET HUD'}
+                            </button>
+                        </div>
                     </>
                 )}
-
-                {/* ── Pending sync indicator ──────────── */}
-                {pendingSync > 0 && (
-                    <div className="sync-indicator">
-                        ⏳ {pendingSync} session{pendingSync > 1 ? 's' : ''} pending sync to Google Sheets
-                    </div>
-                )}
-
-                {/* ── Actions ─────────────────────────── */}
-                <div className="actions-bar">
-                    <button className="btn-primary" onClick={handleLog}>▶ LOG SESSION</button>
-                    <button className="btn-secondary" onClick={handleReset}>↺ RESET HUD</button>
-                </div>
             </main>
         </div>
     )

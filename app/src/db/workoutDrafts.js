@@ -33,6 +33,7 @@
  */
 
 import { db } from './index.jsx'
+import { enqueueSync } from '../sync/syncQueue.js'
 
 const AUTOSAVE_MS = 700
 
@@ -131,19 +132,19 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
     /**
      * Discard / sign-out / log path: invalidate, then delete the owner's
      * row behind whatever write is already in flight.
+     *
+     * Rejects if the delete itself fails. Interactive callers (Discard,
+     * Discard-and-switch, Reset HUD) must see that failure and preserve
+     * the current workout/context rather than proceeding as if the row
+     * were gone. Only sign-out is exempt from this — AuthProvider wraps
+     * its two calls in their own best-effort catch, because blocking
+     * sign-out on a local delete failure is worse than a stray row that
+     * the composite owner key already prevents another identity from ever
+     * hydrating.
      */
     function discardDraft(ownerUserId) {
         invalidate()
-        return enqueue(async () => {
-            try {
-                await db.workoutDrafts.delete([ownerUserId, 'active'])
-            } catch (err) {
-                // A failed local delete must never block the caller (sign-out
-                // in particular) — the composite owner key still prevents a
-                // later identity from ever hydrating this row.
-                console.error('workoutDrafts: delete failed', err)
-            }
-        })
+        return enqueue(() => db.workoutDrafts.delete([ownerUserId, 'active']))
     }
 
     function getStatus() {
@@ -169,4 +170,28 @@ export const workoutDraftController = createWorkoutDraftController()
 export async function loadActiveDraft(ownerUserId) {
     if (!ownerUserId) return null
     return db.workoutDrafts.get([ownerUserId, 'active'])
+}
+
+/**
+ * commitLoggedSession — the exact atomic transaction logSession() uses:
+ * add the session, enqueue the sync envelope, delete the owner's draft, all
+ * in one Dexie transaction. Extracted here (rather than inlined in
+ * db/index.jsx's DBProvider) so it's the SAME function exercised by
+ * db/workoutDrafts.test.js as by production — this repo has no React-render
+ * test infrastructure, so without this extraction the transaction pattern
+ * could only be verified by a hand-copied mirror in the test file, which
+ * could silently drift from what logSession actually does.
+ *
+ * On failure (any step throws) the transaction rolls back all three
+ * operations together and this rejects; the draft row is left untouched.
+ */
+export async function commitLoggedSession({ sessionData, sessionId, ownerUserId }) {
+    let id
+    await db.transaction('rw', db.sessions, db.syncQueue, db.workoutDrafts, async () => {
+        id = await db.sessions.add(sessionData)
+        const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
+        await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
+        if (ownerUserId) await db.workoutDrafts.delete([ownerUserId, 'active'])
+    })
+    return id
 }

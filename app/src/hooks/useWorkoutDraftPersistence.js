@@ -45,11 +45,22 @@ export function useWorkoutDraftPersistence({
     function buildRow() {
         const now = new Date().toISOString()
         if (!createdAtRef.current) createdAtRef.current = now
+        const liveFields = pickFields(fieldsRef.current, LEGACY_STATE_FIELD_KEYS)
+        // Read the TRUE current scroll position directly rather than trusting
+        // fields.hudScrollY: DBProvider's hudScrollY state is only synced by
+        // HUD's own scroll effect on ITS unmount, which is a setState call —
+        // during an unmounting component's cleanup that update is discarded
+        // (there's no next render to apply it to), so by the time THIS flush
+        // runs, fields.hudScrollY can be stale by an entire scroll session.
+        // window.scrollY is always live and synchronous, no such gap exists.
+        if (typeof window !== 'undefined') {
+            liveFields.hudScrollY = window.scrollY
+        }
         return buildDraftRow({
             ownerUserId,
             workoutIdentity: buildLegacyIdentity(identityRef.current),
             definitionSnapshot: buildLegacyDefinitionSnapshot(workoutRef.current),
-            state: { kind: 'legacy-hud-v1', fields: pickFields(fieldsRef.current, LEGACY_STATE_FIELD_KEYS) },
+            state: { kind: 'legacy-hud-v1', fields: liveFields },
             createdAt: createdAtRef.current,
             updatedAt: now,
         })

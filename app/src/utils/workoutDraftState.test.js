@@ -8,6 +8,7 @@ import {
     validateDraftRow,
     identitiesConflict, requiresConflictGuard,
     parseLegacyDay, parseLegacyPhase,
+    classifyHydratedDraft,
 } from './workoutDraftState.js'
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111'
@@ -310,5 +311,47 @@ describe('definition snapshot builders', () => {
     it('cartridge snapshot wraps the raw day object', () => {
         const day = { day: 1, label: 'Day 1', blocks: [] }
         expect(buildCartridgeDefinitionSnapshot(day)).toEqual({ kind: 'cartridge-day-v1', value: day })
+    })
+})
+
+// ─── Hydration outcome classification ──────────────────────────────────────
+
+describe('classifyHydratedDraft', () => {
+    it('a read failure is its own protected state — NEVER treated as "no draft"', () => {
+        const outcome = classifyHydratedDraft({ row: null, readError: new Error('IDB unavailable'), ownerUserId: OWNER_A })
+        expect(outcome).toEqual({ continueDraft: null, draftIssue: { reason: 'read-failed' } })
+    })
+
+    it('a read failure wins even if a row happens to also be present (defensive)', () => {
+        const outcome = classifyHydratedDraft({ row: validRow(), readError: new Error('x'), ownerUserId: OWNER_A })
+        expect(outcome.draftIssue).toEqual({ reason: 'read-failed' })
+        expect(outcome.continueDraft).toBeNull()
+    })
+
+    it('no row and no error — nothing to offer or protect', () => {
+        expect(classifyHydratedDraft({ row: null, readError: null, ownerUserId: OWNER_A }))
+            .toEqual({ continueDraft: null, draftIssue: null })
+        expect(classifyHydratedDraft({ row: undefined, readError: null, ownerUserId: OWNER_A }))
+            .toEqual({ continueDraft: null, draftIssue: null })
+    })
+
+    it('owner mismatch behaves exactly like "no draft" — never exposed as an issue', () => {
+        expect(classifyHydratedDraft({ row: validRow(), readError: null, ownerUserId: OWNER_B }))
+            .toEqual({ continueDraft: null, draftIssue: null })
+    })
+
+    it('a valid row is offered as continueDraft', () => {
+        const row = validRow()
+        expect(classifyHydratedDraft({ row, readError: null, ownerUserId: OWNER_A }))
+            .toEqual({ continueDraft: row, draftIssue: null })
+    })
+
+    it('corrupt/unsupported rows are preserved as a content-free draftIssue', () => {
+        expect(classifyHydratedDraft({
+            row: { ...validRow(), draftSchemaVersion: DRAFT_SCHEMA_VERSION + 1 }, readError: null, ownerUserId: OWNER_A,
+        })).toEqual({ continueDraft: null, draftIssue: { reason: 'unsupported-schema' } })
+
+        expect(classifyHydratedDraft({ row: {}, readError: null, ownerUserId: OWNER_A }))
+            .toEqual({ continueDraft: null, draftIssue: { reason: 'corrupt' } })
     })
 })

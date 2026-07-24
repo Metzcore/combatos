@@ -89,9 +89,16 @@ export function AuthProvider({ children }) {
                 // A6.5 — idempotent repeat of the explicit signOut() path
                 // below, for cross-tab / revoked-session / indirect sign-out
                 // (this event fires even when THIS tab didn't call signOut()
-                // itself). discardDraft() never rejects — safe to fire here.
+                // itself). discardDraft() can now reject on a real delete
+                // failure (interactive callers must see that and preserve
+                // context) — but sign-out is the one exemption: it must
+                // remain best-effort, so the failure is swallowed here.
                 const ownerUserId = ownerUserIdRef.current
-                if (ownerUserId) workoutDraftController.discardDraft(ownerUserId)
+                if (ownerUserId) {
+                    workoutDraftController.discardDraft(ownerUserId).catch(err => {
+                        console.error('workoutDrafts: sign-out delete failed (best-effort)', err)
+                    })
+                }
             }
         })
 
@@ -143,12 +150,20 @@ export function AuthProvider({ children }) {
         // A6.5 — invalidate the draft controller synchronously and attempt
         // to delete this owner's draft BEFORE anything else, so a save
         // already scheduled cannot land after sign-out and resurrect the
-        // draft under the just-signed-out identity. discardDraft() never
-        // rejects (failures are caught internally) — a failed local delete
-        // must not block sign-out; the composite owner key still prevents a
-        // later identity from ever hydrating the row regardless.
+        // draft under the just-signed-out identity. discardDraft() can
+        // reject on a real delete failure (interactive callers elsewhere
+        // must see that and preserve context) — but a failed local delete
+        // must never block sign-out itself, so it's caught here and
+        // sign-out proceeds regardless; the composite owner key still
+        // prevents a later identity from ever hydrating the row.
         const ownerUserId = ownerUserIdRef.current
-        if (ownerUserId) await workoutDraftController.discardDraft(ownerUserId)
+        if (ownerUserId) {
+            try {
+                await workoutDraftController.discardDraft(ownerUserId)
+            } catch (err) {
+                console.error('workoutDrafts: sign-out delete failed (best-effort)', err)
+            }
+        }
         // Remove local device trust first. Even if the network request fails,
         // this device cannot use the A9c offline fallback after explicit sign-out.
         window.dispatchEvent(new Event(CARTRIDGE_ACCESS_RESET_EVENT))

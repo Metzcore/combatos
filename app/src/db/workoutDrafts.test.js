@@ -14,8 +14,7 @@ import 'fake-indexeddb/auto'
 import Dexie from 'dexie'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { db } from './index.jsx'
-import { enqueueSync } from '../sync/syncQueue.js'
-import { createWorkoutDraftController, loadActiveDraft, workoutDraftController } from './workoutDrafts.js'
+import { createWorkoutDraftController, loadActiveDraft, workoutDraftController, commitLoggedSession } from './workoutDrafts.js'
 import {
     buildDraftRow, buildLegacyIdentity, buildCartridgeIdentity,
     buildLegacyDefinitionSnapshot, buildCartridgeDefinitionSnapshot,
@@ -36,9 +35,12 @@ beforeEach(async () => {
 // ─── Schema / upgrade safety ────────────────────────────────────────────────
 
 describe('schema — version 4 wiring on the real db instance', () => {
-    it('is at version 4 with workoutDrafts present and every prior table intact', () => {
-        // A6.5 is the newest feature — it owns the exact version pin.
-        expect(db.verno).toBe(4)
+    it('is at version 4 or later with workoutDrafts present and every prior table intact', () => {
+        // Never hardcode the CURRENT version — a later feature bumps
+        // further, exactly how A6.5 itself broke notes.test.js/
+        // cartridgeAccess.test.js's old toBe(3) assertions. Every schema
+        // test in this repo declares its own minimum, never an exact pin.
+        expect(db.verno).toBeGreaterThanOrEqual(4)
         const names = db.tables.map(t => t.name)
         expect(names).toContain('workoutDrafts')
         expect(names).toContain('sessions')
@@ -246,6 +248,33 @@ describe('createWorkoutDraftController — isolated instance', () => {
         expect(statuses[statuses.length - 1]).toBe('idle')
     })
 
+    it('reports a persistent error status (with the error) on a failed write — the mechanism the "Draft not saved" + Retry banner reads', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        const statuses = []
+        controller.subscribe(s => statuses.push(s))
+
+        const spy = vi.spyOn(db.workoutDrafts, 'put').mockRejectedValueOnce(new Error('quota exceeded'))
+        try {
+            // saveNow() itself does NOT reject on a write failure (unlike
+            // discardDraft) — a background autosave failure is reported via
+            // status, not thrown at the caller of an autosave effect.
+            await expect(controller.saveNow(makeRow(OWNER_A, 'will fail'))).resolves.toBeUndefined()
+        } finally {
+            spy.mockRestore()
+        }
+
+        const last = statuses[statuses.length - 1]
+        expect(last.status).toBe('error')
+        expect(last.error).toBeInstanceOf(Error)
+        expect(controller.getStatus().status).toBe('error')
+
+        // In-memory values are never lost — a subsequent retry (the same
+        // saveNow the UI's Retry button calls) recovers cleanly.
+        await controller.saveNow(makeRow(OWNER_A, 'retried'))
+        expect(controller.getStatus().status).toBe('idle')
+        expect((await db.workoutDrafts.get([OWNER_A, 'active'])).state.fields.notes).toBe('retried')
+    })
+
     it('a save scheduled before discardDraft() cannot resurrect the deleted row', async () => {
         const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
         await controller.saveNow(makeRow(OWNER_A, 'will be discarded'))
@@ -278,6 +307,23 @@ describe('createWorkoutDraftController — isolated instance', () => {
         const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
         await expect(controller.discardDraft(OWNER_A)).resolves.toBeUndefined()
         await expect(controller.discardDraft(OWNER_A)).resolves.toBeUndefined()
+    })
+
+    it('discardDraft() rejects when the underlying delete fails — interactive callers must see this and preserve context', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        await controller.saveNow(makeRow(OWNER_A, 'must survive a failed discard'))
+
+        const spy = vi.spyOn(db.workoutDrafts, 'delete').mockRejectedValueOnce(new Error('storage boom'))
+        try {
+            await expect(controller.discardDraft(OWNER_A)).rejects.toThrow('storage boom')
+        } finally {
+            spy.mockRestore()
+        }
+
+        // The row must still be there — a caller that reacted to the
+        // rejection by NOT clearing continueDraft/draftIssue is correct.
+        expect((await db.workoutDrafts.get([OWNER_A, 'active']))?.state.fields.notes)
+            .toBe('must survive a failed discard')
     })
 
     it('one failed write does not wedge the chain for the next write', async () => {
@@ -374,31 +420,20 @@ describe('hydration is read-only', () => {
 })
 
 // ─── Atomic local logging (plan v2 §8, §12) ─────────────────────────────────
-// Mirrors db/index.jsx's logSession EXACTLY (same table set, same operation
-// order) but directly against Dexie — a React-render test isn't available
-// in this repo's test infra, so this proves the transaction pattern itself
-// is sound; the full flow (including the freshest-snapshot flush before it)
-// was additionally verified end-to-end in-browser.
+// Exercises the REAL commitLoggedSession — the exact function db/index.jsx's
+// logSession calls — not a hand-copied mirror. This repo has no React-render
+// test infra to exercise DBProvider.logSession directly, so importing and
+// calling the production function here is what keeps this test honest; the
+// full flow (including the freshest-snapshot flush before it) was
+// additionally verified end-to-end in-browser.
 
-async function runLogTransaction({ ownerUserId, sessionData, sessionId, injectFailure = false }) {
-    let id
-    await db.transaction('rw', db.sessions, db.syncQueue, db.workoutDrafts, async () => {
-        id = await db.sessions.add(sessionData)
-        const payloadEnvelope = { action: 'log', sessionId, payload: sessionData }
-        await enqueueSync({ sessionId: id, attempts: 0, payload: payloadEnvelope })
-        if (injectFailure) throw new Error('injected failure')
-        if (ownerUserId) await db.workoutDrafts.delete([ownerUserId, 'active'])
-    })
-    return id
-}
-
-describe('atomic local logging transaction', () => {
+describe('commitLoggedSession — atomic local logging transaction', () => {
     it('a successful commit writes the session, enqueues the sync envelope, and clears the draft', async () => {
         const row = makeRow(OWNER_A, 'about to be logged')
         await db.workoutDrafts.put(row)
         const sessionData = { date: '2026-07-24', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 50 }
 
-        const id = await runLogTransaction({ ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-1' })
+        const id = await commitLoggedSession({ ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-1' })
 
         expect(await db.sessions.count()).toBe(1)
         const queue = await db.syncQueue.toArray()
@@ -408,16 +443,20 @@ describe('atomic local logging transaction', () => {
         expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
     })
 
-    it('an injected failure inside the transaction rolls back all three operations, leaving the draft intact', async () => {
+    it('a failure inside the transaction rolls back all three operations, leaving the draft intact', async () => {
         const row = makeRow(OWNER_A, 'must survive a failed log')
         await db.workoutDrafts.put(row)
-        const sessionData = { date: '2026-07-24', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 50 }
+        // Force a real Dexie failure (ConstraintError on a duplicate
+        // explicit primary key) rather than an artificial injected-error
+        // flag, so the rollback is exercised exactly as it would happen.
+        await db.sessions.add({ id: 999, date: '2026-01-01', day: 1, phase: 1, hipScore: 3 })
+        const sessionData = { id: 999, date: '2026-07-24', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 50 }
 
-        await expect(runLogTransaction({
-            ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-2', injectFailure: true,
-        })).rejects.toThrow('injected failure')
+        await expect(commitLoggedSession({
+            ownerUserId: OWNER_A, sessionData, sessionId: 'uuid-log-2',
+        })).rejects.toThrow()
 
-        expect(await db.sessions.count()).toBe(0)
+        expect(await db.sessions.count()).toBe(1) // only the pre-seeded row — the failed add never landed
         expect(await db.syncQueue.count()).toBe(0)
         expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toEqual(row) // untouched, no success
     })

@@ -293,3 +293,41 @@ export function requiresConflictGuard({ liveRow, targetIdentity }) {
     if (!isStateMeaningful(liveRow.state?.kind, liveRow.state?.fields)) return false
     return identitiesConflict(liveRow.workoutIdentity, targetIdentity)
 }
+
+// ─── Hydration outcome classification ──────────────────────────────────────
+// Pure reducer from a raw load attempt to what the UI should do — extracted
+// so this decision is unit-testable without React (this repo has no
+// render-test infrastructure). db/index.jsx's hydration effect does the
+// actual `loadActiveDraft` read, then hands the result here and applies the
+// outcome via setState; it makes no decisions of its own.
+
+/**
+ * @param {{ row: object|null|undefined, readError: unknown, ownerUserId: string }} args
+ * @returns {{ continueDraft: object|null, draftIssue: { reason: string }|null }}
+ *
+ * - A read failure (readError set) is its own protected state ('read-failed')
+ *   — NEVER treated as "no draft exists". Retry is the only recovery path;
+ *   there is nothing to discard because it's unknown whether a row exists.
+ * - No row: nothing to offer or protect.
+ * - Owner mismatch: behaves exactly like "no row" — never hydrated, exposed,
+ *   rewritten or merged.
+ * - Any other invalid reason ('corrupt', 'unsupported-schema',
+ *   'unsupported-state'): preserved, surfaced as a content-free draftIssue.
+ * - Valid: offered as continueDraft.
+ */
+export function classifyHydratedDraft({ row, readError, ownerUserId }) {
+    if (readError) {
+        return { continueDraft: null, draftIssue: { reason: 'read-failed' } }
+    }
+    if (!row) {
+        return { continueDraft: null, draftIssue: null }
+    }
+    const result = validateDraftRow(row, ownerUserId)
+    if (!result.ok) {
+        if (result.reason === 'owner-mismatch') {
+            return { continueDraft: null, draftIssue: null }
+        }
+        return { continueDraft: null, draftIssue: { reason: result.reason } }
+    }
+    return { continueDraft: result.row, draftIssue: null }
+}

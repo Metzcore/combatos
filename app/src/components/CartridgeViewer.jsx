@@ -124,6 +124,8 @@ export default function CartridgeViewer() {
     const [activationError, setActivationError] = useState(null)
     const [activationPending, setActivationPending] = useState(false)
     const [conflictOpen, setConflictOpen] = useState(false)
+    const [conflictPending, setConflictPending] = useState(false)
+    const [conflictError, setConflictError] = useState(null)
     const pendingActivationRef = useRef(null)
 
     const orderedCartridges = useMemo(
@@ -168,6 +170,7 @@ export default function CartridgeViewer() {
         })
         if (requiresConflictGuard({ liveRow: getLiveDraftRow(), targetIdentity })) {
             pendingActivationRef.current = cartridge
+            setConflictError(null)
             setConflictOpen(true)
             return
         }
@@ -177,17 +180,31 @@ export default function CartridgeViewer() {
 
     const handleKeepWorkout = () => {
         pendingActivationRef.current = null
+        setConflictError(null)
         setConflictOpen(false)
     }
 
     const handleDiscardAndSwitch = async () => {
-        const cartridge = pendingActivationRef.current
-        pendingActivationRef.current = null
-        setConflictOpen(false)
-        await discardCurrentDraft()
-        resetActiveWorkout()
-        setActivationError(null)
-        setActivationTarget(cartridge)
+        setConflictError(null)
+        setConflictPending(true)
+        try {
+            // discardCurrentDraft() can reject on a real delete failure —
+            // the sheet stays open and the workout/context is preserved
+            // (no reset, no activation) until it succeeds or the user
+            // backs out via Keep workout.
+            await discardCurrentDraft()
+            resetActiveWorkout()
+            const cartridge = pendingActivationRef.current
+            pendingActivationRef.current = null
+            setConflictOpen(false)
+            setActivationError(null)
+            setActivationTarget(cartridge)
+        } catch (err) {
+            console.error('discard-and-switch failed', err)
+            setConflictError('Could not discard the saved workout. Try again.')
+        } finally {
+            setConflictPending(false)
+        }
     }
 
     const confirmActivation = async () => {
@@ -225,6 +242,8 @@ export default function CartridgeViewer() {
                     open={conflictOpen}
                     onKeep={handleKeepWorkout}
                     onDiscardAndSwitch={handleDiscardAndSwitch}
+                    pending={conflictPending}
+                    error={conflictError}
                 />
 
                 <BottomSheet
