@@ -13,6 +13,7 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { db } from './index.jsx'
 import { exportFullBackup, BACKUP_FORMAT } from './backup.js'
+import { buildDraftRow, buildLegacyIdentity, buildLegacyDefinitionSnapshot } from '../utils/workoutDraftState.js'
 
 vi.stubGlobal('navigator', { onLine: true })
 
@@ -52,8 +53,22 @@ describe('exportFullBackup — combatos-full-backup shape stability', () => {
         // Sanity: the current schema's known tables are in there.
         expect(Object.keys(out.tables)).toEqual(
             expect.arrayContaining(['sessions', 'syncQueue', 'settings',
-                'checklistGroups', 'checklistTasks', 'checklistCompletions'])
+                'checklistGroups', 'checklistTasks', 'checklistCompletions', 'workoutDrafts'])
         )
+    })
+
+    it('A6.5 — a seeded workoutDrafts row appears in the backup dynamically, no code change needed', async () => {
+        const row = buildDraftRow({
+            ownerUserId: '11111111-1111-4111-8111-111111111111',
+            workoutIdentity: buildLegacyIdentity({ day: 1, phase: 1, hipScore: 3 }),
+            definitionSnapshot: buildLegacyDefinitionSnapshot({}),
+            state: { kind: 'legacy-hud-v1', fields: { notes: 'backup me' } },
+        })
+        await db.workoutDrafts.put(row)
+
+        const out = await exportFullBackup()
+
+        expect(out.tables.workoutDrafts).toEqual([row])
     })
 
     it('round-trips seeded rows across stores, byte for byte', async () => {

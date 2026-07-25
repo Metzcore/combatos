@@ -1452,6 +1452,40 @@ input[type="checkbox"] {
   }
 }
 
+/* A6.5 — durable-draft banners on Today: an offered Continue, or a
+   preserved-but-unhydratable row (unsupported/corrupt). Never a modal —
+   "a visible Continue state," not an interruption. */
+.draft-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: rgba(232, 160, 32, 0.1);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.draft-banner__title {
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.draft-banner__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.draft-banner__actions .btn-primary,
+.draft-banner__actions .btn-secondary {
+  flex: 1;
+  min-height: 40px;
+}
+
 /* ── Utility ───────────────────────────────────── */
 .text-gold {
   color: var(--warn);
@@ -1917,6 +1951,13 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.sheet__copy {
+  padding: 4px 2px 10px;
+  color: var(--label);
+  font-size: 0.86rem;
+  line-height: 1.55;
 }
 
 .sheet__action {

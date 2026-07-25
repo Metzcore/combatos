@@ -7,9 +7,14 @@ confirmed in code, it's marked **unverified** rather than assumed.
 
 ## Component map
 
-Entry point: `app/src/main.jsx` mounts `<DBProvider><App /></DBProvider>`. `DBProvider`
-(from `app/src/db/index.jsx`) sits at the true root and is never unmounted — this matters
-for state survival (see "In-memory state" below).
+Entry point: `app/src/main.jsx` mounts `<AuthProvider><App /></AuthProvider>`. Inside `App.jsx`,
+`AuthGate` renders only `<SignIn/>` while signed out, so `DBProvider` (from `app/src/db/index.jsx`,
+nested `AuthProvider > AuthGate > CartridgeAccessProvider > DBProvider`) mounts only for a
+resolved owner and **does** unmount on sign-out — corrected 2026-07-24 (A6.5); an earlier
+revision of this doc predating the live Supabase auth work claimed `DBProvider` sat at the true
+root and was never unmounted, which stopped being true once `AuthGate` was introduced. What still
+holds: `DBProvider` is mounted once per signed-in session and never remounted by hub/tab
+navigation, which is what matters for state survival (see "In-memory state" below).
 
 ```
 App.jsx
@@ -139,14 +144,14 @@ a hardcoded default (below).
 
 ## Data model
 
-### Dexie database: `FightersOS` (schema v3)
+### Dexie database: `FightersOS` (schema v4)
 
-Defined in `app/src/db/index.jsx`. Three additive versions, each restating **all** tables
+Defined in `app/src/db/index.jsx`. Four additive versions, each restating **all** tables
 verbatim (Dexie requires the full schema per version; omitting a table would drop it and
 destroy real data). No `.upgrade()` callbacks — all changes so far are purely additive.
 
 ```js
-db.version(3).stores({
+db.version(4).stores({
     sessions: '++id, date, day, phase, hipScore',
     syncQueue: '++id, sessionId, attempts',
     settings: 'key',
@@ -154,7 +159,8 @@ db.version(3).stores({
     checklistTasks: 'id, groupId, [groupId+order], deletedAt',     // v2 (W21)
     checklistCompletions: '[taskId+date], taskId',                 // v2 (W21)
     noteGroups: 'id, order',                                       // v3 (W23)
-    notes: 'id, groupId, deletedAt, *tags'                         // v3 (W23)
+    notes: 'id, groupId, deletedAt, *tags',                        // v3 (W23)
+    workoutDrafts: '[ownerUserId+slot], ownerUserId, updatedAt'     // v4 (A6.5)
 })
 ```
 
@@ -173,6 +179,11 @@ db.version(3).stores({
   `lastFullBackupAt` (W23.5).
 - Checklist/notes tables (W21/W23) — local-only; nothing from them may ever reach
   `syncQueue` or the webhook payload.
+- **`workoutDrafts`** (A6.5) — at most one row per owner (`[ownerUserId+slot]`, `slot`
+  always `'active'` today). Durable mirror of the active-workout HUD state; see "Durable
+  active-workout draft" below. Local-only and temporary — cleared on log, discard, or
+  sign-out; never reaches `syncQueue` or the webhook payload, and is never the permanent
+  logged-session shape.
 
 **`webhookUrl` has a hardcoded default** in `DEFAULTS.webhookUrl` (`app/src/db/index.jsx`)
 pointing at the live Apps Script deployment. No Settings UI exists to change it; overriding
@@ -180,7 +191,8 @@ it requires writing to the Dexie `settings` table directly.
 
 **Test discipline:** tests never hardcode current-schema facts (`verno === 3`) — they use
 capture-before/assert-unchanged or `>=` floors (a decision earned when the v3 bump broke
-three such tests).
+three such tests; the newest feature's own test owns the exact `verno` pin — see
+`db/workoutDrafts.test.js`).
 
 ### In-memory state (NOT persisted to Dexie)
 
@@ -205,6 +217,159 @@ survive a hub/tab switch goes in `DBProvider` with a `WORKOUT_DEFAULTS` entry an
 `logSession()` and from the HUD's manual reset) but intentionally does **not** reset
 `day` — Day and Phase are kept.
 
+### Durable active-workout draft (A6.5)
+
+Active-workout state above is React state — ephemeral by default, gone on a full reload.
+A6.5 adds a **durable mirror** in the `workoutDrafts` Dexie table so an unfinished workout
+survives a reload, phone lock, or PWA update, without changing where that state actually
+lives during a session (still `DBProvider`) or the shape of the permanent logged-session
+payload (still frozen — `AGENTS.md` rule 2).
+
+- **Row shape** — one row per owner: `{ ownerUserId, slot: 'active', draftSchemaVersion,
+  createdAt, updatedAt, workoutIdentity, definitionSnapshot, state }`.
+  `workoutIdentity` is `{ kind: 'legacy-playbook' | 'cartridge', cartridgeId,
+  cartridgeVersion, cartridgeSchemaVersion, dayTemplateKey, phaseId, hipScore }` — legacy
+  rows null every cartridge field and encode day/phase as `legacy-day:{n}` /
+  `legacy-phase:{n}` (parsed back by `parseLegacyDay`/`parseLegacyPhase`). `cartridge`-kind
+  rows exist as a tested representation only — A7's renderer is what will make one
+  reachable.
+- **Frozen `definitionSnapshot`** — `HUD.jsx` freezes the resolved workout into React state
+  (`frozenWorkout`) the moment a draft either becomes meaningful (fresh) or is resumed
+  (Continue), and both **rendering** and every subsequent autosave use that frozen value
+  instead of re-deriving from `usePlaybook()`. Without this, a `playbook.js` regeneration
+  (PWA/content update) mid-session — or a resumed draft whose exercises have since been
+  renumbered — would reinterpret already-saved slot values under different exercises, and
+  the next autosave would silently overwrite the protective snapshot with fresh, possibly-
+  different live data. `frozenWorkout` clears back to `null` on the next `draftLifecycleKey`
+  bump (log success / Reset HUD), so the next draft freezes fresh.
+- **Persistence controller** (`app/src/db/workoutDrafts.js`) — a **module-scope** singleton
+  (`workoutDraftController`), not a hook. It owns the debounce timer, latest pending
+  snapshot, a monotonic generation counter, and a serialized write chain. Module scope
+  matters because `signOut()` lives in `AuthProvider`, an ancestor of any hook in the tree
+  (`AuthProvider > AuthGate > CartridgeAccessProvider > DBProvider`) — only an object both
+  can import directly can be invalidated synchronously from there. Every write captures its
+  generation at schedule time and re-checks it **twice**: once before the Dexie `put`, and
+  again immediately after the awaited `put` settles (success or failure) — `invalidate()` can
+  run while a put is still in flight, and without the second check a write that went stale
+  mid-flight would still land its own status update once it settled, most dangerously on
+  failure, which would silently restore "Draft not saved" even though `invalidate()` had
+  already reset status to idle and the draft may already have been successfully discarded or
+  logged. A failed autosave write is caught internally and reported via `status: 'error'`
+  (never thrown) — `HUD.jsx` renders a persistent "Draft not saved" banner with Retry
+  (`flushDraftNow`) while that status holds. `discardDraft()` is different: it **rejects** if
+  the underlying delete fails, because an interactive caller (Discard, Discard-and-switch,
+  Reset HUD) must not proceed as if a row it failed to remove were actually gone. Sign-out is
+  the sole exemption — `AuthProvider` wraps its two calls in their own best-effort catch,
+  since blocking sign-out on a local delete failure is worse than a stray row the composite
+  owner key already prevents another identity from ever hydrating. `invalidate()` also clears
+  a stale `'error'` status back to idle (every caller — discard, sign-out, log — is ending
+  this draft's write lifecycle, so a report about a prior save no longer describes anything
+  live); without this, a successful discard/log after a failed autosave left "Draft not
+  saved" stuck on screen with a Retry that had nothing left to retry. And because
+  `invalidate()` also cancels whatever debounced edit was still pending, `discardDraft()`
+  captures that snapshot first and — if the delete itself fails — re-persists it under the
+  new generation before the rejection propagates, so a failed discard can never silently drop
+  the user's latest unsaved input; if that RECOVERY put also fails, the controller sets
+  `status: 'error'`/notifies rather than leaving itself looking idle while the edit is
+  genuinely at risk of being lost.
+- **Meaningful-input gating** (`app/src/utils/workoutDraftState.js`) — identity, selection
+  (day/phase/hip/session-type) and UI-only fields (scroll, collapse) never create a draft by
+  themselves; a row is written only once real content exists (a check, a performed value, a
+  note, …). Once one exists, everything is saved with it. Same module owns hydration
+  validation: owner mismatch / unsupported schema-or-kind fail closed without hydrating or
+  rewriting; a row's three discriminators (`workoutIdentity.kind`, `definitionSnapshot.kind`,
+  `state.kind`) must each be individually recognized **and** form one coherent combination
+  (legacy+legacy+legacy or cartridge+cartridge+cartridge) — a mixed triple is an invariant
+  violation (`'corrupt'`), never a "future format"; a structurally coherent cartridge-kind row
+  is still refused (`'unsupported-state'`) because the legacy HUD — the only renderer that
+  exists before A7 — must never offer one. A `legacy-workout-v1` snapshot is checked
+  end-to-end for render safety, not just at the array level: `mobSlots`/`strSlots`/`clrSlots`
+  must be arrays (`HUD.jsx` calls `.filter()`/`.reduce()`/`.map()` on them directly) **and**
+  every entry inside them must be a plain object (`MobilityBlock`/`StrengthBlock`/
+  `CooldownBlock` dereference `slot.exercise`/`slot.duration`/… directly — a `null` entry
+  crashes there just as surely as a non-array field does); `dailyFocus` must be `null` or a
+  string (rendered directly as a JSX child — an object value there is a React crash, not just
+  bad data). The legacy identity itself must not just be well-typed — `dayTemplateKey`/
+  `phaseId` must actually PARSE (`legacy-day:{n}`/`legacy-phase:{n}`) and fall inside the
+  ranges the HUD actually offers (day 1–7, phase 1–3, hip score 1–5), or resuming would select
+  nothing in a `<select>` or feed `usePlaybook()` a combination it was never designed to look
+  up. And `state.fields`' own containers are checked the same way: `mobChecked`/`clrChecked`/
+  `strSets`/`coreSets` must be plain objects and `altRows` an array — `resumeDraft()` and
+  `handleLog()` (`altRows.map(...)`) dereference them as such directly. The same module also
+  owns the identity-conflict matrix used below, and `classifyHydratedDraft` — the pure reducer
+  `DBProvider`'s
+  hydration effect calls to turn a raw read (or a **read failure**) into
+  `{ continueDraft, draftIssue }`. A read failure is its own protected `draftIssue`
+  (`reason: 'read-failed'`) — never collapsed into "no draft exists" — because the underlying
+  row may still be there and valid; autosave would otherwise silently overwrite it the moment
+  new content became meaningful. Only Retry (`retryHydration()`, which bumps a key the
+  hydration effect depends on) recovers it — there is no Discard, since it's unknown whether
+  anything exists to discard.
+- **Resolution gate** — while hydration itself hasn't resolved (`draftPhase !== 'ready'` —
+  covers the initial idle/hydrating window AND the Retry transition, which re-runs the same
+  effect and briefly clears `continueDraft`/`draftIssue` before the new outcome lands) OR
+  `continueDraft`/`draftIssue` (including `'read-failed'`) is set, `HUD.jsx` renders **only**
+  a banner (a generic "Loading your workout…" placeholder during hydration itself, the
+  specific offer/issue banner once classified) — no selectors, no blocks, no Log/Reset. Log
+  in particular must never be reachable before hydration has actually resolved. Editing or
+  logging over an unresolved offered/protected draft would silently create a second,
+  conflicting version of "what's live". `autosaveEnabled` (`DBProvider`) is gated the same way,
+  so autosave stays off for the same duration.
+- **Autosave + flush** (`app/src/hooks/useWorkoutDraftPersistence.js`, called from `HUD.jsx`
+  — the only place the effective, possibly-frozen `workout` is available for the
+  `definitionSnapshot`) — checks/substitutions save immediately; text/numeric edits debounce
+  at 700ms (the `NoteEditor.jsx` precedent). Every row build reads `window.scrollY` directly
+  rather than the `hudScrollY` field passed in — `DBProvider`'s `hudScrollY` state is only
+  synced by `HUD.jsx`'s own scroll effect on **its** unmount, a `setState` call that never
+  reaches a next render when the component is unmounting, so it would otherwise be flushed
+  stale by up to an entire scroll session. Flushes fresh (not just re-sent stale) state on
+  `visibilitychange`(hidden), `pagehide`, and its own unmount (a Today→Plan/Library tab
+  switch, this app's most common backgrounding event). `DBProvider`'s own unmount flushes
+  whatever the controller already has pending as a belt-and-suspenders net for the sign-out/
+  teardown case, where no `workout` is available to rebuild a fresh row.
+- **Continue / conflict UX** — a valid draft puts Today into the resolution gate above with
+  Continue/Discard; `resumeDraft()`/`discardCurrentDraft()` live on `DBProvider`. Continuing
+  also freezes `definitionSnapshot` (see above). Day/phase/hip-score changes (and cartridge
+  activation, wired but currently inert — see below) pass through a shared
+  `attemptIdentityChange` preflight: if the live draft is meaningful *and* the change would
+  move to a different identity, `WorkoutDraftSheet.jsx` (a `BottomSheet`) gates it — Keep/
+  backdrop/close all preserve the workout; only "Discard and switch" clears the draft first,
+  and — since `discardDraft()` can now reject — stays open with an inline error on failure
+  rather than silently proceeding. Keep/backdrop/close are themselves disabled/ignored while
+  a discard-and-switch is in flight (`pending`): without this, tapping Keep the instant after
+  starting a discard would close the sheet and let the user resume working, only for the
+  already-in-flight discard to complete moments later and call `resetActiveWorkout()`
+  regardless — silently wiping whatever they'd just done. A legacy draft's null cartridge
+  identity never conflicts with a cartridge activation target, so `CartridgeViewer.jsx`'s
+  wiring is a no-op until A7 makes a `cartridge`-kind draft reachable.
+- **Reset HUD** — `discardAndResetActiveWorkout()` (`DBProvider`) invalidates pending writes
+  and deletes the durable draft **first**; only clears live state (`resetActiveWorkout()`) if
+  that succeeds, surfacing an error and leaving fields untouched otherwise — clearing them
+  regardless would desync the screen from a still-persisted row a later reload would offer as
+  Continue. `logSession()`'s own post-commit reset does **not** go through this path: the
+  atomic transaction below already deleted the row, so re-discarding would be a redundant
+  delete-of-an-absent-row that could only ever spuriously fail and mask an already-successful
+  log.
+- **Atomic local logging** — `HUD.jsx`'s `handleLog` first flushes the newest snapshot
+  (`flushDraftNow()`); if THAT flush itself fails, logging **aborts** entirely (no transaction,
+  no reset) rather than proceeding — otherwise, if the atomic transaction below also failed
+  for an unrelated reason, the recoverable draft left behind would be stale, violating "leaves
+  the freshest recoverable draft". Live state is untouched either way, and the existing
+  "Draft not saved" banner is already visible with Retry. Once flushed, `logSession()` freezes
+  autosave (`invalidate()`) then calls `commitLoggedSession()` (`app/src/db/workoutDrafts.js`)
+  — one Dexie transaction across `sessions` + `syncQueue` + `workoutDrafts`: add the session,
+  enqueue the sync envelope (`enqueueSync()` joins the ambient transaction unmodified — no
+  change to `sync/syncQueue.js`), delete the draft. `commitLoggedSession` is extracted
+  specifically so `db/workoutDrafts.test.js` exercises the exact function production calls,
+  not a hand-copied mirror — this repo has no React-render test infrastructure to exercise
+  `DBProvider.logSession` directly. Only a committed transaction triggers the in-memory
+  reset/success message; a failure rolls all three back and the draft survives.
+- **Sign-out isolation** — both explicit `signOut()` and the Supabase `SIGNED_OUT` event
+  invalidate the controller and attempt to delete the resolved owner's draft, catching (not
+  propagating) a delete failure so it can never block sign-out itself; the composite
+  `[ownerUserId+slot]` key means a later identity can never hydrate a prior owner's row
+  regardless.
+
 ### Auth & Supabase backend (live since 2026-07-21)
 
 Alongside the local Dexie layer, a Supabase backend provides identity and per-account programme
@@ -224,8 +389,9 @@ webhook (repointing it to Supabase is separate, unstarted work).
 - **Cartridge access** (`app/src/cartridges/`, `app/src/sync/cartridgeAccess.js`): the confirmed
   access snapshot is cached in the Dexie `settings` store for instant/offline reads; unknown server
   cartridge IDs are preserved and reported, never silently substituted.
-- **On sign-out**, only the cartridge-access cache is cleared; workout/checklist/notes Dexie data
-  persists (see `AGENTS.md` and `docs/engineering/AI-WORKFLOW.md` for the persistence risk gates).
+- **On sign-out**, the cartridge-access cache and the owner's `workoutDrafts` row (A6.5) are both
+  cleared; logged `sessions`/checklist/notes Dexie data persists (see `AGENTS.md` and
+  `docs/engineering/AI-WORKFLOW.md` for the persistence risk gates).
 
 ## Day structure: 3 phases × 7-day cycle (legacy Today/HUD model)
 
@@ -362,9 +528,11 @@ suites. The suite grows with each feature — **run `npm test` for the current c
 pass/fail** rather than trusting a number here. Tests are colocated with their subjects. The
 list below is **not exhaustive** (`npm test` is the source of truth) — representative areas:
 
-- `db/` — backup, checklist, notes, syncQueue, cartridgeAccess (cache)
+- `db/` — backup, checklist, notes, syncQueue, cartridgeAccess (cache), workoutDrafts (schema
+  upgrade, controller, atomic-transaction pattern)
 - `utils/` — navState, checklistDate/Import/Share/Streak, nextDay, noteChecklist/Filter/Tags,
-  weeklyStats, blockOrder, phaseUnlock, validateCartridge, cartridgeFormat/Library/Plan
+  weeklyStats, blockOrder, phaseUnlock, validateCartridge, cartridgeFormat/Library/Plan,
+  workoutDraftState (meaningful-input, hydration validation, identity-conflict matrix)
 - `hooks/` — usePlaybook
 - `auth/` — offlineAccess; `cartridges/` — accessModel; `sync/` — cartridgeAccess (Supabase reads)
 
@@ -384,6 +552,20 @@ can be tested in a plain node environment. Browser globals in tests are stubbed 
   session delete in the UI.
 - **`Calendar.jsx` sorts by `id` descending** as a proxy for recency — correct as long as
   sessions are only created live (never backfilled with older dates).
+- **No React-render test infra exists in this repo** — all Vitest coverage drives Dexie
+  tables and pure `utils/` logic directly, never a mounted component. A6.5's hydration
+  effect, the frozen-workout render decision, autosave field-wiring, and the
+  visibilitychange/pagehide/unmount flush paths are therefore verified by direct code
+  review plus manual/E2E browser testing, not by an automated test that renders
+  `HUD`/`DBProvider`. Where the underlying decision was extractable as a plain function
+  independent of React, it was — `commitLoggedSession()` (the exact atomic-logging
+  transaction, `db/workoutDrafts.js`) and `classifyHydratedDraft()` (the hydration-outcome
+  reducer, `utils/workoutDraftState.js`) are both called by production and exercised
+  directly by `db/workoutDrafts.test.js`/`utils/workoutDraftState.test.js`, rather than
+  being re-implemented as a hand-copied test mirror that could silently drift. The other
+  persistence primitives (debounce, generation, resurrection-race prevention, save/discard
+  error propagation) are fully unit tested in `db/workoutDrafts.test.js` independent of
+  React.
 - Historical notes: W7 (test bootstrap) and W8 (sync extraction), described as pending in
   older revisions of this file, are long shipped; `app/src/sync/` exists and is the real
   home of sync logic.

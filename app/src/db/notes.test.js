@@ -37,8 +37,11 @@ beforeEach(async () => {
 // ─── Schema / upgrade safety ──────────────────────────────────────────────────
 
 describe('schema — version 3 wiring on the real db instance', () => {
-    it('is at version 3 with the two notes tables present', () => {
-        expect(db.verno).toBe(3)
+    it('is at version 3 or later with the two notes tables present', () => {
+        // No schema test — including the newest feature's own — hardcodes
+        // the exact current version; each only asserts its own minimum
+        // (later features bump further, e.g. A6.5 → v4, workoutDrafts.test.js).
+        expect(db.verno).toBeGreaterThanOrEqual(3)
         const names = db.tables.map(t => t.name)
         expect(names).toContain('noteGroups')
         expect(names).toContain('notes')

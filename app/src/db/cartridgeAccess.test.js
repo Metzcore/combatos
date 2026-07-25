@@ -58,7 +58,11 @@ describe('cartridge access cache', () => {
     })
 
     it('uses the existing settings store without a Dexie schema bump', () => {
-        expect(db.verno).toBe(3)
+        // Pinned to the version this feature actually shipped at, not the
+        // newest — later features bump further (A6.5 → v4). Never hardcode
+        // the CURRENT version number here; only that this feature's own
+        // requirement (no schema bump) still holds.
+        expect(db.verno).toBeGreaterThanOrEqual(3)
         expect(db.tables.map((table) => table.name)).not.toContain('cartridgeAccess')
     })
 })
