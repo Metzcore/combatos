@@ -68,9 +68,19 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
         notify()
         try {
             await db.workoutDrafts.put(entry.row)
+            // Re-check AFTER the await, not just before it: invalidate()
+            // (discard/sign-out/log) can run while this put is still in
+            // flight. Without this recheck, a write that went stale mid-
+            // flight would still land its own status update once the put
+            // settles — most dangerously on FAILURE, which would silently
+            // restore "Draft not saved" even though invalidate() already
+            // reset status to idle and the draft may have already been
+            // successfully discarded/logged.
+            if (entry.generation !== generation) return
             status = 'idle'
             lastError = null
         } catch (err) {
+            if (entry.generation !== generation) return
             status = 'error'
             lastError = err
         }
@@ -172,6 +182,16 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
                     try {
                         await db.workoutDrafts.put(cancelledPending.row)
                     } catch (recoveryErr) {
+                        // The delete AND the recovery attempt both failed —
+                        // the user's latest edit is now genuinely at risk of
+                        // being lost, not just cancelled. Surface this the
+                        // same way a failed autosave would (status/notify),
+                        // so "Draft not saved" + Retry appears — leaving the
+                        // controller idle here would silently hide a real
+                        // data-loss risk.
+                        status = 'error'
+                        lastError = recoveryErr
+                        notify()
                         console.error('workoutDrafts: failed to recover cancelled pending snapshot', recoveryErr)
                     }
                 }

@@ -162,12 +162,20 @@ describe('isStateMeaningful — dispatches by state.kind', () => {
 
 // ─── Row validation ─────────────────────────────────────────────────────────
 
+// Matches what production actually writes: every LEGACY_STATE_FIELD_KEYS
+// entry present with its real container type (pickFields() always finds
+// every key on DBProvider's live state, never falls back to undefined) —
+// not a minimal stub. Required so this fixture satisfies the render-safety
+// container checks the same way a real row does.
 function validRow(overrides = {}) {
     return buildDraftRow({
         ownerUserId: OWNER_A,
         workoutIdentity: buildLegacyIdentity({ day: 1, phase: 1, hipScore: 3 }),
         definitionSnapshot: buildLegacyDefinitionSnapshot({}),
-        state: { kind: 'legacy-hud-v1', fields: { notes: 'hi' } },
+        state: {
+            kind: 'legacy-hud-v1',
+            fields: { mobChecked: {}, clrChecked: {}, strSets: {}, coreSets: {}, altRows: [], notes: 'hi' },
+        },
         ...overrides,
     })
 }
@@ -245,6 +253,104 @@ describe('validateDraftRow', () => {
         expect(validateDraftRow({
             ...base,
             definitionSnapshot: { ...base.definitionSnapshot, value: { mobSlots: [], strSlots: [] } }, // clrSlots missing entirely
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a slot array containing a null entry as corrupt — MobilityBlock/StrengthBlock/CooldownBlock dereference slot.* directly and would crash', () => {
+        const base = validRow()
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, mobSlots: [null] } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, strSlots: [{ exercise: 'ok' }, null] } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, clrSlots: ['not-an-object'] } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an object-valued dailyFocus as corrupt — rendered directly as a JSX child, an object there crashes React', () => {
+        const base = validRow()
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, dailyFocus: { label: 'Push Day' } } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // null and a plain string both remain valid.
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, dailyFocus: null } },
+        }, OWNER_A).ok).toBe(true)
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, dailyFocus: 'Push Day' } },
+        }, OWNER_A).ok).toBe(true)
+    })
+
+    it('rejects an unparseable or out-of-range legacy identity as corrupt', () => {
+        const base = validRow()
+        // Unparseable dayTemplateKey/phaseId (doesn't match legacy-day:{n}/legacy-phase:{n}).
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, dayTemplateKey: 'garbage' },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // Out-of-range day (only 1-7 exist in DAY_LABELS).
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, dayTemplateKey: 'legacy-day:99' },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, dayTemplateKey: 'legacy-day:0' },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // Out-of-range phase (only 1-3 exist).
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, phaseId: 'legacy-phase:9' },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // Out-of-range / wrong-typed hipScore (only 1-5 exist in HIP_LABELS).
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, hipScore: 99 },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            workoutIdentity: { ...base.workoutIdentity, hipScore: '3' },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects malformed state.fields container types as corrupt — resumeDraft()/handleLog dereference them as objects/arrays directly', () => {
+        const base = validRow()
+        // mobChecked/clrChecked/strSets/coreSets must be plain objects.
+        expect(validateDraftRow({
+            ...base,
+            state: { ...base.state, fields: { ...base.state.fields, mobChecked: [] } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            state: { ...base.state, fields: { ...base.state.fields, strSets: 'not-an-object' } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            state: { ...base.state, fields: { ...base.state.fields, coreSets: null } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // altRows must be an array — HUD's handleLog calls altRows.map() directly.
+        expect(validateDraftRow({
+            ...base,
+            state: { ...base.state, fields: { ...base.state.fields, altRows: { 0: { name: 'x' } } } },
         }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
     })
 })

@@ -248,24 +248,30 @@ payload (still frozen — `AGENTS.md` rule 2).
   matters because `signOut()` lives in `AuthProvider`, an ancestor of any hook in the tree
   (`AuthProvider > AuthGate > CartridgeAccessProvider > DBProvider`) — only an object both
   can import directly can be invalidated synchronously from there. Every write captures its
-  generation at schedule time and re-checks it immediately before committing; `invalidate()`
-  bumps the generation synchronously (no Dexie access), so a debounced edit queued before a
-  discard/sign-out/log can never resurrect a cleared row. A failed autosave write is caught
-  internally and reported via `status: 'error'` (never thrown) — `HUD.jsx` renders a
-  persistent "Draft not saved" banner with Retry (`flushDraftNow`) while that status holds.
-  `discardDraft()` is different: it **rejects** if the underlying delete fails, because an
-  interactive caller (Discard, Discard-and-switch, Reset HUD) must not proceed as if a row
-  it failed to remove were actually gone. Sign-out is the sole exemption — `AuthProvider`
-  wraps its two calls in their own best-effort catch, since blocking sign-out on a local
-  delete failure is worse than a stray row the composite owner key already prevents another
-  identity from ever hydrating. `invalidate()` also clears a stale `'error'` status back to
-  idle (every caller — discard, sign-out, log — is ending this draft's write lifecycle, so a
-  report about a prior save no longer describes anything live); without this, a successful
-  discard/log after a failed autosave left "Draft not saved" stuck on screen with a Retry
-  that had nothing left to retry. And because `invalidate()` also cancels whatever debounced
-  edit was still pending, `discardDraft()` captures that snapshot first and — if the delete
-  itself fails — re-persists it under the new generation before the rejection propagates, so
-  a failed discard can never silently drop the user's latest unsaved input.
+  generation at schedule time and re-checks it **twice**: once before the Dexie `put`, and
+  again immediately after the awaited `put` settles (success or failure) — `invalidate()` can
+  run while a put is still in flight, and without the second check a write that went stale
+  mid-flight would still land its own status update once it settled, most dangerously on
+  failure, which would silently restore "Draft not saved" even though `invalidate()` had
+  already reset status to idle and the draft may already have been successfully discarded or
+  logged. A failed autosave write is caught internally and reported via `status: 'error'`
+  (never thrown) — `HUD.jsx` renders a persistent "Draft not saved" banner with Retry
+  (`flushDraftNow`) while that status holds. `discardDraft()` is different: it **rejects** if
+  the underlying delete fails, because an interactive caller (Discard, Discard-and-switch,
+  Reset HUD) must not proceed as if a row it failed to remove were actually gone. Sign-out is
+  the sole exemption — `AuthProvider` wraps its two calls in their own best-effort catch,
+  since blocking sign-out on a local delete failure is worse than a stray row the composite
+  owner key already prevents another identity from ever hydrating. `invalidate()` also clears
+  a stale `'error'` status back to idle (every caller — discard, sign-out, log — is ending
+  this draft's write lifecycle, so a report about a prior save no longer describes anything
+  live); without this, a successful discard/log after a failed autosave left "Draft not
+  saved" stuck on screen with a Retry that had nothing left to retry. And because
+  `invalidate()` also cancels whatever debounced edit was still pending, `discardDraft()`
+  captures that snapshot first and — if the delete itself fails — re-persists it under the
+  new generation before the rejection propagates, so a failed discard can never silently drop
+  the user's latest unsaved input; if that RECOVERY put also fails, the controller sets
+  `status: 'error'`/notifies rather than leaving itself looking idle while the edit is
+  genuinely at risk of being lost.
 - **Meaningful-input gating** (`app/src/utils/workoutDraftState.js`) — identity, selection
   (day/phase/hip/session-type) and UI-only fields (scroll, collapse) never create a draft by
   themselves; a row is written only once real content exists (a check, a performed value, a
@@ -276,11 +282,22 @@ payload (still frozen — `AGENTS.md` rule 2).
   (legacy+legacy+legacy or cartridge+cartridge+cartridge) — a mixed triple is an invariant
   violation (`'corrupt'`), never a "future format"; a structurally coherent cartridge-kind row
   is still refused (`'unsupported-state'`) because the legacy HUD — the only renderer that
-  exists before A7 — must never offer one; and a `legacy-workout-v1` snapshot whose
-  `mobSlots`/`strSlots`/`clrSlots` aren't arrays fails as `'corrupt'` rather than being offered,
-  since `HUD.jsx` calls `.filter()`/`.reduce()`/`.map()` on them directly and a non-array value
-  there is a render-time crash, not just bad data. The same module also owns the identity-
-  conflict matrix used below, and `classifyHydratedDraft` — the pure reducer `DBProvider`'s
+  exists before A7 — must never offer one. A `legacy-workout-v1` snapshot is checked
+  end-to-end for render safety, not just at the array level: `mobSlots`/`strSlots`/`clrSlots`
+  must be arrays (`HUD.jsx` calls `.filter()`/`.reduce()`/`.map()` on them directly) **and**
+  every entry inside them must be a plain object (`MobilityBlock`/`StrengthBlock`/
+  `CooldownBlock` dereference `slot.exercise`/`slot.duration`/… directly — a `null` entry
+  crashes there just as surely as a non-array field does); `dailyFocus` must be `null` or a
+  string (rendered directly as a JSX child — an object value there is a React crash, not just
+  bad data). The legacy identity itself must not just be well-typed — `dayTemplateKey`/
+  `phaseId` must actually PARSE (`legacy-day:{n}`/`legacy-phase:{n}`) and fall inside the
+  ranges the HUD actually offers (day 1–7, phase 1–3, hip score 1–5), or resuming would select
+  nothing in a `<select>` or feed `usePlaybook()` a combination it was never designed to look
+  up. And `state.fields`' own containers are checked the same way: `mobChecked`/`clrChecked`/
+  `strSets`/`coreSets` must be plain objects and `altRows` an array — `resumeDraft()` and
+  `handleLog()` (`altRows.map(...)`) dereference them as such directly. The same module also
+  owns the identity-conflict matrix used below, and `classifyHydratedDraft` — the pure reducer
+  `DBProvider`'s
   hydration effect calls to turn a raw read (or a **read failure**) into
   `{ continueDraft, draftIssue }`. A read failure is its own protected `draftIssue`
   (`reason: 'read-failed'`) — never collapsed into "no draft exists" — because the underlying

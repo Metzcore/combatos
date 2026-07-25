@@ -238,19 +238,69 @@ function matchesTriple(row, triple) {
 }
 
 // The legacy HUD calls .filter()/.reduce()/.map() on these three fields
-// directly (MobilityBlock/StrengthBlock/CooldownBlock, completeness()) —
-// anything other than an array here is a render-time crash, not just bad
-// data, so it fails closed as corrupt rather than being offered.
+// directly (MobilityBlock/StrengthBlock/CooldownBlock, completeness()), and
+// each block component then dereferences properties directly on every
+// entry (slot.exercise, slot.duration, …) — a null/non-object entry (e.g.
+// `[null]`) crashes there just as surely as a non-array field does.
+// dailyFocus is rendered directly as a JSX child (`{workout.dailyFocus}`)
+// — an object value there is a React crash ("objects are not valid as a
+// React child"), not just bad data — so it must be null or a string.
 function isRenderSafeLegacySnapshot(value) {
-    return Array.isArray(value.mobSlots) && Array.isArray(value.strSlots) && Array.isArray(value.clrSlots)
+    if (!Array.isArray(value.mobSlots) || !Array.isArray(value.strSlots) || !Array.isArray(value.clrSlots)) {
+        return false
+    }
+    const allEntries = [...value.mobSlots, ...value.strSlots, ...value.clrSlots]
+    if (!allEntries.every(isPlainObject)) return false
+    if (value.dailyFocus !== null && typeof value.dailyFocus !== 'string') return false
+    return true
+}
+
+// Legacy day/phase/hip-score must not just be well-typed strings/numbers —
+// they must actually PARSE (dayTemplateKey/phaseId matching the
+// legacy-day:{n}/legacy-phase:{n} encoding) and fall within the ranges this
+// app's HUD actually offers (DAY_LABELS: 7 days; 3 phases; HIP_LABELS: 5
+// scores). An out-of-range or unparseable value would resume as a
+// <select> with nothing selected, or feed usePlaybook() a day/phase/hip
+// combination it was never designed to look up.
+const LEGACY_DAY_RANGE = [1, 7]
+const LEGACY_PHASE_RANGE = [1, 3]
+const LEGACY_HIP_SCORE_RANGE = [1, 5]
+
+function isIntegerInRange(value, [min, max]) {
+    return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
+}
+
+function isValidLegacyIdentity(identity) {
+    return (
+        isIntegerInRange(parseLegacyDay(identity.dayTemplateKey), LEGACY_DAY_RANGE) &&
+        isIntegerInRange(parseLegacyPhase(identity.phaseId), LEGACY_PHASE_RANGE) &&
+        isIntegerInRange(identity.hipScore, LEGACY_HIP_SCORE_RANGE)
+    )
+}
+
+// resumeDraft() restores these onto DBProvider's setters directly
+// (setMobChecked(f.mobChecked), altRows.map(...) in HUD's handleLog, …) —
+// the wrong container type there crashes exactly like a malformed
+// definitionSnapshot does.
+function isRenderSafeLegacyState(fields) {
+    return (
+        isPlainObject(fields.mobChecked) &&
+        isPlainObject(fields.clrChecked) &&
+        isPlainObject(fields.strSets) &&
+        isPlainObject(fields.coreSets) &&
+        Array.isArray(fields.altRows)
+    )
 }
 
 /**
  * Returns { ok: true, row } for a hydratable row, or { ok: false, reason }
  * where reason is one of:
- *   'corrupt'            — malformed, render-unsafe, or an internally
- *                           incoherent discriminator triple; fail closed,
- *                           never hydrate/overwrite/show contents.
+ *   'corrupt'            — malformed, render-unsafe (bad container types,
+ *                           null slot entries, an object-valued display
+ *                           field, an unparseable/out-of-range legacy
+ *                           identity), or an internally incoherent
+ *                           discriminator triple; fail closed, never
+ *                           hydrate/overwrite/show contents.
  *   'owner-mismatch'      — never hydrate, expose, rewrite or merge.
  *   'unsupported-schema'  — readable but a draftSchemaVersion this build doesn't know;
  *                           preserve, show update-required state with Discard.
@@ -293,7 +343,13 @@ export function validateDraftRow(row, ownerUserId) {
         return { ok: false, reason: 'unsupported-state' }
     }
 
+    if (!isValidLegacyIdentity(row.workoutIdentity)) {
+        return { ok: false, reason: 'corrupt' }
+    }
     if (!isRenderSafeLegacySnapshot(row.definitionSnapshot.value)) {
+        return { ok: false, reason: 'corrupt' }
+    }
+    if (!isRenderSafeLegacyState(row.state.fields)) {
         return { ok: false, reason: 'corrupt' }
     }
 

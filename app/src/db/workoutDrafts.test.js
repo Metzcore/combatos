@@ -313,6 +313,44 @@ describe('createWorkoutDraftController — isolated instance', () => {
         expect(statuses).toEqual([])
     })
 
+    it('a stale in-flight write cannot restore "Draft not saved" after invalidate + a successful discard (deferred put)', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+
+        // Control exactly when the put settles, so invalidate() can run
+        // WHILE it's still in flight — commitRow's generation check at the
+        // top already passed by the time put() is called; the only thing
+        // that can still save this write from resurrecting stale status is
+        // a SECOND check after the await.
+        let rejectPut
+        let putStarted
+        const startedPromise = new Promise(resolve => { putStarted = resolve })
+        const spy = vi.spyOn(db.workoutDrafts, 'put').mockImplementationOnce(() => {
+            putStarted()
+            return new Promise((_, reject) => { rejectPut = reject })
+        })
+
+        const stalePromise = controller.saveNow(makeRow(OWNER_A, 'stale in-flight'))
+        await startedPromise // commitRow has passed its pre-await generation check
+
+        // Discard runs (and, in this test, SUCCEEDS) while that put is still
+        // hanging: invalidate() bumps generation and resets status to idle;
+        // the delete is queued behind the still-running commitRow task
+        // (same write chain, FIFO), so it hasn't executed yet either.
+        const discardPromise = controller.discardDraft(OWNER_A)
+
+        // NOW the stale put finally settles — with a FAILURE specifically,
+        // since that's the exact branch that used to unconditionally set
+        // status='error' regardless of how stale the write had become.
+        rejectPut(new Error('stale put finally fails'))
+        spy.mockRestore()
+
+        await stalePromise // commitRow itself never rejects, stale or not
+        await discardPromise
+
+        expect(controller.getStatus()).toEqual({ status: 'idle', error: null })
+        expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
+    })
+
     it('a failed discard re-persists the cancelled pending snapshot instead of losing it forever', async () => {
         const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
         await controller.saveNow(makeRow(OWNER_A, 'saved baseline'))
@@ -347,6 +385,29 @@ describe('createWorkoutDraftController — isolated instance', () => {
         // Nothing was pending at the time of discard — the baseline row
         // (never actually deleted, since the delete failed) survives as-is.
         expect((await db.workoutDrafts.get([OWNER_A, 'active']))?.state.fields.notes).toBe('saved baseline')
+    })
+
+    it('surfaces an error status when BOTH the delete and the pending-snapshot recovery fail — must not look idle while data is at risk', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        await controller.saveNow(makeRow(OWNER_A, 'saved baseline'))
+        controller.schedule(makeRow(OWNER_A, 'mid-edit, about to be cancelled'))
+
+        const deleteSpy = vi.spyOn(db.workoutDrafts, 'delete').mockRejectedValueOnce(new Error('storage boom'))
+        const putSpy = vi.spyOn(db.workoutDrafts, 'put').mockRejectedValueOnce(new Error('recovery also fails'))
+        try {
+            await expect(controller.discardDraft(OWNER_A)).rejects.toThrow('storage boom')
+        } finally {
+            deleteSpy.mockRestore()
+            putSpy.mockRestore()
+        }
+
+        // The controller must NOT look idle here — both the discard and the
+        // attempt to save the user's latest edit failed, a genuine risk of
+        // losing it, and that must surface exactly like a failed autosave.
+        const status = controller.getStatus()
+        expect(status.status).toBe('error')
+        expect(status.error).toBeInstanceOf(Error)
+        expect(status.error.message).toBe('recovery also fails')
     })
 
     it('a save scheduled before discardDraft() cannot resurrect the deleted row', async () => {
