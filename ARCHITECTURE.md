@@ -258,26 +258,46 @@ payload (still frozen — `AGENTS.md` rule 2).
   it failed to remove were actually gone. Sign-out is the sole exemption — `AuthProvider`
   wraps its two calls in their own best-effort catch, since blocking sign-out on a local
   delete failure is worse than a stray row the composite owner key already prevents another
-  identity from ever hydrating.
+  identity from ever hydrating. `invalidate()` also clears a stale `'error'` status back to
+  idle (every caller — discard, sign-out, log — is ending this draft's write lifecycle, so a
+  report about a prior save no longer describes anything live); without this, a successful
+  discard/log after a failed autosave left "Draft not saved" stuck on screen with a Retry
+  that had nothing left to retry. And because `invalidate()` also cancels whatever debounced
+  edit was still pending, `discardDraft()` captures that snapshot first and — if the delete
+  itself fails — re-persists it under the new generation before the rejection propagates, so
+  a failed discard can never silently drop the user's latest unsaved input.
 - **Meaningful-input gating** (`app/src/utils/workoutDraftState.js`) — identity, selection
   (day/phase/hip/session-type) and UI-only fields (scroll, collapse) never create a draft by
   themselves; a row is written only once real content exists (a check, a performed value, a
   note, …). Once one exists, everything is saved with it. Same module owns hydration
-  validation (owner mismatch / unsupported schema-or-kind / corrupt all fail closed without
-  hydrating or rewriting), the identity-conflict matrix used below, and
-  `classifyHydratedDraft` — the pure reducer `DBProvider`'s hydration effect calls to turn a
-  raw read (or a **read failure**) into `{ continueDraft, draftIssue }`. A read failure is
-  its own protected `draftIssue` (`reason: 'read-failed'`) — never collapsed into "no draft
-  exists" — because the underlying row may still be there and valid; autosave would
-  otherwise silently overwrite it the moment new content became meaningful. Only Retry
-  (`retryHydration()`, which bumps a key the hydration effect depends on) recovers it — there
-  is no Discard, since it's unknown whether anything exists to discard.
-- **Resolution gate** — while `continueDraft` or `draftIssue` (including `'read-failed'`) is
-  set, `HUD.jsx` renders **only** the resolution banner — no selectors, no blocks, no Log/
-  Reset. Editing or logging over an unresolved offered/protected draft would silently create
-  a second, conflicting version of "what's live" before the user has chosen Continue/Discard/
-  Retry. `autosaveEnabled` (`DBProvider`) is gated the same way, so autosave stays off for
-  the same duration.
+  validation: owner mismatch / unsupported schema-or-kind fail closed without hydrating or
+  rewriting; a row's three discriminators (`workoutIdentity.kind`, `definitionSnapshot.kind`,
+  `state.kind`) must each be individually recognized **and** form one coherent combination
+  (legacy+legacy+legacy or cartridge+cartridge+cartridge) — a mixed triple is an invariant
+  violation (`'corrupt'`), never a "future format"; a structurally coherent cartridge-kind row
+  is still refused (`'unsupported-state'`) because the legacy HUD — the only renderer that
+  exists before A7 — must never offer one; and a `legacy-workout-v1` snapshot whose
+  `mobSlots`/`strSlots`/`clrSlots` aren't arrays fails as `'corrupt'` rather than being offered,
+  since `HUD.jsx` calls `.filter()`/`.reduce()`/`.map()` on them directly and a non-array value
+  there is a render-time crash, not just bad data. The same module also owns the identity-
+  conflict matrix used below, and `classifyHydratedDraft` — the pure reducer `DBProvider`'s
+  hydration effect calls to turn a raw read (or a **read failure**) into
+  `{ continueDraft, draftIssue }`. A read failure is its own protected `draftIssue`
+  (`reason: 'read-failed'`) — never collapsed into "no draft exists" — because the underlying
+  row may still be there and valid; autosave would otherwise silently overwrite it the moment
+  new content became meaningful. Only Retry (`retryHydration()`, which bumps a key the
+  hydration effect depends on) recovers it — there is no Discard, since it's unknown whether
+  anything exists to discard.
+- **Resolution gate** — while hydration itself hasn't resolved (`draftPhase !== 'ready'` —
+  covers the initial idle/hydrating window AND the Retry transition, which re-runs the same
+  effect and briefly clears `continueDraft`/`draftIssue` before the new outcome lands) OR
+  `continueDraft`/`draftIssue` (including `'read-failed'`) is set, `HUD.jsx` renders **only**
+  a banner (a generic "Loading your workout…" placeholder during hydration itself, the
+  specific offer/issue banner once classified) — no selectors, no blocks, no Log/Reset. Log
+  in particular must never be reachable before hydration has actually resolved. Editing or
+  logging over an unresolved offered/protected draft would silently create a second,
+  conflicting version of "what's live". `autosaveEnabled` (`DBProvider`) is gated the same way,
+  so autosave stays off for the same duration.
 - **Autosave + flush** (`app/src/hooks/useWorkoutDraftPersistence.js`, called from `HUD.jsx`
   — the only place the effective, possibly-frozen `workout` is available for the
   `definitionSnapshot`) — checks/substitutions save immediately; text/numeric edits debounce
@@ -298,9 +318,13 @@ payload (still frozen — `AGENTS.md` rule 2).
   move to a different identity, `WorkoutDraftSheet.jsx` (a `BottomSheet`) gates it — Keep/
   backdrop/close all preserve the workout; only "Discard and switch" clears the draft first,
   and — since `discardDraft()` can now reject — stays open with an inline error on failure
-  rather than silently proceeding. A legacy draft's null cartridge identity never conflicts
-  with a cartridge activation target, so `CartridgeViewer.jsx`'s wiring is a no-op until A7
-  makes a `cartridge`-kind draft reachable.
+  rather than silently proceeding. Keep/backdrop/close are themselves disabled/ignored while
+  a discard-and-switch is in flight (`pending`): without this, tapping Keep the instant after
+  starting a discard would close the sheet and let the user resume working, only for the
+  already-in-flight discard to complete moments later and call `resetActiveWorkout()`
+  regardless — silently wiping whatever they'd just done. A legacy draft's null cartridge
+  identity never conflicts with a cartridge activation target, so `CartridgeViewer.jsx`'s
+  wiring is a no-op until A7 makes a `cartridge`-kind draft reachable.
 - **Reset HUD** — `discardAndResetActiveWorkout()` (`DBProvider`) invalidates pending writes
   and deletes the durable draft **first**; only clears live state (`resetActiveWorkout()`) if
   that succeeds, surfacing an error and leaving fields untouched otherwise — clearing them
@@ -309,13 +333,18 @@ payload (still frozen — `AGENTS.md` rule 2).
   atomic transaction below already deleted the row, so re-discarding would be a redundant
   delete-of-an-absent-row that could only ever spuriously fail and mask an already-successful
   log.
-- **Atomic local logging** — `logSession()` freezes autosave (`invalidate()`) then calls
-  `commitLoggedSession()` (`app/src/db/workoutDrafts.js`) — one Dexie transaction across
-  `sessions` + `syncQueue` + `workoutDrafts`: add the session, enqueue the sync envelope
-  (`enqueueSync()` joins the ambient transaction unmodified — no change to
-  `sync/syncQueue.js`), delete the draft. `commitLoggedSession` is extracted specifically so
-  `db/workoutDrafts.test.js` exercises the exact function production calls, not a hand-
-  copied mirror — this repo has no React-render test infrastructure to exercise
+- **Atomic local logging** — `HUD.jsx`'s `handleLog` first flushes the newest snapshot
+  (`flushDraftNow()`); if THAT flush itself fails, logging **aborts** entirely (no transaction,
+  no reset) rather than proceeding — otherwise, if the atomic transaction below also failed
+  for an unrelated reason, the recoverable draft left behind would be stale, violating "leaves
+  the freshest recoverable draft". Live state is untouched either way, and the existing
+  "Draft not saved" banner is already visible with Retry. Once flushed, `logSession()` freezes
+  autosave (`invalidate()`) then calls `commitLoggedSession()` (`app/src/db/workoutDrafts.js`)
+  — one Dexie transaction across `sessions` + `syncQueue` + `workoutDrafts`: add the session,
+  enqueue the sync envelope (`enqueueSync()` joins the ambient transaction unmodified — no
+  change to `sync/syncQueue.js`), delete the draft. `commitLoggedSession` is extracted
+  specifically so `db/workoutDrafts.test.js` exercises the exact function production calls,
+  not a hand-copied mirror — this repo has no React-render test infrastructure to exercise
   `DBProvider.logSession` directly. Only a committed transaction triggers the in-memory
   reset/success message; a failure rolls all three back and the draft survives.
 - **Sign-out isolation** — both explicit `signOut()` and the Supabase `SIGNED_OUT` event

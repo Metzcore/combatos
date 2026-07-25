@@ -14,12 +14,26 @@
  * disable "Discard and switch" while the attempt is in flight, and show
  * what went wrong so the workout/context is visibly preserved rather than
  * silently switched out from under the user.
+ *
+ * While `pending`, Keep/backdrop/close are ALL disabled/ignored too — not
+ * just Discard and switch. Without this, a user could tap Keep the instant
+ * after starting a discard, see the sheet close, and resume working; the
+ * already-in-flight discard-and-switch then completes moments later and
+ * calls resetActiveWorkout() regardless (its own success path doesn't know
+ * the user "changed their mind"), silently wiping whatever they just did
+ * post-Keep. Blocking Keep until the in-flight attempt resolves (success or
+ * failure) closes that race.
  */
 import BottomSheet from './BottomSheet.jsx'
 
 export default function WorkoutDraftSheet({ open, onKeep, onDiscardAndSwitch, pending = false, error = null }) {
+    const guardedKeep = () => {
+        if (pending) return
+        onKeep()
+    }
+
     return (
-        <BottomSheet open={open} onClose={onKeep} title="Unfinished workout">
+        <BottomSheet open={open} onClose={guardedKeep} title="Unfinished workout">
             <p className="sheet__copy">
                 Switching now would leave your current workout behind. Keep it, or discard it and switch?
             </p>
@@ -28,7 +42,7 @@ export default function WorkoutDraftSheet({ open, onKeep, onDiscardAndSwitch, pe
                     {error}
                 </div>
             )}
-            <button type="button" className="btn-primary" onClick={onKeep}>
+            <button type="button" className="btn-primary" disabled={pending} onClick={guardedKeep}>
                 Keep workout
             </button>
             <button

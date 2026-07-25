@@ -119,6 +119,13 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
      * every write scheduled before this call is stale from here on. Pure
      * in-memory — never touches Dexie — so it can run from signOut() (an
      * AuthProvider ancestor) without awaiting anything.
+     *
+     * Also clears a stale 'error' status: every caller (discard, sign-out,
+     * log) is ending this draft's write lifecycle, so a report about a
+     * PRIOR save no longer describes anything live. Safe against a stale
+     * in-flight write completing afterward and re-setting it — commitRow's
+     * generation check runs before it touches status, so an already-stale
+     * write never reaches that code once its generation stops matching.
      */
     function invalidate() {
         generation += 1
@@ -127,6 +134,11 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
             timer = null
         }
         pending = null
+        if (status !== 'idle') {
+            status = 'idle'
+            lastError = null
+            notify()
+        }
     }
 
     /**
@@ -141,10 +153,31 @@ export function createWorkoutDraftController({ debounceMs = AUTOSAVE_MS } = {}) 
      * sign-out on a local delete failure is worse than a stray row that
      * the composite owner key already prevents another identity from ever
      * hydrating.
+     *
+     * invalidate() cancels whatever debounced edit was still pending —
+     * correct when the delete SUCCEEDS (the whole draft is intentionally
+     * gone), but if the delete FAILS the row (and this owner's draft)
+     * still exists, so that cancelled edit must not be silently lost
+     * forever. On failure it's re-persisted under the new generation
+     * before the rejection propagates.
      */
     function discardDraft(ownerUserId) {
+        const cancelledPending = pending
         invalidate()
-        return enqueue(() => db.workoutDrafts.delete([ownerUserId, 'active']))
+        return enqueue(async () => {
+            try {
+                await db.workoutDrafts.delete([ownerUserId, 'active'])
+            } catch (err) {
+                if (cancelledPending) {
+                    try {
+                        await db.workoutDrafts.put(cancelledPending.row)
+                    } catch (recoveryErr) {
+                        console.error('workoutDrafts: failed to recover cancelled pending snapshot', recoveryErr)
+                    }
+                }
+                throw err
+            }
+        })
     }
 
     function getStatus() {

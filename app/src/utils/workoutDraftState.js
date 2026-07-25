@@ -224,15 +224,41 @@ function isStructurallySound(row) {
     return true
 }
 
+// A row's three discriminators (workoutIdentity.kind, definitionSnapshot.kind,
+// state.kind) must each be individually recognized AND form one of these
+// coherent combinations — this app never produces a mixed triple, so one
+// isn't a "future format", it's a broken invariant (→ corrupt).
+const COHERENT_LEGACY_TRIPLE = { identity: 'legacy-playbook', snapshot: 'legacy-workout-v1', state: 'legacy-hud-v1' }
+const COHERENT_CARTRIDGE_TRIPLE = { identity: 'cartridge', snapshot: 'cartridge-day-v1', state: 'cartridge-workout-v1' }
+
+function matchesTriple(row, triple) {
+    return row.workoutIdentity.kind === triple.identity &&
+        row.definitionSnapshot.kind === triple.snapshot &&
+        row.state.kind === triple.state
+}
+
+// The legacy HUD calls .filter()/.reduce()/.map() on these three fields
+// directly (MobilityBlock/StrengthBlock/CooldownBlock, completeness()) —
+// anything other than an array here is a render-time crash, not just bad
+// data, so it fails closed as corrupt rather than being offered.
+function isRenderSafeLegacySnapshot(value) {
+    return Array.isArray(value.mobSlots) && Array.isArray(value.strSlots) && Array.isArray(value.clrSlots)
+}
+
 /**
  * Returns { ok: true, row } for a hydratable row, or { ok: false, reason }
  * where reason is one of:
- *   'corrupt'            — malformed; fail closed, never hydrate/overwrite/show contents.
+ *   'corrupt'            — malformed, render-unsafe, or an internally
+ *                           incoherent discriminator triple; fail closed,
+ *                           never hydrate/overwrite/show contents.
  *   'owner-mismatch'      — never hydrate, expose, rewrite or merge.
  *   'unsupported-schema'  — readable but a draftSchemaVersion this build doesn't know;
  *                           preserve, show update-required state with Discard.
- *   'unsupported-state'   — readable but an identity/snapshot/state kind this build
- *                           doesn't know; preserve, show update-required state with Discard.
+ *   'unsupported-state'   — readable, individually-recognized, and internally
+ *                           coherent, but a combination this app surface
+ *                           doesn't support hydrating yet (a well-formed
+ *                           cartridge-kind row before A7's renderer exists);
+ *                           preserve, show update-required state with Discard.
  */
 export function validateDraftRow(row, ownerUserId) {
     if (!isStructurallySound(row)) {
@@ -244,6 +270,7 @@ export function validateDraftRow(row, ownerUserId) {
     if (row.draftSchemaVersion !== DRAFT_SCHEMA_VERSION) {
         return { ok: false, reason: 'unsupported-schema' }
     }
+
     const knownKinds =
         KNOWN_IDENTITY_KINDS.has(row.workoutIdentity.kind) &&
         KNOWN_SNAPSHOT_KINDS.has(row.definitionSnapshot.kind) &&
@@ -251,6 +278,25 @@ export function validateDraftRow(row, ownerUserId) {
     if (!knownKinds) {
         return { ok: false, reason: 'unsupported-state' }
     }
+
+    const isLegacyTriple = matchesTriple(row, COHERENT_LEGACY_TRIPLE)
+    const isCartridgeTriple = matchesTriple(row, COHERENT_CARTRIDGE_TRIPLE)
+    if (!isLegacyTriple && !isCartridgeTriple) {
+        return { ok: false, reason: 'corrupt' }
+    }
+
+    if (isCartridgeTriple) {
+        // Structurally coherent, but the legacy HUD — the only renderer that
+        // exists before A7 — must never offer a cartridge-kind draft. This
+        // has no live path today (nothing creates one), but validateDraftRow
+        // must not silently pass one through regardless.
+        return { ok: false, reason: 'unsupported-state' }
+    }
+
+    if (!isRenderSafeLegacySnapshot(row.definitionSnapshot.value)) {
+        return { ok: false, reason: 'corrupt' }
+    }
+
     return { ok: true, row }
 }
 

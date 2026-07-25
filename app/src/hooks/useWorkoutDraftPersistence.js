@@ -66,13 +66,23 @@ export function useWorkoutDraftPersistence({
         })
     }
 
-    /** Persist current fields immediately if meaningful; used before guarded
-     *  context changes, before logging, and on backgrounding/unmount. */
-    function flushNow() {
-        if (!enabled || !ownerUserId) return Promise.resolve()
+    /**
+     * Persist current fields immediately if meaningful; used before guarded
+     * context changes, before logging, and on backgrounding/unmount.
+     *
+     * Resolves `true` if there was nothing to do, or the save succeeded;
+     * `false` if a meaningful snapshot existed but failed to persist.
+     * saveNow() itself never rejects (a background-flush failure is
+     * reported via status, not thrown), so success/failure is read back
+     * from the controller's status immediately after — callers that must
+     * NOT proceed on a failed flush (logging) check this return value.
+     */
+    async function flushNow() {
+        if (!enabled || !ownerUserId) return true
         const row = buildRow()
-        if (!isLegacyStateMeaningful(row.state.fields)) return Promise.resolve()
-        return workoutDraftController.saveNow(row)
+        if (!isLegacyStateMeaningful(row.state.fields)) return true
+        await workoutDraftController.saveNow(row)
+        return workoutDraftController.getStatus().status !== 'error'
     }
 
     useEffect(() => {

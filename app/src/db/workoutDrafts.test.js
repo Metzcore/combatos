@@ -275,6 +275,80 @@ describe('createWorkoutDraftController — isolated instance', () => {
         expect((await db.workoutDrafts.get([OWNER_A, 'active'])).state.fields.notes).toBe('retried')
     })
 
+    it('invalidate() clears a stale error status — a successful discard/log must not leave "Draft not saved" stuck on screen', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        const spy = vi.spyOn(db.workoutDrafts, 'put').mockRejectedValueOnce(new Error('quota exceeded'))
+        try {
+            await controller.saveNow(makeRow(OWNER_A, 'will fail'))
+        } finally {
+            spy.mockRestore()
+        }
+        expect(controller.getStatus().status).toBe('error')
+
+        controller.invalidate()
+
+        expect(controller.getStatus()).toEqual({ status: 'idle', error: null })
+    })
+
+    it('invalidate() notifies subscribers when it clears a stale error (not just a silent internal reset)', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        const spy = vi.spyOn(db.workoutDrafts, 'put').mockRejectedValueOnce(new Error('boom'))
+        try {
+            await controller.saveNow(makeRow(OWNER_A, 'will fail'))
+        } finally {
+            spy.mockRestore()
+        }
+
+        const statuses = []
+        controller.subscribe(s => statuses.push(s.status))
+        controller.invalidate()
+        expect(statuses).toEqual(['idle'])
+    })
+
+    it('invalidate() is a no-op on status when already idle (no spurious notify)', () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        const statuses = []
+        controller.subscribe(s => statuses.push(s.status))
+        controller.invalidate()
+        expect(statuses).toEqual([])
+    })
+
+    it('a failed discard re-persists the cancelled pending snapshot instead of losing it forever', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        await controller.saveNow(makeRow(OWNER_A, 'saved baseline'))
+
+        // A new edit is mid-debounce (never yet written) when discard fires.
+        controller.schedule(makeRow(OWNER_A, 'mid-edit, about to be cancelled'))
+
+        const spy = vi.spyOn(db.workoutDrafts, 'delete').mockRejectedValueOnce(new Error('storage boom'))
+        try {
+            await expect(controller.discardDraft(OWNER_A)).rejects.toThrow('storage boom')
+        } finally {
+            spy.mockRestore()
+        }
+
+        // The cancelled edit must not be lost — it's re-persisted under the
+        // failed-discard recovery path, not silently dropped by invalidate().
+        expect((await db.workoutDrafts.get([OWNER_A, 'active']))?.state.fields.notes)
+            .toBe('mid-edit, about to be cancelled')
+    })
+
+    it('a failed discard with nothing pending recovers nothing extra (no phantom write)', async () => {
+        const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
+        await controller.saveNow(makeRow(OWNER_A, 'saved baseline'))
+
+        const spy = vi.spyOn(db.workoutDrafts, 'delete').mockRejectedValueOnce(new Error('storage boom'))
+        try {
+            await expect(controller.discardDraft(OWNER_A)).rejects.toThrow('storage boom')
+        } finally {
+            spy.mockRestore()
+        }
+
+        // Nothing was pending at the time of discard — the baseline row
+        // (never actually deleted, since the delete failed) survives as-is.
+        expect((await db.workoutDrafts.get([OWNER_A, 'active']))?.state.fields.notes).toBe('saved baseline')
+    })
+
     it('a save scheduled before discardDraft() cannot resurrect the deleted row', async () => {
         const controller = createWorkoutDraftController({ debounceMs: TEST_DEBOUNCE_MS })
         await controller.saveNow(makeRow(OWNER_A, 'will be discarded'))
@@ -395,8 +469,11 @@ describe('draft representations round-trip raw values through Dexie', () => {
         })
         await db.workoutDrafts.put(row)
         const loaded = await loadActiveDraft(OWNER_A)
+        // Dexie round-trip fidelity — the row itself is stored/read intact.
         expect(loaded).toEqual(row)
-        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
+        // But NOT offered: the legacy HUD (the only renderer before A7) must
+        // never hydrate a cartridge-kind draft, even a well-formed one.
+        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: false, reason: 'unsupported-state' })
     })
 })
 

@@ -69,7 +69,7 @@ export default function HUD() {
         clrBlockOpen, setClrBlockOpen,
         resetActiveWorkout, discardAndResetActiveWorkout,
         // A6.5 — durable active-workout draft
-        ownerUserId, autosaveEnabled, immediateTick,
+        ownerUserId, autosaveEnabled, immediateTick, draftPhase,
         draftCreatedAt, draftLifecycleKey, getLiveDraftRow, retryHydration,
         continueDraft, draftIssue, resumeDraft, discardCurrentDraft
     } = useDB()
@@ -333,7 +333,14 @@ export default function HUD() {
         // so a failed log leaves the freshest recoverable draft (not a
         // stale, up-to-700ms-old one). logSession() itself invalidates the
         // controller and deletes the draft inside the same transaction.
-        await flushDraftNow()
+        // If THIS flush fails, abort logging entirely rather than proceed:
+        // the stored draft would stay stale, so if the transaction below
+        // also failed for an unrelated reason, the recoverable row left
+        // behind would violate "leaves the freshest recoverable draft."
+        // Live state itself is untouched either way; the existing
+        // "Draft not saved" banner (draftSaveStatus) is now visible with Retry.
+        const flushed = await flushDraftNow()
+        if (!flushed) return
 
         const parseNum = (val) => (val === '' || val == null || isNaN(val)) ? '' : Number(val)
 
@@ -424,10 +431,15 @@ export default function HUD() {
         }
     }, [hudScrollY])
 
-    // ── A6.5 — resolution gate (plan v2 §5/§10, Sol review blocker #2) ────
-    // While an offered draft or a protected error state is unresolved, the
-    // entire interactive HUD below is withheld.
-    const resolutionPending = Boolean(continueDraft || draftIssue)
+    // ── A6.5 — resolution gate (plan v2 §5/§10) ───────────────────────────
+    // While hydration itself hasn't resolved (idle/hydrating — including the
+    // Retry transition, which re-runs the SAME effect and briefly clears
+    // continueDraft/draftIssue before the new outcome lands) OR an offered
+    // draft/protected error state is unresolved, the entire interactive HUD
+    // below is withheld — no selectors, no blocks, and critically no Log,
+    // which must never be reachable before hydration has actually resolved.
+    const hydrationPending = draftPhase !== 'ready'
+    const resolutionPending = hydrationPending || Boolean(continueDraft || draftIssue)
 
     return (
         <div className="app">
@@ -438,7 +450,11 @@ export default function HUD() {
             </header>
 
             <main className="content">
-                {resolutionPending ? (
+                {hydrationPending ? (
+                    <div className="draft-banner">
+                        <div className="draft-banner__title">Loading your workout…</div>
+                    </div>
+                ) : resolutionPending ? (
                     <>
                         {/* ── A6.5 — Continue offer ────────────── */}
                         {continueDraft && (

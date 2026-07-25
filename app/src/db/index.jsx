@@ -845,7 +845,7 @@ export function DBProvider({ children }) {
             resetActiveWorkout, discardAndResetActiveWorkout,
 
             // ── A6.5 — durable active-workout draft ──
-            ownerUserId, autosaveEnabled, immediateTick,
+            ownerUserId, autosaveEnabled, immediateTick, draftPhase,
             continueDraft, draftIssue, resumeDraft, discardCurrentDraft,
             draftCreatedAt, draftLifecycleKey, getLiveDraftRow, retryHydration,
 

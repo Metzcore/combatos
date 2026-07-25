@@ -203,6 +203,50 @@ describe('validateDraftRow', () => {
         expect(validateDraftRow({ ...validRow(), workoutIdentity: { kind: 'legacy-playbook' } }, OWNER_A))
             .toEqual({ ok: false, reason: 'corrupt' }) // missing dayTemplateKey
     })
+
+    it('rejects an internally incoherent discriminator triple as corrupt, even though each field is individually recognized', () => {
+        // legacy identity + cartridge snapshot + legacy state — nothing this
+        // app produces ever mixes kinds; this is a broken invariant, not a
+        // forward-compatible future format.
+        const mixed = {
+            ...validRow(),
+            definitionSnapshot: { kind: 'cartridge-day-v1', value: { day: 1 } },
+        }
+        expect(validateDraftRow(mixed, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const mixed2 = { ...validRow(), state: { kind: 'cartridge-workout-v1', fields: {} } }
+        expect(validateDraftRow(mixed2, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('never offers a structurally coherent cartridge-kind draft to the legacy HUD before A7', () => {
+        const cartridgeRow = buildDraftRow({
+            ownerUserId: OWNER_A,
+            workoutIdentity: buildCartridgeIdentity({
+                cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3, day: 1,
+            }),
+            definitionSnapshot: buildCartridgeDefinitionSnapshot({ day: 1, label: 'Day 1', blocks: [] }),
+            state: { kind: 'cartridge-workout-v1', fields: { notes: 'x' } },
+        })
+        expect(validateDraftRow(cartridgeRow, OWNER_A)).toEqual({ ok: false, reason: 'unsupported-state' })
+    })
+
+    it('rejects a legacy-workout-v1 snapshot with a non-array mobSlots/strSlots/clrSlots as corrupt (render-unsafe)', () => {
+        const base = validRow()
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, mobSlots: null } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { ...base.definitionSnapshot.value, strSlots: 'not-an-array' } },
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        expect(validateDraftRow({
+            ...base,
+            definitionSnapshot: { ...base.definitionSnapshot, value: { mobSlots: [], strSlots: [] } }, // clrSlots missing entirely
+        }, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
 })
 
 // ─── Identity conflict matrix ───────────────────────────────────────────────
