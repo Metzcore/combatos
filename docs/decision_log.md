@@ -507,3 +507,18 @@ Track A (own session); D9 ruling; W26 research (parallel).
 
 **To do next session:** developer's pick — go-live (merge → prod env + redirect), OR start the CSV
 Authoring Kit, OR a Track A planning session.
+
+---
+
+## 2026-07-26 · A6.5 durable active-workout drafts shipped
+
+**Context:** The approved cross-provider A6.5 Plan v2 was implemented, independently reviewed,
+hardened through three correction rounds, merged through PR #57, and exercised on the installed
+Android PWA. This completed an already-approved design; no new product or architectural decision
+was introduced.
+
+**Not done / deferred:** permanent cartridge-session payload lock; A7 interactive renderer; D9;
+on-device sign-out testing; active-draft survival across a later PWA update.
+
+**To do next session:** complete the W26-dependent payload architecture required to unlock A7.
+Rotate the Supabase developer password after the app work is finished.

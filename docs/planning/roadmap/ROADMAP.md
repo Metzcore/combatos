@@ -99,10 +99,13 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       browses all 3 real cartridges with a renderer per block kind. Read-only, zero touch to
       HUD.jsx/db/webhook — needs nothing from the payload-shape gate below. **Shipped, merged, LIVE
       in production** — first real on-device review done. _2026-07-22._
-- [ ] **A6.5 · Durable active-workout draft** — local Dexie autosave/resume for every unfinished
-      workout field; offline-first, cleared only by a successful local log or explicit discard.
-      Temporary draft shape stays separate from the permanent session payload. Explicit prerequisite
-      to A7; diagnostic first. See `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
+- [x] **A6.5 · Durable active-workout draft** — additive Dexie v4 autosave/resume for unfinished
+      workouts, with owner isolation, hydration gating, bounded-loss lifecycle flushing,
+      stale-write invalidation, explicit Continue/Discard/conflict handling, and atomic clearing
+      after successful local logging. Temporary draft shape remains separate from the permanent
+      session payload. _Shipped in PR #57, 2026-07-26; 450 tests and production build passed.
+      Android acceptance passed every reported scenario; sign-out and active-draft survival
+      across a later PWA update were not exercised on-device._
 - [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
       cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ gated on
       A6.5 and the payload-shape lock below.
