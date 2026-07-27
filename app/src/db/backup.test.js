@@ -97,6 +97,41 @@ describe('exportFullBackup — combatos-full-backup shape stability', () => {
         expect(JSON.parse(JSON.stringify(out))).toEqual(out)
     })
 
+    // A7a — mixed legacy/v1/v2 session-shape regression (no code change:
+    // exportFullBackup dumps db.tables dynamically and was already
+    // payload-shape-agnostic; this proves it explicitly with real fixtures).
+    it('includes legacy, payloadVersion:1, and payloadVersion:2 session rows side by side, byte for byte', async () => {
+        const legacyRow = { date: '2026-07-01', day: 1, phase: 1, hipScore: 3, sessionType: 'S&C', completeness: 80 }
+        const v1Row = {
+            payloadVersion: 1, sessionKind: 'cartridge', sessionId: 'v1-real', date: '2026-06-01',
+            completedAt: '2026-06-01T10:00:00.000Z', sessionCategory: 'strength-conditioning',
+            cartridgeId: 'apex-protocol-phase1', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: 'phase1',
+            completeness: 90, blocks: [],
+        }
+        const v2Row = {
+            payloadVersion: 2, sessionKind: 'cartridge', sessionId: 'v2-real', date: '2026-08-01',
+            completedAt: '2026-08-01T10:00:00.000Z', sessionCategory: 'combat',
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:2', dayTemplateLabel: 'Day 2', dayType: 'custom', phaseId: null,
+            blocks: [], sessionActivities: ['bag-workout'],
+        }
+        const legacyId = await db.sessions.add(legacyRow)
+        const v1Id = await db.sessions.add(v1Row)
+        const v2Id = await db.sessions.add(v2Row)
+
+        const out = await exportFullBackup()
+
+        expect(out.tables.sessions).toEqual(expect.arrayContaining([
+            { id: legacyId, ...legacyRow },
+            { id: v1Id, ...v1Row },
+            { id: v2Id, ...v2Row },
+        ]))
+        expect(out.tables.sessions).toHaveLength(3)
+        // Plain data only — survives JSON without loss, including the mixed shapes.
+        expect(JSON.parse(JSON.stringify(out))).toEqual(out)
+    })
+
     it('is read-only — exporting mutates nothing', async () => {
         await db.sessions.add({ date: '2026-07-01', day: 1, phase: 1, hipScore: 3 })
         const vernoBefore = db.verno

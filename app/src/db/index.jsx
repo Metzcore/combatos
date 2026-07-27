@@ -15,12 +15,14 @@ import Dexie from 'dexie'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import useRoundsTimer from '../hooks/useRoundsTimer.js'
 import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
+import { computeSessionCounts } from '../utils/phaseUnlock.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { workoutDraftController, loadActiveDraft, commitLoggedSession } from './workoutDrafts.js'
 import {
-    classifyHydratedDraft, parseLegacyDay, parseLegacyPhase,
-    buildLegacyIdentity, pickFields, LEGACY_STATE_FIELD_KEYS,
+    classifyHydratedDraft, parseLegacyDay, parseLegacyPhase, parseCartridgeDay,
+    buildLegacyIdentity, buildCartridgeIdentity, pickFields,
+    LEGACY_STATE_FIELD_KEYS, CARTRIDGE_STATE_FIELD_KEYS,
 } from '../utils/workoutDraftState.js'
 
 // Re-export for backward compatibility (syncQueue.test.js and any external
@@ -135,7 +137,57 @@ const WORKOUT_DEFAULTS = {
     // guarantees as the W10 fields.
     mobBlockOpen: true,
     strBlockOpen: true,
-    clrBlockOpen: true
+    clrBlockOpen: true,
+
+    // ── A7a — cartridge draft/state plumbing (corrective pass, finding #1) ──
+    // Complete non-UI DBProvider state for a cartridge draft, mirroring the
+    // legacy fields above field-for-field (same defaults/reset/context
+    // discipline). Not yet consumed by any Today UI — A7b builds that — but
+    // now a structurally valid cartridge draft can hydrate/resume through
+    // the SAME durable-draft pipeline the legacy HUD already uses. No
+    // completion/round-progress state for conditioning: v2 removed all
+    // completion tracking outside strength/core sets (schema §6/D11 pt 4).
+
+    // Discriminator: which kind of workout is currently "live" in this
+    // provider — decides what getLiveDraftRow()/the persistence hook build.
+    // Defaults 'legacy' (the only Today surface that exists before A7b);
+    // resumeDraft() flips it to 'cartridge' when a cartridge-kind draft is
+    // resumed.
+    activeDraftKind: 'legacy',
+
+    // Cartridge identity — mirrors buildCartridgeIdentity's inputs.
+    cartridgeId: null,
+    cartridgeVersion: null,
+    cartridgeSchemaVersion: null,
+    cartridgeDay: null,
+    cartridgePhaseId: null,
+
+    // startedAt — captured only when Start is actually pressed; never
+    // fabricated (schema §4). No legacy equivalent.
+    startedAt: null,
+
+    // Per-item live editing state, keyed by itemId.
+    itemStateById: {},
+    substitutions: {},
+    itemNotes: {},
+
+    // Cartridge session-level notes — kept SEPARATE from legacy `notes`
+    // above (different workout, different in-flight content); maps onto
+    // the draft state's `notes` field key via CARTRIDGE_STATE_FIELD_KEYS.
+    cartridgeNotes: '',
+
+    customSessionContent: '',
+    sessionDuration: '',
+
+    // A7a — analytics-ready cartridge session-summary fields (schema §4).
+    sessionActivities: [],
+    otherActivity: '',
+
+    // UI-only collapse/scroll state for a cartridge Today, exactly like
+    // *BlockOpen/hudScrollY above — never makes a draft meaningful by
+    // itself, never reaches a logged payload.
+    cartridgeBlockOpen: {},
+    cartridgeScrollY: 0
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -190,6 +242,10 @@ export function DBProvider({ children }) {
     // Bumped by discrete-action setters (checks) so the persistence hook can
     // tell "checkbox tap — save now" apart from "text edit — debounce".
     const [immediateTick, setImmediateTick] = useState(0)
+    // A7a — which kind of workout is currently live (see WORKOUT_DEFAULTS
+    // note above). Read by getLiveDraftRow(); set by resumeDraft() when a
+    // cartridge-kind draft is resumed.
+    const [activeDraftKind, setActiveDraftKind] = useState(WORKOUT_DEFAULTS.activeDraftKind)
 
     const autosaveEnabled = draftPhase === 'ready' && !continueDraft && !draftIssue
 
@@ -216,6 +272,24 @@ export function DBProvider({ children }) {
     const [mobBlockOpen, setMobBlockOpen] = useState(WORKOUT_DEFAULTS.mobBlockOpen)
     const [strBlockOpen, setStrBlockOpen] = useState(WORKOUT_DEFAULTS.strBlockOpen)
     const [clrBlockOpen, setClrBlockOpen] = useState(WORKOUT_DEFAULTS.clrBlockOpen)
+
+    // ── A7a — cartridge draft/state (see WORKOUT_DEFAULTS note above) ─────────
+    const [cartridgeId, setCartridgeId] = useState(WORKOUT_DEFAULTS.cartridgeId)
+    const [cartridgeVersion, setCartridgeVersion] = useState(WORKOUT_DEFAULTS.cartridgeVersion)
+    const [cartridgeSchemaVersion, setCartridgeSchemaVersion] = useState(WORKOUT_DEFAULTS.cartridgeSchemaVersion)
+    const [cartridgeDay, setCartridgeDay] = useState(WORKOUT_DEFAULTS.cartridgeDay)
+    const [cartridgePhaseId, setCartridgePhaseId] = useState(WORKOUT_DEFAULTS.cartridgePhaseId)
+    const [startedAt, setStartedAt] = useState(WORKOUT_DEFAULTS.startedAt)
+    const [itemStateById, setItemStateById] = useState(WORKOUT_DEFAULTS.itemStateById)
+    const [substitutions, setSubstitutions] = useState(WORKOUT_DEFAULTS.substitutions)
+    const [itemNotes, setItemNotes] = useState(WORKOUT_DEFAULTS.itemNotes)
+    const [cartridgeNotes, setCartridgeNotes] = useState(WORKOUT_DEFAULTS.cartridgeNotes)
+    const [customSessionContent, setCustomSessionContent] = useState(WORKOUT_DEFAULTS.customSessionContent)
+    const [sessionDuration, setSessionDuration] = useState(WORKOUT_DEFAULTS.sessionDuration)
+    const [sessionActivities, setSessionActivities] = useState(WORKOUT_DEFAULTS.sessionActivities)
+    const [otherActivity, setOtherActivity] = useState(WORKOUT_DEFAULTS.otherActivity)
+    const [cartridgeBlockOpen, setCartridgeBlockOpen] = useState(WORKOUT_DEFAULTS.cartridgeBlockOpen)
+    const [cartridgeScrollY, setCartridgeScrollY] = useState(WORKOUT_DEFAULTS.cartridgeScrollY)
 
     // ── In-memory timer state (not persisted to Dexie) ────────────────────────
     const [swTime, setSwTime] = useState(0)
@@ -475,6 +549,24 @@ export function DBProvider({ children }) {
         setMobBlockOpen(WORKOUT_DEFAULTS.mobBlockOpen)
         setStrBlockOpen(WORKOUT_DEFAULTS.strBlockOpen)
         setClrBlockOpen(WORKOUT_DEFAULTS.clrBlockOpen)
+        // A7a — cartridge draft/state reset, same discipline as every field above.
+        setActiveDraftKind(WORKOUT_DEFAULTS.activeDraftKind)
+        setCartridgeId(WORKOUT_DEFAULTS.cartridgeId)
+        setCartridgeVersion(WORKOUT_DEFAULTS.cartridgeVersion)
+        setCartridgeSchemaVersion(WORKOUT_DEFAULTS.cartridgeSchemaVersion)
+        setCartridgeDay(WORKOUT_DEFAULTS.cartridgeDay)
+        setCartridgePhaseId(WORKOUT_DEFAULTS.cartridgePhaseId)
+        setStartedAt(WORKOUT_DEFAULTS.startedAt)
+        setItemStateById(WORKOUT_DEFAULTS.itemStateById)
+        setSubstitutions(WORKOUT_DEFAULTS.substitutions)
+        setItemNotes(WORKOUT_DEFAULTS.itemNotes)
+        setCartridgeNotes(WORKOUT_DEFAULTS.cartridgeNotes)
+        setCustomSessionContent(WORKOUT_DEFAULTS.customSessionContent)
+        setSessionDuration(WORKOUT_DEFAULTS.sessionDuration)
+        setSessionActivities(WORKOUT_DEFAULTS.sessionActivities)
+        setOtherActivity(WORKOUT_DEFAULTS.otherActivity)
+        setCartridgeBlockOpen(WORKOUT_DEFAULTS.cartridgeBlockOpen)
+        setCartridgeScrollY(WORKOUT_DEFAULTS.cartridgeScrollY)
         // A6.5 — the NEXT meaningful draft gets a fresh createdAt/lifecycle,
         // never inherits the just-cleared one's.
         setDraftCreatedAt(null)
@@ -546,8 +638,14 @@ export function DBProvider({ children }) {
         setHydrationRetryKey(k => k + 1)
     }, [])
 
-    /** Applies an offered Continue draft onto live state. Legacy only — a
-     *  cartridge-kind draft is not reachable until A7 ships the renderer. */
+    /** Applies an offered Continue draft onto live state — legacy or
+     *  cartridge, per workoutIdentity.kind. A7a: a structurally sound
+     *  cartridge-kind draft can now hydrate (workoutDraftState.js's
+     *  validateDraftRow no longer rejects it outright); this is the
+     *  data-layer resume half. There is still no Today UI to have STARTED
+     *  a fresh cartridge draft (A7b) — this path is only reachable via a
+     *  row that already exists (e.g. seeded directly in Dexie, or a future
+     *  A7b write). */
     const resumeDraft = useCallback(() => {
         if (!continueDraft) return
         const { workoutIdentity, state } = continueDraft
@@ -577,6 +675,28 @@ export function DBProvider({ children }) {
             if (f.mobBlockOpen !== undefined) setMobBlockOpen(f.mobBlockOpen)
             if (f.strBlockOpen !== undefined) setStrBlockOpen(f.strBlockOpen)
             if (f.clrBlockOpen !== undefined) setClrBlockOpen(f.clrBlockOpen)
+            setActiveDraftKind('legacy')
+        } else if (workoutIdentity.kind === 'cartridge') {
+            setCartridgeId(workoutIdentity.cartridgeId)
+            setCartridgeVersion(workoutIdentity.cartridgeVersion)
+            setCartridgeSchemaVersion(workoutIdentity.cartridgeSchemaVersion)
+            const resumedDay = parseCartridgeDay(workoutIdentity.dayTemplateKey)
+            if (resumedDay != null) setCartridgeDay(resumedDay)
+            setCartridgePhaseId(workoutIdentity.phaseId)
+
+            const f = state.fields || {}
+            if (f.startedAt !== undefined) setStartedAt(f.startedAt)
+            if (f.itemStateById) setItemStateById(f.itemStateById)
+            if (f.substitutions) setSubstitutions(f.substitutions)
+            if (f.itemNotes) setItemNotes(f.itemNotes)
+            if (f.notes !== undefined) setCartridgeNotes(f.notes)
+            if (f.customSessionContent !== undefined) setCustomSessionContent(f.customSessionContent)
+            if (f.sessionDuration !== undefined) setSessionDuration(f.sessionDuration)
+            if (f.sessionActivities) setSessionActivities(f.sessionActivities)
+            if (f.otherActivity !== undefined) setOtherActivity(f.otherActivity)
+            if (f.blockOpen) setCartridgeBlockOpen(f.blockOpen)
+            if (f.scrollY !== undefined) setCartridgeScrollY(f.scrollY)
+            setActiveDraftKind('cartridge')
         }
         setDraftCreatedAt(continueDraft.createdAt)
         setContinueDraft(null)
@@ -595,21 +715,46 @@ export function DBProvider({ children }) {
 
     /** Current live (not-yet-necessarily-persisted) draft shape, for the
      *  context-conflict preflight — shared by HUD's day/phase/hip selectors
-     *  and CartridgeViewer's activation, so both check the same thing. */
-    const getLiveDraftRow = useCallback(() => ({
-        workoutIdentity: buildLegacyIdentity({ day, phase, hipScore }),
-        state: {
-            kind: 'legacy-hud-v1',
-            fields: pickFields({
-                mobChecked, clrChecked, strSets, coreSets,
-                bagRounds, bagCourse, bagModules, bagWorkouts,
-                notes, gymSessionType, altRows, altDuration,
-                hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen,
-            }, LEGACY_STATE_FIELD_KEYS),
-        },
-    }), [day, phase, hipScore, mobChecked, clrChecked, strSets, coreSets,
+     *  and CartridgeViewer's activation, so both check the same thing.
+     *  Reflects whichever kind (`activeDraftKind`) is actually live right
+     *  now — legacy by default (the only Today surface before A7b), or
+     *  cartridge once resumeDraft() has resumed a cartridge-kind draft. */
+    const getLiveDraftRow = useCallback(() => {
+        if (activeDraftKind === 'cartridge') {
+            return {
+                workoutIdentity: buildCartridgeIdentity({
+                    cartridgeId, cartridgeVersion, cartridgeSchemaVersion,
+                    day: cartridgeDay, phaseId: cartridgePhaseId, hipScore: null,
+                }),
+                state: {
+                    kind: 'cartridge-workout-v1',
+                    fields: pickFields({
+                        itemStateById, substitutions, itemNotes, notes: cartridgeNotes,
+                        customSessionContent, sessionDuration, sessionActivities, otherActivity,
+                        startedAt, blockOpen: cartridgeBlockOpen, scrollY: cartridgeScrollY,
+                    }, CARTRIDGE_STATE_FIELD_KEYS),
+                },
+            }
+        }
+        return {
+            workoutIdentity: buildLegacyIdentity({ day, phase, hipScore }),
+            state: {
+                kind: 'legacy-hud-v1',
+                fields: pickFields({
+                    mobChecked, clrChecked, strSets, coreSets,
+                    bagRounds, bagCourse, bagModules, bagWorkouts,
+                    notes, gymSessionType, altRows, altDuration,
+                    hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen,
+                }, LEGACY_STATE_FIELD_KEYS),
+            },
+        }
+    }, [activeDraftKind,
+        day, phase, hipScore, mobChecked, clrChecked, strSets, coreSets,
         bagRounds, bagCourse, bagModules, bagWorkouts, notes, gymSessionType, altRows, altDuration,
-        hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen])
+        hudScrollY, bagBlockOpen, coreBlockOpen, mobBlockOpen, strBlockOpen, clrBlockOpen,
+        cartridgeId, cartridgeVersion, cartridgeSchemaVersion, cartridgeDay, cartridgePhaseId,
+        itemStateById, substitutions, itemNotes, cartridgeNotes, customSessionContent,
+        sessionDuration, sessionActivities, otherActivity, startedAt, cartridgeBlockOpen, cartridgeScrollY])
 
     // A6.5 — best-effort flush on DBProvider's own unmount (sign-out via
     // AuthGate swapping to SignIn, or full app teardown). This flushes
@@ -680,16 +825,11 @@ export function DBProvider({ children }) {
 
     const refreshCounts = useCallback(async () => {
         const sessions = await db.sessions.toArray()
-        const counts = { 1: 0, 2: 0, 3: 0 }
-        for (const s of sessions) {
-            // Only count S&C days toward phase unlock — exclude fight gym
-            // days 2/4 and the optional/custom gym Day 7 (D2 / W16)
-            if (s.day !== 2 && s.day !== 4 && s.day !== 7) {
-                const p = Number(s.phase)
-                if (counts[p] !== undefined) counts[p]++
-            }
-        }
-        setCount(counts)
+        // A7a — extracted to utils/phaseUnlock.js (computeSessionCounts) so
+        // the counting logic is independently unit-testable, including the
+        // regression proof that cartridge rows (any payloadVersion) never
+        // inflate a phase's count. Zero behavior change.
+        setCount(computeSessionCounts(sessions))
     }, [])
 
     const refreshPending = useCallback(async () => {
@@ -843,6 +983,25 @@ export function DBProvider({ children }) {
             clrBlockOpen, setClrBlockOpen,
             coreBlockOpen, setCoreBlockOpen,
             resetActiveWorkout, discardAndResetActiveWorkout,
+
+            // ── A7a — cartridge draft/state (data layer; no Today UI yet) ──
+            activeDraftKind, setActiveDraftKind,
+            cartridgeId, setCartridgeId,
+            cartridgeVersion, setCartridgeVersion,
+            cartridgeSchemaVersion, setCartridgeSchemaVersion,
+            cartridgeDay, setCartridgeDay,
+            cartridgePhaseId, setCartridgePhaseId,
+            startedAt, setStartedAt,
+            itemStateById, setItemStateById,
+            substitutions, setSubstitutions,
+            itemNotes, setItemNotes,
+            cartridgeNotes, setCartridgeNotes,
+            customSessionContent, setCustomSessionContent,
+            sessionDuration, setSessionDuration,
+            sessionActivities, setSessionActivities,
+            otherActivity, setOtherActivity,
+            cartridgeBlockOpen, setCartridgeBlockOpen,
+            cartridgeScrollY, setCartridgeScrollY,
 
             // ── A6.5 — durable active-workout draft ──
             ownerUserId, autosaveEnabled, immediateTick, draftPhase,

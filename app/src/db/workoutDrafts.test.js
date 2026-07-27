@@ -511,13 +511,16 @@ describe('draft representations round-trip raw values through Dexie', () => {
         expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
     })
 
-    it('cartridge-workout-v1 round-trips every field untouched', async () => {
+    it('cartridge-workout-v1 round-trips every field untouched and hydrates successfully (A7a corrective pass)', async () => {
         const fields = {
-            itemStateById: { 'd1-str-1': { checked: true, kg: '100', reps: '5' } },
+            // itemStateById holds real ENTERED set values, not a legacy-style
+            // `checked` flag — v2 has no completion-flag concept on an item.
+            itemStateById: { 'd1-str-1': { sets: [{ kg: 100, reps: 5 }] } },
             substitutions: { 'd1-str-1': 'Front Squat' },
             itemNotes: { 'd1-str-1': 'felt heavy' },
             notes: 'good session', customSessionContent: '',
-            conditioningProgress: { 'd1-bag-1': { roundsDone: 3 } },
+            startedAt: '2026-08-02T17:04:11.902Z',
+            sessionDuration: '', sessionActivities: ['warmup'], otherActivity: '',
             blockOpen: { strength: true }, scrollY: 100,
         }
         const row = buildDraftRow({
@@ -532,9 +535,10 @@ describe('draft representations round-trip raw values through Dexie', () => {
         const loaded = await loadActiveDraft(OWNER_A)
         // Dexie round-trip fidelity — the row itself is stored/read intact.
         expect(loaded).toEqual(row)
-        // But NOT offered: the legacy HUD (the only renderer before A7) must
-        // never hydrate a cartridge-kind draft, even a well-formed one.
-        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: false, reason: 'unsupported-state' })
+        // A7a corrective pass (finding #1): a structurally valid cartridge
+        // draft now hydrates successfully — no longer force-rejected as
+        // 'unsupported-state'.
+        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
     })
 })
 
@@ -579,6 +583,27 @@ describe('commitLoggedSession — atomic local logging transaction', () => {
         expect(queue[0].payload).toEqual({ action: 'log', sessionId: 'uuid-log-1', payload: sessionData })
         expect(queue[0].sessionId).toBe(id) // permanent payload/envelope shape unchanged
         expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
+    })
+
+    // A7a — commitLoggedSession is payload-shape-agnostic (sessionData is
+    // written as-is); this proves it explicitly with a real v2 cartridge
+    // payload rather than only ever exercising it with a legacy shape.
+    it('commits a payloadVersion:2 cartridge sessionData exactly like a legacy one (no code change needed)', async () => {
+        const cartridgeSessionData = {
+            payloadVersion: 2, sessionKind: 'cartridge', sessionId: 'uuid-cartridge-1',
+            sessionCategory: 'strength-conditioning',
+            date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            completeness: 50, sessionActivities: ['warmup'], blocks: [],
+        }
+        const id = await commitLoggedSession({ ownerUserId: OWNER_A, sessionData: cartridgeSessionData, sessionId: 'uuid-cartridge-1' })
+
+        const stored = await db.sessions.get(id)
+        expect(stored).toEqual({ id, ...cartridgeSessionData })
+        expect(stored.payloadVersion).toBe(2)
+        const queue = await db.syncQueue.toArray()
+        expect(queue[0].payload).toEqual({ action: 'log', sessionId: 'uuid-cartridge-1', payload: cartridgeSessionData })
     })
 
     it('a failure inside the transaction rolls back all three operations, leaving the draft intact', async () => {

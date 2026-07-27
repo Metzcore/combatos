@@ -18,6 +18,7 @@ import {
     isPhaseLocked,
     highestUnlockedPhase,
     isPhaseSelectable,
+    computeSessionCounts,
 } from './phaseUnlock.js'
 
 const T = PHASE_UNLOCK_THRESHOLD
@@ -178,5 +179,59 @@ describe('isPhaseSelectable (W27)', () => {
             // For a non-active phase, selectability === within earned range.
             expect(isPhaseSelectable(2, sc, 1)).toBe(2 <= highestUnlockedPhase(sc))
         }
+    })
+})
+
+// ─── computeSessionCounts — A7a extraction + phase-unlock exclusion (§8) ───
+
+describe('computeSessionCounts', () => {
+    it('counts legacy S&C sessions (day not 2/4/7) by phase — unchanged legacy behavior', () => {
+        const sessions = [
+            { day: 1, phase: 1, sessionType: 'S&C' },
+            { day: 3, phase: 1, sessionType: 'S&C' },
+            { day: 1, phase: 2, sessionType: 'S&C' },
+        ]
+        expect(computeSessionCounts(sessions)).toEqual({ 1: 2, 2: 1, 3: 0 })
+    })
+
+    it('excludes legacy fight-gym days 2/4 and optional day 7', () => {
+        const sessions = [
+            { day: 2, phase: 1, sessionType: 'Combat' },
+            { day: 4, phase: 1, sessionType: 'Combat' },
+            { day: 7, phase: 1, sessionType: 'Cardio' },
+            { day: 1, phase: 1, sessionType: 'S&C' },
+        ]
+        expect(computeSessionCounts(sessions)).toEqual({ 1: 1, 2: 0, 3: 0 })
+    })
+
+    it('a payloadVersion: 2 cartridge row never inflates any phase count (no day/phase fields at all)', () => {
+        const cartridgeRow = {
+            payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning',
+            cartridgeId: 'combatos-operator-2026', dayTemplateKey: 'day:1', phaseId: null, blocks: [],
+        }
+        expect(computeSessionCounts([cartridgeRow])).toEqual({ 1: 0, 2: 0, 3: 0 })
+    })
+
+    it('a historical payloadVersion: 1 cartridge row also never inflates any phase count', () => {
+        const v1Row = {
+            payloadVersion: 1, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning',
+            cartridgeId: 'apex-protocol-phase1', dayTemplateKey: 'day:1', phaseId: 'phase1', blocks: [],
+        }
+        expect(computeSessionCounts([v1Row])).toEqual({ 1: 0, 2: 0, 3: 0 })
+    })
+
+    it('a mixed legacy + v1 + v2 array counts only the legacy S&C rows', () => {
+        const sessions = [
+            { day: 1, phase: 1, sessionType: 'S&C' },
+            { day: 3, phase: 2, sessionType: 'S&C' },
+            { payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'combat', blocks: [] },
+            { payloadVersion: 1, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning', blocks: [] },
+        ]
+        expect(computeSessionCounts(sessions)).toEqual({ 1: 1, 2: 1, 3: 0 })
+    })
+
+    it('never throws on an empty or missing array', () => {
+        expect(computeSessionCounts([])).toEqual({ 1: 0, 2: 0, 3: 0 })
+        expect(computeSessionCounts(undefined)).toEqual({ 1: 0, 2: 0, 3: 0 })
     })
 })

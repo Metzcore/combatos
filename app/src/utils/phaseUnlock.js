@@ -106,3 +106,34 @@ export function highestUnlockedPhase(sessionCount, threshold = PHASE_UNLOCK_THRE
 export function isPhaseSelectable(p, sessionCount, currentPhase, threshold = PHASE_UNLOCK_THRESHOLD) {
     return p <= highestUnlockedPhase(sessionCount, threshold) || p === currentPhase
 }
+
+/**
+ * computeSessionCounts — per-phase S&C session counts (A7a extraction).
+ *
+ * Verbatim extraction of db/index.jsx's `refreshCounts` loop body — pure
+ * function, zero behavior change — so it is independently unit-testable
+ * without Dexie/React. `refreshCounts` now calls this directly.
+ *
+ * A cartridge-driven row (any `payloadVersion`) is excluded from every
+ * phase's count WITHOUT any cartridge-aware branch here: cartridge payloads
+ * never emit `day`/`phase` (schema §4), so `s.day !== 2/4/7` passes (no
+ * `day` to match), but `Number(s.phase)` is `Number(undefined)` = `NaN`,
+ * and `counts[NaN]` is never a tracked key — the row silently contributes
+ * to nothing. This is the existing legacy-day-filter's natural side effect,
+ * not new logic; see phaseUnlock.test.js for the explicit regression proof.
+ *
+ * @param {Array<object>} sessions - raw Dexie `sessions` rows (any shape)
+ * @returns {{1: number, 2: number, 3: number}}
+ */
+export function computeSessionCounts(sessions) {
+    const counts = { 1: 0, 2: 0, 3: 0 }
+    for (const s of sessions || []) {
+        // Only count S&C days toward phase unlock — exclude fight gym
+        // days 2/4 and the optional/custom gym Day 7 (D2 / W16)
+        if (s.day !== 2 && s.day !== 4 && s.day !== 7) {
+            const p = Number(s.phase)
+            if (counts[p] !== undefined) counts[p]++
+        }
+    }
+    return counts
+}

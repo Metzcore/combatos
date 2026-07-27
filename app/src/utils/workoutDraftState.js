@@ -65,6 +65,7 @@ export function buildCartridgeIdentity({
 
 const LEGACY_DAY_PATTERN = /^legacy-day:(\d+)$/
 const LEGACY_PHASE_PATTERN = /^legacy-phase:(\d+)$/
+const CARTRIDGE_DAY_PATTERN = /^day:(\d+)$/
 
 /** Inverse of buildLegacyIdentity's dayTemplateKey/phaseId encoding, for Continue/resume. */
 export function parseLegacyDay(dayTemplateKey) {
@@ -74,6 +75,12 @@ export function parseLegacyDay(dayTemplateKey) {
 
 export function parseLegacyPhase(phaseId) {
     const match = LEGACY_PHASE_PATTERN.exec(phaseId || '')
+    return match ? Number(match[1]) : null
+}
+
+/** Inverse of buildCartridgeIdentity's `day:{n}` dayTemplateKey encoding, for Continue/resume. */
+export function parseCartridgeDay(dayTemplateKey) {
+    const match = CARTRIDGE_DAY_PATTERN.exec(dayTemplateKey || '')
     return match ? Number(match[1]) : null
 }
 
@@ -113,7 +120,21 @@ export const LEGACY_STATE_FIELD_KEYS = [
 
 export const CARTRIDGE_STATE_FIELD_KEYS = [
     'itemStateById', 'substitutions', 'itemNotes', 'notes',
-    'customSessionContent', 'conditioningProgress', 'blockOpen', 'scrollY',
+    'customSessionContent', 'blockOpen', 'scrollY',
+    // A7a — startedAt: captured only when Start was actually pressed (schema
+    // §4); durable like every other field here, never fabricated.
+    'startedAt',
+    // A7a — analytics-ready activity fields (schema §4) + custom-day duration.
+    // Listed here (the single source of truth for "which fields a cartridge
+    // draft carries") so a dependency array DERIVED from this list — see
+    // trackedFieldValues() below — can never again omit one of them the way
+    // the first attempt's hand-written useEffect deps list omitted
+    // `sessionDuration` (Phase 0 review finding).
+    'sessionDuration', 'sessionActivities', 'otherActivity',
+    // NOTE: no `conditioningProgress` (or any per-round/completion field for
+    // conditioning) — schema v2 (D11 point 4) removed ALL completion
+    // tracking for mobility/cooldown/conditioning. Re-adding a field for it
+    // would be exactly the obsolete state the corrective pass forbids.
 ]
 
 /** Picks a plain fields object off a live-state source by key, filling gaps with `fallback`. */
@@ -167,23 +188,75 @@ export function isLegacyStateMeaningful(fields) {
     return false
 }
 
+// A set entry counts as real content only when it carries an actual
+// kg/reps/RPE/RIR value — an initialized-but-untouched entry (`{}`) or a
+// merely-present-but-empty `sets: []` array must NOT make the draft
+// meaningful (corrective-pass finding #2).
+function hasEnteredSetValue(sets) {
+    if (!Array.isArray(sets)) return false
+    return sets.some(entry => isPlainObject(entry) &&
+        (nonEmpty(entry.kg) || nonEmpty(entry.reps) || nonEmpty(entry.rpe) || nonEmpty(entry.rir)))
+}
+
+// A single itemStateById[itemId] entry is meaningful only from genuine
+// entered content — a real main-set value or a real pair-set value. There
+// is no legacy-style "checked" completion flag on a cartridge item (v2 has
+// no completion tracking at all outside strength/core sets), and an
+// initialized-but-empty `{}`/`{ sets: [] }`/`{ pair: { sets: [] } }` entry
+// must never count.
+function isItemStateEntryMeaningful(entry) {
+    if (!isPlainObject(entry)) return false
+    if (hasEnteredSetValue(entry.sets)) return true
+    if (isPlainObject(entry.pair) && hasEnteredSetValue(entry.pair.sets)) return true
+    return false
+}
+
 export function isCartridgeStateMeaningful(fields) {
     if (!isPlainObject(fields)) return false
 
     if (isPlainObject(fields.itemStateById)) {
         for (const entry of Object.values(fields.itemStateById)) {
-            if (!isPlainObject(entry)) continue
-            if (entry.checked) return true
-            if (nonEmpty(entry.value) || nonEmpty(entry.kg) || nonEmpty(entry.reps) || nonEmpty(entry.sets)) return true
+            if (isItemStateEntryMeaningful(entry)) return true
         }
     }
 
-    if (isPlainObject(fields.substitutions) && Object.keys(fields.substitutions).length > 0) return true
+    // A blank/empty substitution placeholder (e.g. substitutions[itemId] =
+    // '' before the user picks anything) must not count — only a real,
+    // non-blank substituted name does.
+    if (isPlainObject(fields.substitutions) && Object.values(fields.substitutions).some(nonBlank)) return true
     if (isPlainObject(fields.itemNotes) && Object.values(fields.itemNotes).some(nonBlank)) return true
     if (nonBlank(fields.notes)) return true
     if (nonBlank(fields.customSessionContent)) return true
 
+    // Real recorded content, not mere selection/UI state (same philosophy
+    // as legacy's bagRounds/bagCourse counting while gymSessionType does
+    // not): a chosen activity, an "other" description, or a typed duration
+    // all describe what actually happened. An empty sessionActivities
+    // array (initialized, nothing selected) never counts.
+    if (Array.isArray(fields.sessionActivities) && fields.sessionActivities.length > 0) return true
+    if (nonBlank(fields.otherActivity)) return true
+    if (nonEmpty(fields.sessionDuration)) return true
+
+    // startedAt, blockOpen, scrollY are identity/selection/UI-only state —
+    // deliberately never checked here, same as legacy's hudScrollY/
+    // *BlockOpen fields never making a legacy draft meaningful by themselves.
+
     return false
+}
+
+// ─── Autosave dependency derivation ────────────────────────────────────────
+// A useEffect dependency array must be a literal with a stable length per
+// render, but nothing requires it to be hand-typed: deriving it from the
+// SAME field-key list that defines "what this draft kind carries"
+// eliminates the class of bug where a field exists in state but was never
+// added to the effect's deps (the first attempt's missing `sessionDuration`
+// — Phase 0 review finding). `keys` is always one of the constant arrays
+// above, so the returned array's length is stable across renders for a
+// given call site.
+
+export function trackedFieldValues(fields, keys) {
+    const source = isPlainObject(fields) ? fields : {}
+    return keys.map(key => source[key])
 }
 
 export function isStateMeaningful(stateKind, fields) {
@@ -292,6 +365,182 @@ function isRenderSafeLegacyState(fields) {
     )
 }
 
+// Cartridge identity must actually PARSE (dayTemplateKey matching the
+// `day:{n}` encoding, mirroring the legacy day/phase range check above) and
+// carry non-empty cartridge/version identifiers and a positive integer
+// schema version — an unparseable or missing identity would feed
+// buildCartridgeIdentity/parseCartridgeDay a shape they were never designed
+// to resume from.
+function isValidCartridgeIdentity(identity) {
+    return (
+        typeof identity.cartridgeId === 'string' && identity.cartridgeId.length > 0 &&
+        typeof identity.cartridgeVersion === 'string' && identity.cartridgeVersion.length > 0 &&
+        Number.isInteger(identity.cartridgeSchemaVersion) && identity.cartridgeSchemaVersion >= 1 &&
+        parseCartridgeDay(identity.dayTemplateKey) !== null &&
+        (identity.phaseId === null || typeof identity.phaseId === 'string')
+    )
+}
+
+// resumeDraft() restores these onto DBProvider's setters directly — the
+// wrong container type there crashes exactly like a malformed legacy state
+// does (see isRenderSafeLegacyState above). No `checked`/`done`/
+// `roundsCompleted` shape is expected anywhere here — v2 has no completion
+// tracking outside strength/core sets (schema §6).
+function isRenderSafeCartridgeState(fields) {
+    return (
+        isPlainObject(fields.itemStateById) &&
+        isPlainObject(fields.substitutions) &&
+        isPlainObject(fields.itemNotes) &&
+        isPlainObject(fields.blockOpen) &&
+        typeof fields.notes === 'string' &&
+        typeof fields.customSessionContent === 'string' &&
+        Array.isArray(fields.sessionActivities) &&
+        typeof fields.scrollY === 'number' &&
+        (fields.otherActivity === undefined || typeof fields.otherActivity === 'string') &&
+        (fields.startedAt === undefined || typeof fields.startedAt === 'string') &&
+        (fields.sessionDuration === undefined || typeof fields.sessionDuration === 'number' || typeof fields.sessionDuration === 'string')
+    )
+}
+
+// ─── Cartridge day snapshot render safety ──────────────────────────────────
+//
+// `definitionSnapshot.value` for a cartridge draft is the FROZEN day
+// TEMPLATE (buildCartridgeDefinitionSnapshot's `day ?? {}` — an authored
+// cartridge day object, e.g. cartridges/*.json's `days[]` entries), not a
+// logged session payload. A7b's Today renderer will iterate its
+// blocks/items and render several fields directly as JSX children, so this
+// is renderer-safety validation for that offline shape — deliberately NOT
+// the same contract as cartridgeSessionPayload.js's strict validator (which
+// governs the LOGGED payload the builder produces) and it never mutates,
+// normalizes, or repairs anything; it only judges whether the shape is safe
+// to hand to a renderer, failing closed to 'corrupt' when it isn't.
+//
+// Real day shapes (validateCartridge.js / PROGRAM-CARTRIDGE-SPEC.md):
+// training days have `blocks: [{ kind, label, items: [{ id, name, ... }] }]`;
+// rest/recovery/custom days may omit `blocks` entirely (e.g.
+// `{ day: 2, label: "Day 2 — Rest", type: "rest" }`).
+
+function isNullableString(value) {
+    return value === undefined || value === null || typeof value === 'string'
+}
+
+// A value safe to hand straight to a renderer as a scalar (JSX text,
+// arithmetic, a `key`) — string, number, or absent/null. Never an
+// object/array, which is either a React "objects are not valid as a
+// React child" crash or silently-wrong formatted output (e.g.
+// `${value}` on an object stringifying to "[object Object]").
+function isRenderSafeScalar(value) {
+    return value === undefined || value === null || typeof value === 'string' || typeof value === 'number'
+}
+
+const KNOWN_CARTRIDGE_BLOCK_KINDS = new Set(['mobility', 'strength', 'conditioning', 'cooldown', 'core'])
+const KNOWN_CARTRIDGE_DAY_TYPES = new Set(['training', 'rest', 'recovery', 'custom'])
+
+// `prescription` stays a genuinely free object (PROGRAM-CARTRIDGE-SPEC.md:
+// "There is no fixed enum ... a cartridge is free to mix styles") — no
+// closed key set is enforced here (that would be re-implementing the
+// logged-payload validator's stricter contract). Only the specific fields
+// a formatter actually reads/renders are type-checked when present; an
+// unrecognized key is left alone.
+function isRenderSafePrescription(prescription) {
+    if (prescription === undefined || prescription === null) return true
+    if (!isPlainObject(prescription)) return false
+    if ('percent' in prescription && typeof prescription.percent !== 'number') return false
+    if ('rpe' in prescription && typeof prescription.rpe !== 'number') return false
+    if ('rir' in prescription && typeof prescription.rir !== 'number') return false
+    if ('addedLoad' in prescription && !isNullableString(prescription.addedLoad)) return false
+    if ('note' in prescription && !isNullableString(prescription.note)) return false
+    return true
+}
+
+// `pair` (PAP) — PROGRAM-CARTRIDGE-SPEC.md: `{ name, sets, reps, note? }`.
+// `name` is always rendered directly, so it's required-when-present-as-an-
+// object; `sets`/`reps`/`note` are the other fields a formatter reads.
+function isRenderSafePair(pair) {
+    if (pair === undefined || pair === null) return true
+    if (!isPlainObject(pair)) return false
+    if (typeof pair.name !== 'string' || pair.name.length === 0) return false
+    if ('sets' in pair && !isRenderSafeScalar(pair.sets)) return false
+    if ('reps' in pair && !isRenderSafeScalar(pair.reps)) return false
+    if ('note' in pair && !isNullableString(pair.note)) return false
+    return true
+}
+
+// Every entry, not just the container — `perRound.map(line => <li>{line}</li>)`
+// crashes on a non-string entry exactly as an Array-typed-wrong container would.
+function isRenderSafePerRound(perRound) {
+    if (perRound === undefined || perRound === null) return true
+    if (!Array.isArray(perRound)) return false
+    return perRound.every(entry => typeof entry === 'string')
+}
+
+function isRenderSafeCartridgeItem(item) {
+    if (!isPlainObject(item)) return false
+    if (typeof item.id !== 'string' || item.id.length === 0) return false
+    if (typeof item.name !== 'string' || item.name.length === 0) return false
+    // Display strings rendered directly as JSX children — an object value
+    // there is a React crash, not just bad data (same reasoning as the
+    // legacy dailyFocus check above).
+    if (!isNullableString(item.dose)) return false
+    if (!isNullableString(item.target)) return false
+    if (!isNullableString(item.cue)) return false
+    if (!isNullableString(item.note)) return false
+    if (!isNullableString(item.roundLength)) return false
+    if (!isNullableString(item.rest)) return false
+    // `superset` (strength/core grouping label) — a non-empty string when
+    // present, matching the authored/spec convention (e.g. "A"); no
+    // requirement that it exist at all (most items have none).
+    if ('superset' in item && !isNullableString(item.superset)) return false
+    // `sets`/`rounds` are authored as numbers (cartridges/*.json); `reps`
+    // is authored as a string OR number ("4-5", "8 each side", or a bare
+    // number) — all three rendered directly, never an object.
+    if ('sets' in item && !isRenderSafeScalar(item.sets)) return false
+    if ('rounds' in item && !isRenderSafeScalar(item.rounds)) return false
+    if ('reps' in item && !isRenderSafeScalar(item.reps)) return false
+    // Render-accessed nested containers — wrong type OR wrong-typed
+    // consumed field inside them crashes whatever reads it, regardless of
+    // whether the container itself is superficially a plain object.
+    if (!isRenderSafePrescription(item.prescription)) return false
+    if (!isRenderSafePair(item.pair)) return false
+    if (!isRenderSafePerRound(item.perRound)) return false
+    return true
+}
+
+function isRenderSafeCartridgeBlock(block) {
+    if (!isPlainObject(block)) return false
+    if (!KNOWN_CARTRIDGE_BLOCK_KINDS.has(block.kind)) return false
+    if (typeof block.label !== 'string' || block.label.length === 0) return false
+    if (!Array.isArray(block.items)) return false
+    return block.items.every(isRenderSafeCartridgeItem)
+}
+
+/**
+ * isRenderSafeCartridgeSnapshot — the frozen cartridge DAY's render safety.
+ *
+ * - `value.type`, when present, must be one of the recognized day types
+ *   (training/rest/recovery/custom) — but it may legitimately be ABSENT
+ *   entirely: validateCartridge.js's own authoring convention is
+ *   `day.type || 'training'`, so an omitted type is not corrupt, it just
+ *   means "training" by the cartridge format's own default.
+ * - `value.blocks` is OPTIONAL (rest/recovery/custom days legitimately omit
+ *   it entirely) — but when present it must be an array of render-safe
+ *   blocks. No "training must have blocks" rule is enforced here: that is
+ *   a cartridge-authoring concern (validateCartridge.js), not a hydration
+ *   render-safety concern.
+ * - Top-level display strings (`label`, `focus`) rendered directly must
+ *   never be objects.
+ */
+function isRenderSafeCartridgeSnapshot(value) {
+    if (!isNullableString(value.label)) return false
+    if (!isNullableString(value.focus)) return false
+    if ('type' in value && value.type !== undefined && !KNOWN_CARTRIDGE_DAY_TYPES.has(value.type)) return false
+    if (value.blocks !== undefined) {
+        if (!Array.isArray(value.blocks)) return false
+        if (!value.blocks.every(isRenderSafeCartridgeBlock)) return false
+    }
+    return true
+}
+
 /**
  * Returns { ok: true, row } for a hydratable row, or { ok: false, reason }
  * where reason is one of:
@@ -306,9 +555,16 @@ function isRenderSafeLegacyState(fields) {
  *                           preserve, show update-required state with Discard.
  *   'unsupported-state'   — readable, individually-recognized, and internally
  *                           coherent, but a combination this app surface
- *                           doesn't support hydrating yet (a well-formed
- *                           cartridge-kind row before A7's renderer exists);
- *                           preserve, show update-required state with Discard.
+ *                           doesn't support hydrating (e.g. a future
+ *                           identity/state kind this build doesn't
+ *                           recognize at all); preserve, show
+ *                           update-required state with Discard.
+ *
+ * A structurally sound, coherent, render-safe cartridge-kind row is now a
+ * valid `{ ok: true }` result (A7a corrective pass) — it is no longer
+ * unconditionally rejected as 'unsupported-state'. There is still no Today
+ * UI to actually START a cartridge draft (A7b), but resumeDraft() (db/
+ * index.jsx) can now apply a hydrated one onto DBProvider's cartridge state.
  */
 export function validateDraftRow(row, ownerUserId) {
     if (!isStructurallySound(row)) {
@@ -336,11 +592,22 @@ export function validateDraftRow(row, ownerUserId) {
     }
 
     if (isCartridgeTriple) {
-        // Structurally coherent, but the legacy HUD — the only renderer that
-        // exists before A7 — must never offer a cartridge-kind draft. This
-        // has no live path today (nothing creates one), but validateDraftRow
-        // must not silently pass one through regardless.
-        return { ok: false, reason: 'unsupported-state' }
+        if (!isValidCartridgeIdentity(row.workoutIdentity)) {
+            return { ok: false, reason: 'corrupt' }
+        }
+        // definitionSnapshot.value is the frozen cartridge day (`day ?? {}`
+        // from buildCartridgeDefinitionSnapshot). isStructurallySound above
+        // already requires it to be a plain object; isRenderSafeCartridgeSnapshot
+        // additionally validates the shapes A7b will actually render
+        // (blocks/items) — offline renderer-safety validation, never the
+        // logged-payload contract cartridgeSessionPayload.js enforces.
+        if (!isRenderSafeCartridgeSnapshot(row.definitionSnapshot.value)) {
+            return { ok: false, reason: 'corrupt' }
+        }
+        if (!isRenderSafeCartridgeState(row.state.fields)) {
+            return { ok: false, reason: 'corrupt' }
+        }
+        return { ok: true, row }
     }
 
     if (!isValidLegacyIdentity(row.workoutIdentity)) {

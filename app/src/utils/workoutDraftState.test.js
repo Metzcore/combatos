@@ -9,7 +9,9 @@ import {
     identitiesConflict, requiresConflictGuard,
     parseLegacyDay, parseLegacyPhase,
     classifyHydratedDraft,
+    CARTRIDGE_STATE_FIELD_KEYS, trackedFieldValues,
 } from './workoutDraftState.js'
+import { CARTRIDGES } from '../data/cartridges/index.js'
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111'
 const OWNER_B = '22222222-2222-4222-8222-222222222222'
@@ -123,18 +125,35 @@ describe('isCartridgeStateMeaningful', () => {
         })).toBe(false)
     })
 
-    it('a checked item is meaningful', () => {
-        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { checked: true } } })).toBe(true)
+    // A7a corrective pass (finding #2): v2 has NO completion-flag concept on
+    // an item (no `checked`/`done`/`roundsCompleted`) — only real
+    // kg/reps/RPE/RIR set values, a substitution, or a note make an item
+    // meaningful. An initialized-but-empty entry must not.
+    it('an item with sets: [] (initialized, nothing entered) is NOT meaningful', () => {
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [] } } })).toBe(false)
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': {} } })).toBe(false)
+    })
+    it('an empty pair.sets: [] (initialized, nothing entered) is NOT meaningful', () => {
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [], pair: { sets: [] } } } })).toBe(false)
+    })
+    it('a real kg or reps value in performed.sets is meaningful', () => {
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [{ kg: 80 }] } } })).toBe(true)
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [{ reps: 5 }] } } })).toBe(true)
+    })
+    it('an RPE-only or RIR-only entered set is meaningful (matches the payload-level RPE/RIR-only fix)', () => {
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [{ rpe: 9 }] } } })).toBe(true)
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [{ rir: 1 }] } } })).toBe(true)
+    })
+    it('a real pair-set value is meaningful even with an empty main sets array', () => {
+        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { sets: [], pair: { sets: [{ reps: 3 }] } } } })).toBe(true)
     })
 
-    it('a raw performed value/set is meaningful', () => {
-        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { kg: '80' } } })).toBe(true)
-        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { reps: '5' } } })).toBe(true)
-        expect(isCartridgeStateMeaningful({ itemStateById: { 'd1-str-1': { value: 'x' } } })).toBe(true)
-    })
-
-    it('a substitution is meaningful even with no performed values yet', () => {
+    it('a real (non-blank) substitution is meaningful even with no performed values yet', () => {
         expect(isCartridgeStateMeaningful({ substitutions: { 'd1-str-1': 'Front Squat' } })).toBe(true)
+    })
+    it('a blank substitution placeholder is NOT meaningful', () => {
+        expect(isCartridgeStateMeaningful({ substitutions: { 'd1-str-1': '' } })).toBe(false)
+        expect(isCartridgeStateMeaningful({ substitutions: { 'd1-str-1': '   ' } })).toBe(false)
     })
 
     it('item or session notes are meaningful; blank ones are not', () => {
@@ -149,6 +168,96 @@ describe('isCartridgeStateMeaningful', () => {
 
     it('identity and UI state alone are never meaningful', () => {
         expect(isCartridgeStateMeaningful({ blockOpen: { mob: true }, scrollY: 500 })).toBe(false)
+    })
+
+    // A7a — analytics-ready activity fields.
+    it('a non-empty sessionActivities selection is meaningful; an empty one is not', () => {
+        expect(isCartridgeStateMeaningful({ sessionActivities: ['warmup'] })).toBe(true)
+        expect(isCartridgeStateMeaningful({ sessionActivities: [] })).toBe(false)
+    })
+    it('a non-blank otherActivity is meaningful; a blank one is not', () => {
+        expect(isCartridgeStateMeaningful({ otherActivity: 'sled pushes' })).toBe(true)
+        expect(isCartridgeStateMeaningful({ otherActivity: '   ' })).toBe(false)
+    })
+    it('a typed sessionDuration is meaningful; empty/undefined is not', () => {
+        expect(isCartridgeStateMeaningful({ sessionDuration: 30 })).toBe(true)
+        expect(isCartridgeStateMeaningful({ sessionDuration: '' })).toBe(false)
+        expect(isCartridgeStateMeaningful({})).toBe(false)
+    })
+})
+
+describe('CARTRIDGE_STATE_FIELD_KEYS — A7a additions', () => {
+    it('includes sessionDuration, sessionActivities, otherActivity (the fixed dependency-array defect fields)', () => {
+        expect(CARTRIDGE_STATE_FIELD_KEYS).toEqual(expect.arrayContaining(['sessionDuration', 'sessionActivities', 'otherActivity']))
+    })
+})
+
+describe('trackedFieldValues — dependency-array derivation', () => {
+    it('returns one value per key, in key order, undefined for a missing field', () => {
+        expect(trackedFieldValues({ a: 1, b: 2 }, ['a', 'b', 'c'])).toEqual([1, 2, undefined])
+    })
+
+    it('a sessionDuration-only change produces a different tracked-values array — proves a useEffect deps array built from CARTRIDGE_STATE_FIELD_KEYS would detect it', () => {
+        const sharedItemStateById = {} // same reference in both — isolates the change to sessionDuration alone
+        const before = { itemStateById: sharedItemStateById, sessionDuration: undefined }
+        const after = { itemStateById: sharedItemStateById, sessionDuration: 30 }
+        const depsBefore = trackedFieldValues(before, CARTRIDGE_STATE_FIELD_KEYS)
+        const depsAfter = trackedFieldValues(after, CARTRIDGE_STATE_FIELD_KEYS)
+        expect(depsBefore).not.toEqual(depsAfter)
+        // Confirms sessionDuration is the ONLY thing that changed between the
+        // two arrays (i.e. it really is tracked, not some other field masking it).
+        const changedIndices = depsBefore.map((v, i) => (v !== depsAfter[i] ? i : -1)).filter(i => i >= 0)
+        expect(changedIndices).toEqual([CARTRIDGE_STATE_FIELD_KEYS.indexOf('sessionDuration')])
+    })
+
+    it('a stable-length array for a fixed key list regardless of fields content', () => {
+        expect(trackedFieldValues({}, CARTRIDGE_STATE_FIELD_KEYS)).toHaveLength(CARTRIDGE_STATE_FIELD_KEYS.length)
+        expect(trackedFieldValues(null, CARTRIDGE_STATE_FIELD_KEYS)).toHaveLength(CARTRIDGE_STATE_FIELD_KEYS.length)
+    })
+
+    // Finding #7: the canonical field list must include every durable
+    // cartridge field, especially startedAt and sessionDuration, and each
+    // one must independently participate in the derived dependency array —
+    // not just sit in the list unused. This exhaustively proves EVERY key
+    // in CARTRIDGE_STATE_FIELD_KEYS, not just sessionDuration, actually
+    // changes the tracked-values array in isolation.
+    it('includes startedAt and sessionDuration (explicitly named in the finding)', () => {
+        expect(CARTRIDGE_STATE_FIELD_KEYS).toContain('startedAt')
+        expect(CARTRIDGE_STATE_FIELD_KEYS).toContain('sessionDuration')
+    })
+
+    const SENTINEL_BY_KEY = {
+        itemStateById: { 'd1-str-1': { sets: [{ kg: 100 }] } },
+        substitutions: { 'd1-str-1': 'Front Squat' },
+        itemNotes: { 'd1-str-1': 'felt heavy' },
+        notes: 'changed',
+        customSessionContent: 'changed',
+        blockOpen: { strength: true },
+        scrollY: 999,
+        startedAt: '2026-08-02T17:04:11.902Z',
+        sessionDuration: 30,
+        sessionActivities: ['warmup'],
+        otherActivity: 'changed',
+    }
+
+    it('SENTINEL_BY_KEY covers every field in CARTRIDGE_STATE_FIELD_KEYS (test premise check)', () => {
+        expect(Object.keys(SENTINEL_BY_KEY).sort()).toEqual([...CARTRIDGE_STATE_FIELD_KEYS].sort())
+    })
+
+    it.each(CARTRIDGE_STATE_FIELD_KEYS)('changing ONLY "%s" changes the tracked-values array at exactly that field\'s index', (key) => {
+        // A shared base object: spreading it into `before`/`after` gives every
+        // OTHER key the exact same reference in both, so only the field under
+        // test can possibly differ.
+        const base = { ...SENTINEL_BY_KEY }
+        const before = { ...base, [key]: undefined }
+        const after = { ...base, [key]: SENTINEL_BY_KEY[key] }
+
+        const depsBefore = trackedFieldValues(before, CARTRIDGE_STATE_FIELD_KEYS)
+        const depsAfter = trackedFieldValues(after, CARTRIDGE_STATE_FIELD_KEYS)
+
+        expect(depsBefore).not.toEqual(depsAfter)
+        const changedIndices = depsBefore.map((v, i) => (v !== depsAfter[i] ? i : -1)).filter(i => i >= 0)
+        expect(changedIndices).toEqual([CARTRIDGE_STATE_FIELD_KEYS.indexOf(key)])
     })
 })
 
@@ -226,17 +335,266 @@ describe('validateDraftRow', () => {
         expect(validateDraftRow(mixed2, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
     })
 
-    it('never offers a structurally coherent cartridge-kind draft to the legacy HUD before A7', () => {
-        const cartridgeRow = buildDraftRow({
+    // A7a corrective pass (finding #1): a structurally sound, render-safe
+    // cartridge-kind draft is now a valid `ok: true` result — it is no
+    // longer unconditionally rejected as 'unsupported-state'.
+    function validCartridgeFields(overrides = {}) {
+        return {
+            itemStateById: {}, substitutions: {}, itemNotes: {}, notes: '',
+            customSessionContent: '', blockOpen: {}, scrollY: 0,
+            sessionActivities: [],
+            ...overrides,
+        }
+    }
+    function cartridgeRow(fields, snapshotValue = { day: 1, label: 'Day 1', blocks: [] }) {
+        return buildDraftRow({
             ownerUserId: OWNER_A,
             workoutIdentity: buildCartridgeIdentity({
                 cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3, day: 1,
             }),
-            definitionSnapshot: buildCartridgeDefinitionSnapshot({ day: 1, label: 'Day 1', blocks: [] }),
-            state: { kind: 'cartridge-workout-v1', fields: { notes: 'x' } },
+            definitionSnapshot: buildCartridgeDefinitionSnapshot(snapshotValue),
+            state: { kind: 'cartridge-workout-v1', fields },
         })
-        expect(validateDraftRow(cartridgeRow, OWNER_A)).toEqual({ ok: false, reason: 'unsupported-state' })
+    }
+
+    it('a structurally sound, render-safe cartridge draft hydrates successfully (ok: true) — no longer unsupported-state', () => {
+        const row = cartridgeRow(validCartridgeFields({ notes: 'good session' }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: true, row })
     })
+
+    it('rejects an incomplete cartridge fields object (missing required keys) as corrupt, not unsupported-state', () => {
+        const row = cartridgeRow({ notes: 'x' }) // missing itemStateById/substitutions/etc entirely
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an unparseable cartridge dayTemplateKey as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields())
+        row.workoutIdentity = { ...row.workoutIdentity, dayTemplateKey: 'not-a-day-key' }
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a cartridge identity with an empty cartridgeId as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields())
+        row.workoutIdentity = { ...row.workoutIdentity, cartridgeId: '' }
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects wrong container types in cartridge state fields as corrupt (render-unsafe)', () => {
+        const row = cartridgeRow(validCartridgeFields({ itemStateById: null }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    // ─── Cartridge day snapshot render safety (corrective pass) ────────────
+
+    const trainingItem = (overrides = {}) => ({ id: 'd1-str-1', name: 'Barbell Back Squat', target: 'Quads / Glutes', sets: 4, reps: '4-5', prescription: { rpe: 8 }, pair: { name: 'Box Jump', sets: 4, reps: '3' }, cue: 'Controlled descent.', ...overrides })
+    const mobilityItem = (overrides = {}) => ({ id: 'd1-mob-1', name: '90/90 Hip Rotation', dose: '2x60s each side', note: 'RIGHT priority', cue: 'Breathe.', ...overrides })
+    const conditioningItem = (overrides = {}) => ({ id: 'd1-bag-1', name: 'Jab-Cross Foundation', rounds: 6, roundLength: '3 min', rest: '60s', perRound: ['R1: Technical Jab-Cross'], cue: 'Stay loose.', ...overrides })
+
+    const trainingSnapshot = {
+        day: 1, label: 'Day 1 — Lower Body', type: 'training', focus: 'Squat strength',
+        blocks: [
+            { kind: 'mobility', label: 'Mobility & Prep', items: [mobilityItem()] },
+            { kind: 'strength', label: 'Strength', items: [trainingItem()] },
+            { kind: 'conditioning', label: 'Bag Work', items: [conditioningItem()] },
+        ],
+    }
+    const restSnapshot = { day: 2, label: 'Day 2 — Rest', type: 'rest', focus: 'Rest & Recovery' } // no blocks key at all
+    const recoverySnapshot = { day: 3, label: 'Day 3 — Recovery', type: 'recovery' }
+    const customSnapshot = { day: 4, label: 'Day 4 — Custom', type: 'custom' }
+
+    it('a valid training-day snapshot (real block/item shapes) hydrates successfully', () => {
+        const row = cartridgeRow(validCartridgeFields(), trainingSnapshot)
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: true, row })
+    })
+
+    it('a valid rest/recovery snapshot with NO blocks key at all hydrates successfully', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), restSnapshot), OWNER_A).ok).toBe(true)
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), recoverySnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    it('a valid custom-day snapshot with no blocks key hydrates successfully', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), customSnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    it('rejects a non-array blocks (when present) as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: 'not-an-array' })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a null entry inside blocks as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [null] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a block with a non-string kind or label as corrupt', () => {
+        const badKind = { ...trainingSnapshot, blocks: [{ kind: 123, label: 'x', items: [mobilityItem()] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badKind), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badLabel = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: { en: 'x' }, items: [mobilityItem()] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badLabel), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a block whose items is not an array as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: 'not-an-array' }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a null entry inside a block\'s items as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [null] }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an item missing id or name as corrupt', () => {
+        const noId = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ id: undefined })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), noId), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const noName = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ name: '' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), noName), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an object-valued display field (dose/target/cue/note) as corrupt — would crash as a JSX child', () => {
+        const objDose = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ dose: { en: '2x60s' } })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objDose), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const objTarget = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ target: { en: 'Quads' } })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objTarget), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a wrong-type render-accessed nested container (prescription/pair/perRound) as corrupt', () => {
+        const badPrescription = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ prescription: 'rpe 8' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPrescription), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badPair = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ pair: 'Box Jump' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPair), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badPerRound = { ...trainingSnapshot, blocks: [{ kind: 'conditioning', label: 'x', items: [conditioningItem({ perRound: 'R1' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPerRound), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an object-valued top-level day label or focus as corrupt', () => {
+        const objLabel = { ...trainingSnapshot, label: { en: 'Day 1' } }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objLabel), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const objFocus = { ...trainingSnapshot, focus: { en: 'Squat strength' } }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objFocus), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('never returns ok:true for any of the malformed snapshots above (premise cross-check)', () => {
+        const malformed = [
+            { ...trainingSnapshot, blocks: 'x' },
+            { ...trainingSnapshot, blocks: [null] },
+            { ...trainingSnapshot, blocks: [{ kind: 1, label: 'x', items: [] }] },
+            { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [null] }] },
+            { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ dose: {} })] }] },
+        ]
+        for (const snapshot of malformed) {
+            expect(validateDraftRow(cartridgeRow(validCartridgeFields(), snapshot), OWNER_A).ok).toBe(false)
+        }
+    })
+
+    // ─── Second corrective pass: nested render-consumed value regressions ──
+    // Six independently-reproduced cases where the FIRST pass's container-
+    // type-only checks let a corrupt value through as ok:true.
+
+    function withStrengthItem(overrides) {
+        return { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'Strength', items: [trainingItem(overrides)] }] }
+    }
+    function withConditioningItem(overrides) {
+        return { ...trainingSnapshot, blocks: [{ kind: 'conditioning', label: 'Bag Work', items: [conditioningItem(overrides)] }] }
+    }
+
+    it('reproduced case 1 — item.superset = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ superset: { bad: true } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 2 — item.sets = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ sets: { bad: true } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 3 — item.prescription = { note: { bad: true } } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ prescription: { note: { bad: true } } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 4 — item.pair = { name: { bad: true } } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ pair: { name: { bad: true } } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 5 — item.perRound = [{ bad: true }] is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withConditioningItem({ perRound: [{ bad: true }] }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 6 — day.type = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, type: { bad: true } })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('a missing day.type defaults to "training" (the cartridge format\'s own convention) and is not corrupt', () => {
+        const { type, ...withoutType } = trainingSnapshot
+        const row = cartridgeRow(validCartridgeFields(), withoutType)
+        expect(validateDraftRow(row, OWNER_A).ok).toBe(true)
+    })
+
+    it('rejects an unrecognized block.kind (not one of the five renderer kinds) as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'bogus-kind', label: 'x', items: [mobilityItem()] }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an unrecognized day.type string as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, type: 'bogus-type' })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a pair with a wrong-typed sets/reps/note as corrupt', () => {
+        const badSets = withStrengthItem({ pair: { name: 'Box Jump', sets: { bad: true } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badSets), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badNote = withStrengthItem({ pair: { name: 'Box Jump', sets: 4, note: { bad: true } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badNote), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a prescription with a wrong-typed rpe/rir/percent/addedLoad as corrupt (unknown keys still tolerated)', () => {
+        const badRpe = withStrengthItem({ prescription: { rpe: '8' } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badRpe), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badAddedLoad = withStrengthItem({ prescription: { addedLoad: { kg: 20 } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badAddedLoad), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // A genuinely unrecognized prescription key is tolerated — prescription
+        // stays a free object per PROGRAM-CARTRIDGE-SPEC.md; only the fields a
+        // formatter actually reads are type-checked.
+        const unknownKey = withStrengthItem({ prescription: { rpe: 8, someFutureField: 'x' } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), unknownKey), OWNER_A).ok).toBe(true)
+    })
+
+    it('representative valid strength/mobility/conditioning snapshots still hydrate after the strengthened checks', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), trainingSnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    // ─── Every real authored day, from every bundled cartridge ─────────────
+    // Table-tested so the strengthened validator cannot accidentally reject
+    // real authored data — the single strongest guard against over-fitting
+    // to the reproduced synthetic cases above.
+
+    const allBundledDays = CARTRIDGES
+        .filter(c => c.type !== 'content') // content cartridges have no days[]/blocks — a different cartridge type entirely
+        .flatMap(c => (c.days || []).map(day => ({ cartridgeId: c.cartridgeId, day })))
+
+    it('the bundled-cartridge premise holds: at least one real cartridge with real days was found', () => {
+        expect(allBundledDays.length).toBeGreaterThan(0)
+    })
+
+    it.each(allBundledDays.map(({ cartridgeId, day }) => [`${cartridgeId} day ${day.day} (${day.type || 'training'})`, day]))(
+        '%s hydrates successfully as a real authored snapshot',
+        (_label, day) => {
+            const row = cartridgeRow(validCartridgeFields(), day)
+            expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: true, row })
+        }
+    )
 
     it('rejects a legacy-workout-v1 snapshot with a non-array mobSlots/strSlots/clrSlots as corrupt (render-unsafe)', () => {
         const base = validRow()
