@@ -402,6 +402,77 @@ function isRenderSafeCartridgeState(fields) {
     )
 }
 
+// ─── Cartridge day snapshot render safety ──────────────────────────────────
+//
+// `definitionSnapshot.value` for a cartridge draft is the FROZEN day
+// TEMPLATE (buildCartridgeDefinitionSnapshot's `day ?? {}` — an authored
+// cartridge day object, e.g. cartridges/*.json's `days[]` entries), not a
+// logged session payload. A7b's Today renderer will iterate its
+// blocks/items and render several fields directly as JSX children, so this
+// is renderer-safety validation for that offline shape — deliberately NOT
+// the same contract as cartridgeSessionPayload.js's strict validator (which
+// governs the LOGGED payload the builder produces) and it never mutates,
+// normalizes, or repairs anything; it only judges whether the shape is safe
+// to hand to a renderer, failing closed to 'corrupt' when it isn't.
+//
+// Real day shapes (validateCartridge.js / PROGRAM-CARTRIDGE-SPEC.md):
+// training days have `blocks: [{ kind, label, items: [{ id, name, ... }] }]`;
+// rest/recovery/custom days may omit `blocks` entirely (e.g.
+// `{ day: 2, label: "Day 2 — Rest", type: "rest" }`).
+
+function isNullableString(value) {
+    return value === undefined || value === null || typeof value === 'string'
+}
+
+function isRenderSafeCartridgeItem(item) {
+    if (!isPlainObject(item)) return false
+    if (typeof item.id !== 'string' || item.id.length === 0) return false
+    if (typeof item.name !== 'string' || item.name.length === 0) return false
+    // Display strings rendered directly as JSX children — an object value
+    // there is a React crash, not just bad data (same reasoning as the
+    // legacy dailyFocus check above).
+    if (!isNullableString(item.dose)) return false
+    if (!isNullableString(item.target)) return false
+    if (!isNullableString(item.cue)) return false
+    if (!isNullableString(item.note)) return false
+    // Render-accessed nested containers — wrong type here crashes whatever
+    // iterates/reads them (Object.entries(item.prescription), item.pair.name,
+    // item.perRound.map(...)), regardless of container CONTENT.
+    if ('prescription' in item && item.prescription !== null && !isPlainObject(item.prescription)) return false
+    if ('pair' in item && item.pair !== null && !isPlainObject(item.pair)) return false
+    if ('perRound' in item && item.perRound !== null && !Array.isArray(item.perRound)) return false
+    return true
+}
+
+function isRenderSafeCartridgeBlock(block) {
+    if (!isPlainObject(block)) return false
+    if (typeof block.kind !== 'string' || block.kind.length === 0) return false
+    if (typeof block.label !== 'string' || block.label.length === 0) return false
+    if (!Array.isArray(block.items)) return false
+    return block.items.every(isRenderSafeCartridgeItem)
+}
+
+/**
+ * isRenderSafeCartridgeSnapshot — the frozen cartridge DAY's render safety.
+ *
+ * - `value.blocks` is OPTIONAL (rest/recovery/custom days legitimately omit
+ *   it entirely) — but when present it must be an array of render-safe
+ *   blocks. No "training must have blocks" rule is enforced here: that is
+ *   a cartridge-authoring concern (validateCartridge.js), not a hydration
+ *   render-safety concern.
+ * - Top-level display strings (`label`, `focus`) rendered directly must
+ *   never be objects.
+ */
+function isRenderSafeCartridgeSnapshot(value) {
+    if (!isNullableString(value.label)) return false
+    if (!isNullableString(value.focus)) return false
+    if (value.blocks !== undefined) {
+        if (!Array.isArray(value.blocks)) return false
+        if (!value.blocks.every(isRenderSafeCartridgeBlock)) return false
+    }
+    return true
+}
+
 /**
  * Returns { ok: true, row } for a hydratable row, or { ok: false, reason }
  * where reason is one of:
@@ -457,10 +528,14 @@ export function validateDraftRow(row, ownerUserId) {
             return { ok: false, reason: 'corrupt' }
         }
         // definitionSnapshot.value is the frozen cartridge day (`day ?? {}`
-        // from buildCartridgeDefinitionSnapshot) — isStructurallySound above
-        // already requires it to be a plain object; no further per-block
-        // shape is enforced here (that's cartridgeSessionPayload.js's job
-        // for the eventual LOGGED payload, a different, stricter contract).
+        // from buildCartridgeDefinitionSnapshot). isStructurallySound above
+        // already requires it to be a plain object; isRenderSafeCartridgeSnapshot
+        // additionally validates the shapes A7b will actually render
+        // (blocks/items) — offline renderer-safety validation, never the
+        // logged-payload contract cartridgeSessionPayload.js enforces.
+        if (!isRenderSafeCartridgeSnapshot(row.definitionSnapshot.value)) {
+            return { ok: false, reason: 'corrupt' }
+        }
         if (!isRenderSafeCartridgeState(row.state.fields)) {
             return { ok: false, reason: 'corrupt' }
         }

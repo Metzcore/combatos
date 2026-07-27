@@ -93,21 +93,60 @@ const BADGE_BY_BUCKET = {
     recovery: { className: 'badge-dim' },
 }
 
+// Human-facing labels for a KNOWN cartridge category — deliberately not the
+// raw stored string (e.g. 'strength-conditioning' reads as "S&C", matching
+// the legacy label a user already recognizes; 'custom'/'rest'/'recovery'
+// get Title Case). A category outside this exact set is UNKNOWN, never
+// guessed into one of these.
+const CARTRIDGE_CATEGORY_LABELS = {
+    'strength-conditioning': 'S&C',
+    'combat': 'Combat',
+    'custom': 'Custom',
+    'rest': 'Rest',
+    'recovery': 'Recovery',
+}
+
+const UNKNOWN_BADGE = { label: 'Unknown', className: 'badge-dim' }
+
 /**
  * categoryBadge — { label, className } for Calendar.jsx's session badge,
  * using the row's ACTUAL category (finding #6) instead of defaulting every
- * non-'S&C' row to an amber "fight" guess. `label` is the raw category
- * string as stored (already human-readable: 'S&C', 'Combat', 'rest', …);
- * an unrecognized/absent category falls back to the pre-existing legacy
- * default ('S&C' / green) exactly as Calendar.jsx did before this change,
- * so old rows keep rendering exactly as they always have.
+ * non-'S&C' row to an amber "fight" guess.
+ *
+ * Two shapes, kept genuinely separate (this is a display-layer distinction
+ * `sessionBucket`'s single null return can't make, since it collapses
+ * "legacy with no sessionType" and "versioned but unrecognized" to the same
+ * value):
+ *
+ * - Legacy (no `payloadVersion` key at all) — pre-A7 Calendar behavior,
+ *   preserved exactly: 'S&C' -> S&C/green, 'Combat' -> Combat/red, an
+ *   absent sessionType -> S&C/green, any OTHER present sessionType -> its
+ *   own text/amber (a future/unknown legacy value is still shown honestly,
+ *   never hidden behind "Unknown" — legacy rows are never uncertain about
+ *   whether they're a session at all).
+ * - "Versioned" (has a `payloadVersion` key) — must be a fully recognized
+ *   readable cartridge row (known payloadVersion 1 or 2, sessionKind
+ *   'cartridge') AND carry one of the five known categories, or the badge
+ *   is a neutral "Unknown" — an unknown payloadVersion, unknown sessionKind,
+ *   or a missing/invalid sessionCategory is never guessed into S&C.
  *
  * @param {object} session
  * @returns {{ label: string, className: string }}
  */
 export function categoryBadge(session) {
-    const category = categoryOf(session)
-    const bucket = sessionBucket(session)
-    if (bucket === null) return { label: 'S&C', className: 'badge-green' }
-    return { label: category, className: BADGE_BY_BUCKET[bucket].className }
+    if (session == null || typeof session !== 'object') return UNKNOWN_BADGE
+
+    if (!('payloadVersion' in session)) {
+        const sessionType = session.sessionType
+        if (sessionType === 'S&C') return { label: 'S&C', className: 'badge-green' }
+        if (sessionType === 'Combat') return { label: 'Combat', className: 'badge-red' }
+        if (sessionType === undefined || sessionType === null) return { label: 'S&C', className: 'badge-green' }
+        return { label: sessionType, className: 'badge-amber' }
+    }
+
+    if (!isReadableCartridgeRow(session)) return UNKNOWN_BADGE
+    const category = session.sessionCategory
+    const label = CARTRIDGE_CATEGORY_LABELS[category]
+    if (!label) return UNKNOWN_BADGE
+    return { label, className: BADGE_BY_BUCKET[BUCKET_BY_CATEGORY[category]].className }
 }

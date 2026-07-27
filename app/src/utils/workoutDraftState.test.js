@@ -345,13 +345,13 @@ describe('validateDraftRow', () => {
             ...overrides,
         }
     }
-    function cartridgeRow(fields) {
+    function cartridgeRow(fields, snapshotValue = { day: 1, label: 'Day 1', blocks: [] }) {
         return buildDraftRow({
             ownerUserId: OWNER_A,
             workoutIdentity: buildCartridgeIdentity({
                 cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3, day: 1,
             }),
-            definitionSnapshot: buildCartridgeDefinitionSnapshot({ day: 1, label: 'Day 1', blocks: [] }),
+            definitionSnapshot: buildCartridgeDefinitionSnapshot(snapshotValue),
             state: { kind: 'cartridge-workout-v1', fields },
         })
     }
@@ -381,6 +381,114 @@ describe('validateDraftRow', () => {
     it('rejects wrong container types in cartridge state fields as corrupt (render-unsafe)', () => {
         const row = cartridgeRow(validCartridgeFields({ itemStateById: null }))
         expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    // ─── Cartridge day snapshot render safety (corrective pass) ────────────
+
+    const trainingItem = (overrides = {}) => ({ id: 'd1-str-1', name: 'Barbell Back Squat', target: 'Quads / Glutes', sets: 4, reps: '4-5', prescription: { rpe: 8 }, pair: { name: 'Box Jump', sets: 4, reps: '3' }, cue: 'Controlled descent.', ...overrides })
+    const mobilityItem = (overrides = {}) => ({ id: 'd1-mob-1', name: '90/90 Hip Rotation', dose: '2x60s each side', note: 'RIGHT priority', cue: 'Breathe.', ...overrides })
+    const conditioningItem = (overrides = {}) => ({ id: 'd1-bag-1', name: 'Jab-Cross Foundation', rounds: 6, roundLength: '3 min', rest: '60s', perRound: ['R1: Technical Jab-Cross'], cue: 'Stay loose.', ...overrides })
+
+    const trainingSnapshot = {
+        day: 1, label: 'Day 1 — Lower Body', type: 'training', focus: 'Squat strength',
+        blocks: [
+            { kind: 'mobility', label: 'Mobility & Prep', items: [mobilityItem()] },
+            { kind: 'strength', label: 'Strength', items: [trainingItem()] },
+            { kind: 'conditioning', label: 'Bag Work', items: [conditioningItem()] },
+        ],
+    }
+    const restSnapshot = { day: 2, label: 'Day 2 — Rest', type: 'rest', focus: 'Rest & Recovery' } // no blocks key at all
+    const recoverySnapshot = { day: 3, label: 'Day 3 — Recovery', type: 'recovery' }
+    const customSnapshot = { day: 4, label: 'Day 4 — Custom', type: 'custom' }
+
+    it('a valid training-day snapshot (real block/item shapes) hydrates successfully', () => {
+        const row = cartridgeRow(validCartridgeFields(), trainingSnapshot)
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: true, row })
+    })
+
+    it('a valid rest/recovery snapshot with NO blocks key at all hydrates successfully', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), restSnapshot), OWNER_A).ok).toBe(true)
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), recoverySnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    it('a valid custom-day snapshot with no blocks key hydrates successfully', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), customSnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    it('rejects a non-array blocks (when present) as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: 'not-an-array' })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a null entry inside blocks as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [null] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a block with a non-string kind or label as corrupt', () => {
+        const badKind = { ...trainingSnapshot, blocks: [{ kind: 123, label: 'x', items: [mobilityItem()] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badKind), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badLabel = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: { en: 'x' }, items: [mobilityItem()] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badLabel), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a block whose items is not an array as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: 'not-an-array' }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a null entry inside a block\'s items as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [null] }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an item missing id or name as corrupt', () => {
+        const noId = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ id: undefined })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), noId), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const noName = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ name: '' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), noName), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an object-valued display field (dose/target/cue/note) as corrupt — would crash as a JSX child', () => {
+        const objDose = { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ dose: { en: '2x60s' } })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objDose), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const objTarget = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ target: { en: 'Quads' } })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objTarget), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a wrong-type render-accessed nested container (prescription/pair/perRound) as corrupt', () => {
+        const badPrescription = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ prescription: 'rpe 8' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPrescription), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badPair = { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'x', items: [trainingItem({ pair: 'Box Jump' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPair), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badPerRound = { ...trainingSnapshot, blocks: [{ kind: 'conditioning', label: 'x', items: [conditioningItem({ perRound: 'R1' })] }] }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badPerRound), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an object-valued top-level day label or focus as corrupt', () => {
+        const objLabel = { ...trainingSnapshot, label: { en: 'Day 1' } }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objLabel), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const objFocus = { ...trainingSnapshot, focus: { en: 'Squat strength' } }
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), objFocus), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('never returns ok:true for any of the malformed snapshots above (premise cross-check)', () => {
+        const malformed = [
+            { ...trainingSnapshot, blocks: 'x' },
+            { ...trainingSnapshot, blocks: [null] },
+            { ...trainingSnapshot, blocks: [{ kind: 1, label: 'x', items: [] }] },
+            { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [null] }] },
+            { ...trainingSnapshot, blocks: [{ kind: 'mobility', label: 'x', items: [mobilityItem({ dose: {} })] }] },
+        ]
+        for (const snapshot of malformed) {
+            expect(validateDraftRow(cartridgeRow(validCartridgeFields(), snapshot), OWNER_A).ok).toBe(false)
+        }
     })
 
     it('rejects a legacy-workout-v1 snapshot with a non-array mobSlots/strSlots/clrSlots as corrupt (render-unsafe)', () => {

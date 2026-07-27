@@ -80,24 +80,64 @@ describe('sessionBucket — finding #6 (mixed legacy/v1/v2 classification)', () 
     })
 })
 
-describe('categoryBadge — Calendar.jsx uses the actual cartridge category (finding #6)', () => {
-    it('legacy S&C/Combat get their existing colors', () => {
+describe('categoryBadge — legacy Calendar behavior preserved exactly (finding #6, corrected)', () => {
+    it('sessionType S&C -> S&C/green', () => {
         expect(categoryBadge({ sessionType: 'S&C' })).toEqual({ label: 'S&C', className: 'badge-green' })
+    })
+    it('sessionType Combat -> Combat/red', () => {
         expect(categoryBadge({ sessionType: 'Combat' })).toEqual({ label: 'Combat', className: 'badge-red' })
     })
-    it('a cartridge strength-conditioning/combat/custom row shows its OWN category, not a guessed default', () => {
-        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning' }))
-            .toEqual({ label: 'strength-conditioning', className: 'badge-green' })
-        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'combat' }))
-            .toEqual({ label: 'combat', className: 'badge-red' })
-        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'custom' }))
-            .toEqual({ label: 'custom', className: 'badge-amber' })
-    })
-    it('a rest/recovery cartridge row shows a dim badge, never green "S&C"', () => {
-        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'rest' }))
-            .toEqual({ label: 'rest', className: 'badge-dim' })
-    })
-    it('falls back to the legacy default (S&C/green) for an unrecognized category, unchanged from before', () => {
+    it('absent sessionType -> S&C/green', () => {
         expect(categoryBadge({})).toEqual({ label: 'S&C', className: 'badge-green' })
+        expect(categoryBadge({ sessionType: undefined })).toEqual({ label: 'S&C', className: 'badge-green' })
+        expect(categoryBadge({ sessionType: null })).toEqual({ label: 'S&C', className: 'badge-green' })
+    })
+    it('any other present legacy sessionType -> its original label/amber', () => {
+        expect(categoryBadge({ sessionType: 'Cardio' })).toEqual({ label: 'Cardio', className: 'badge-amber' })
+        expect(categoryBadge({ sessionType: 'Mobility' })).toEqual({ label: 'Mobility', className: 'badge-amber' })
+        expect(categoryBadge({ sessionType: 'SomeFutureValue' })).toEqual({ label: 'SomeFutureValue', className: 'badge-amber' })
+    })
+})
+
+describe('categoryBadge — cartridge rows show their real category with human-facing labels (finding #6, corrected)', () => {
+    it('maps the five known categories to their human-facing labels', () => {
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning' }))
+            .toEqual({ label: 'S&C', className: 'badge-green' })
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'combat' }))
+            .toEqual({ label: 'Combat', className: 'badge-red' })
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'custom' }))
+            .toEqual({ label: 'Custom', className: 'badge-amber' })
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'rest' }))
+            .toEqual({ label: 'Rest', className: 'badge-dim' })
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'recovery' }))
+            .toEqual({ label: 'Recovery', className: 'badge-dim' })
+    })
+    it('a payloadVersion:1 historical row gets the same human-facing label as a v2 row', () => {
+        expect(categoryBadge({ payloadVersion: 1, sessionKind: 'cartridge', sessionCategory: 'strength-conditioning' }))
+            .toEqual({ label: 'S&C', className: 'badge-green' })
+    })
+})
+
+describe('categoryBadge — unrecognized "versioned" rows are neutral Unknown, never guessed into S&C (finding #6, corrected)', () => {
+    it('an unknown payloadVersion is Unknown', () => {
+        expect(categoryBadge({ payloadVersion: 99, sessionKind: 'cartridge', sessionCategory: 'combat' }))
+            .toEqual({ label: 'Unknown', className: 'badge-dim' })
+    })
+    it('an unknown sessionKind on a versioned row is Unknown', () => {
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'something-else', sessionCategory: 'combat' }))
+            .toEqual({ label: 'Unknown', className: 'badge-dim' })
+    })
+    it('a missing sessionCategory on an otherwise-readable cartridge row is Unknown', () => {
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge' }))
+            .toEqual({ label: 'Unknown', className: 'badge-dim' })
+    })
+    it('an invalid/unrecognized sessionCategory on an otherwise-readable cartridge row is Unknown', () => {
+        expect(categoryBadge({ payloadVersion: 2, sessionKind: 'cartridge', sessionCategory: 'bogus' }))
+            .toEqual({ label: 'Unknown', className: 'badge-dim' })
+    })
+    it('never throws on null/undefined/non-object input', () => {
+        expect(categoryBadge(null)).toEqual({ label: 'Unknown', className: 'badge-dim' })
+        expect(categoryBadge(undefined)).toEqual({ label: 'Unknown', className: 'badge-dim' })
+        expect(categoryBadge('a string')).toEqual({ label: 'Unknown', className: 'badge-dim' })
     })
 })
