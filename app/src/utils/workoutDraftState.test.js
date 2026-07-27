@@ -9,6 +9,7 @@ import {
     identitiesConflict, requiresConflictGuard,
     parseLegacyDay, parseLegacyPhase,
     classifyHydratedDraft,
+    CARTRIDGE_STATE_FIELD_KEYS, trackedFieldValues,
 } from './workoutDraftState.js'
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111'
@@ -149,6 +150,51 @@ describe('isCartridgeStateMeaningful', () => {
 
     it('identity and UI state alone are never meaningful', () => {
         expect(isCartridgeStateMeaningful({ blockOpen: { mob: true }, scrollY: 500 })).toBe(false)
+    })
+
+    // A7a — analytics-ready activity fields.
+    it('a non-empty sessionActivities selection is meaningful; an empty one is not', () => {
+        expect(isCartridgeStateMeaningful({ sessionActivities: ['warmup'] })).toBe(true)
+        expect(isCartridgeStateMeaningful({ sessionActivities: [] })).toBe(false)
+    })
+    it('a non-blank otherActivity is meaningful; a blank one is not', () => {
+        expect(isCartridgeStateMeaningful({ otherActivity: 'sled pushes' })).toBe(true)
+        expect(isCartridgeStateMeaningful({ otherActivity: '   ' })).toBe(false)
+    })
+    it('a typed sessionDuration is meaningful; empty/undefined is not', () => {
+        expect(isCartridgeStateMeaningful({ sessionDuration: 30 })).toBe(true)
+        expect(isCartridgeStateMeaningful({ sessionDuration: '' })).toBe(false)
+        expect(isCartridgeStateMeaningful({})).toBe(false)
+    })
+})
+
+describe('CARTRIDGE_STATE_FIELD_KEYS — A7a additions', () => {
+    it('includes sessionDuration, sessionActivities, otherActivity (the fixed dependency-array defect fields)', () => {
+        expect(CARTRIDGE_STATE_FIELD_KEYS).toEqual(expect.arrayContaining(['sessionDuration', 'sessionActivities', 'otherActivity']))
+    })
+})
+
+describe('trackedFieldValues — dependency-array derivation', () => {
+    it('returns one value per key, in key order, undefined for a missing field', () => {
+        expect(trackedFieldValues({ a: 1, b: 2 }, ['a', 'b', 'c'])).toEqual([1, 2, undefined])
+    })
+
+    it('a sessionDuration-only change produces a different tracked-values array — proves a useEffect deps array built from CARTRIDGE_STATE_FIELD_KEYS would detect it', () => {
+        const sharedItemStateById = {} // same reference in both — isolates the change to sessionDuration alone
+        const before = { itemStateById: sharedItemStateById, sessionDuration: undefined }
+        const after = { itemStateById: sharedItemStateById, sessionDuration: 30 }
+        const depsBefore = trackedFieldValues(before, CARTRIDGE_STATE_FIELD_KEYS)
+        const depsAfter = trackedFieldValues(after, CARTRIDGE_STATE_FIELD_KEYS)
+        expect(depsBefore).not.toEqual(depsAfter)
+        // Confirms sessionDuration is the ONLY thing that changed between the
+        // two arrays (i.e. it really is tracked, not some other field masking it).
+        const changedIndices = depsBefore.map((v, i) => (v !== depsAfter[i] ? i : -1)).filter(i => i >= 0)
+        expect(changedIndices).toEqual([CARTRIDGE_STATE_FIELD_KEYS.indexOf('sessionDuration')])
+    })
+
+    it('a stable-length array for a fixed key list regardless of fields content', () => {
+        expect(trackedFieldValues({}, CARTRIDGE_STATE_FIELD_KEYS)).toHaveLength(CARTRIDGE_STATE_FIELD_KEYS.length)
+        expect(trackedFieldValues(null, CARTRIDGE_STATE_FIELD_KEYS)).toHaveLength(CARTRIDGE_STATE_FIELD_KEYS.length)
     })
 })
 

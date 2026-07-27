@@ -581,6 +581,27 @@ describe('commitLoggedSession — atomic local logging transaction', () => {
         expect(await db.workoutDrafts.get([OWNER_A, 'active'])).toBeUndefined()
     })
 
+    // A7a — commitLoggedSession is payload-shape-agnostic (sessionData is
+    // written as-is); this proves it explicitly with a real v2 cartridge
+    // payload rather than only ever exercising it with a legacy shape.
+    it('commits a payloadVersion:2 cartridge sessionData exactly like a legacy one (no code change needed)', async () => {
+        const cartridgeSessionData = {
+            payloadVersion: 2, sessionKind: 'cartridge', sessionId: 'uuid-cartridge-1',
+            sessionCategory: 'strength-conditioning',
+            date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            completeness: 50, sessionActivities: ['warmup'], blocks: [],
+        }
+        const id = await commitLoggedSession({ ownerUserId: OWNER_A, sessionData: cartridgeSessionData, sessionId: 'uuid-cartridge-1' })
+
+        const stored = await db.sessions.get(id)
+        expect(stored).toEqual({ id, ...cartridgeSessionData })
+        expect(stored.payloadVersion).toBe(2)
+        const queue = await db.syncQueue.toArray()
+        expect(queue[0].payload).toEqual({ action: 'log', sessionId: 'uuid-cartridge-1', payload: cartridgeSessionData })
+    })
+
     it('a failure inside the transaction rolls back all three operations, leaving the draft intact', async () => {
         const row = makeRow(OWNER_A, 'must survive a failed log')
         await db.workoutDrafts.put(row)

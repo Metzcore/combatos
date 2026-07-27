@@ -15,6 +15,7 @@ import Dexie from 'dexie'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import useRoundsTimer from '../hooks/useRoundsTimer.js'
 import { normalizeBlockOrder, moveBlock } from '../utils/blockOrder.js'
+import { computeSessionCounts } from '../utils/phaseUnlock.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { workoutDraftController, loadActiveDraft, commitLoggedSession } from './workoutDrafts.js'
@@ -135,7 +136,15 @@ const WORKOUT_DEFAULTS = {
     // guarantees as the W10 fields.
     mobBlockOpen: true,
     strBlockOpen: true,
-    clrBlockOpen: true
+    clrBlockOpen: true,
+    // A7a — analytics-ready cartridge session-summary fields (schema §4).
+    // Flat state, same defaults/reset/WORKOUT_DEFAULTS discipline as every
+    // other field here. Not yet consumed by any UI (no cartridge Today
+    // exists before A7b) or written into any payload; the cartridge
+    // payload builder (utils/cartridgeSessionPayload.js) is what will read
+    // these once A7b wires a caller.
+    sessionActivities: [],
+    otherActivity: ''
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -216,6 +225,9 @@ export function DBProvider({ children }) {
     const [mobBlockOpen, setMobBlockOpen] = useState(WORKOUT_DEFAULTS.mobBlockOpen)
     const [strBlockOpen, setStrBlockOpen] = useState(WORKOUT_DEFAULTS.strBlockOpen)
     const [clrBlockOpen, setClrBlockOpen] = useState(WORKOUT_DEFAULTS.clrBlockOpen)
+    // A7a — see WORKOUT_DEFAULTS note above.
+    const [sessionActivities, setSessionActivities] = useState(WORKOUT_DEFAULTS.sessionActivities)
+    const [otherActivity, setOtherActivity] = useState(WORKOUT_DEFAULTS.otherActivity)
 
     // ── In-memory timer state (not persisted to Dexie) ────────────────────────
     const [swTime, setSwTime] = useState(0)
@@ -475,6 +487,8 @@ export function DBProvider({ children }) {
         setMobBlockOpen(WORKOUT_DEFAULTS.mobBlockOpen)
         setStrBlockOpen(WORKOUT_DEFAULTS.strBlockOpen)
         setClrBlockOpen(WORKOUT_DEFAULTS.clrBlockOpen)
+        setSessionActivities(WORKOUT_DEFAULTS.sessionActivities)
+        setOtherActivity(WORKOUT_DEFAULTS.otherActivity)
         // A6.5 — the NEXT meaningful draft gets a fresh createdAt/lifecycle,
         // never inherits the just-cleared one's.
         setDraftCreatedAt(null)
@@ -680,16 +694,11 @@ export function DBProvider({ children }) {
 
     const refreshCounts = useCallback(async () => {
         const sessions = await db.sessions.toArray()
-        const counts = { 1: 0, 2: 0, 3: 0 }
-        for (const s of sessions) {
-            // Only count S&C days toward phase unlock — exclude fight gym
-            // days 2/4 and the optional/custom gym Day 7 (D2 / W16)
-            if (s.day !== 2 && s.day !== 4 && s.day !== 7) {
-                const p = Number(s.phase)
-                if (counts[p] !== undefined) counts[p]++
-            }
-        }
-        setCount(counts)
+        // A7a — extracted to utils/phaseUnlock.js (computeSessionCounts) so
+        // the counting logic is independently unit-testable, including the
+        // regression proof that cartridge rows (any payloadVersion) never
+        // inflate a phase's count. Zero behavior change.
+        setCount(computeSessionCounts(sessions))
     }, [])
 
     const refreshPending = useCallback(async () => {
@@ -842,6 +851,8 @@ export function DBProvider({ children }) {
             strBlockOpen, setStrBlockOpen,
             clrBlockOpen, setClrBlockOpen,
             coreBlockOpen, setCoreBlockOpen,
+            sessionActivities, setSessionActivities,
+            otherActivity, setOtherActivity,
             resetActiveWorkout, discardAndResetActiveWorkout,
 
             // ── A6.5 — durable active-workout draft ──

@@ -114,6 +114,13 @@ export const LEGACY_STATE_FIELD_KEYS = [
 export const CARTRIDGE_STATE_FIELD_KEYS = [
     'itemStateById', 'substitutions', 'itemNotes', 'notes',
     'customSessionContent', 'conditioningProgress', 'blockOpen', 'scrollY',
+    // A7a — analytics-ready activity fields (schema §4) + custom-day duration.
+    // Listed here (the single source of truth for "which fields a cartridge
+    // draft carries") so a dependency array DERIVED from this list — see
+    // trackedFieldValues() below — can never again omit one of them the way
+    // the first attempt's hand-written useEffect deps list omitted
+    // `sessionDuration` (Phase 0 review finding).
+    'sessionDuration', 'sessionActivities', 'otherActivity',
 ]
 
 /** Picks a plain fields object off a live-state source by key, filling gaps with `fallback`. */
@@ -183,7 +190,30 @@ export function isCartridgeStateMeaningful(fields) {
     if (nonBlank(fields.notes)) return true
     if (nonBlank(fields.customSessionContent)) return true
 
+    // A7a — real recorded content, not mere selection/UI state (same
+    // philosophy as legacy's bagRounds/bagCourse counting while
+    // gymSessionType does not): a chosen activity, an "other" description,
+    // or a typed duration all describe what actually happened.
+    if (Array.isArray(fields.sessionActivities) && fields.sessionActivities.length > 0) return true
+    if (nonBlank(fields.otherActivity)) return true
+    if (nonEmpty(fields.sessionDuration)) return true
+
     return false
+}
+
+// ─── Autosave dependency derivation ────────────────────────────────────────
+// A useEffect dependency array must be a literal with a stable length per
+// render, but nothing requires it to be hand-typed: deriving it from the
+// SAME field-key list that defines "what this draft kind carries"
+// eliminates the class of bug where a field exists in state but was never
+// added to the effect's deps (the first attempt's missing `sessionDuration`
+// — Phase 0 review finding). `keys` is always one of the constant arrays
+// above, so the returned array's length is stable across renders for a
+// given call site.
+
+export function trackedFieldValues(fields, keys) {
+    const source = isPlainObject(fields) ? fields : {}
+    return keys.map(key => source[key])
 }
 
 export function isStateMeaningful(stateKind, fields) {
