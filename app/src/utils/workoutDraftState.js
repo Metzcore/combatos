@@ -424,6 +424,56 @@ function isNullableString(value) {
     return value === undefined || value === null || typeof value === 'string'
 }
 
+// A value safe to hand straight to a renderer as a scalar (JSX text,
+// arithmetic, a `key`) — string, number, or absent/null. Never an
+// object/array, which is either a React "objects are not valid as a
+// React child" crash or silently-wrong formatted output (e.g.
+// `${value}` on an object stringifying to "[object Object]").
+function isRenderSafeScalar(value) {
+    return value === undefined || value === null || typeof value === 'string' || typeof value === 'number'
+}
+
+const KNOWN_CARTRIDGE_BLOCK_KINDS = new Set(['mobility', 'strength', 'conditioning', 'cooldown', 'core'])
+const KNOWN_CARTRIDGE_DAY_TYPES = new Set(['training', 'rest', 'recovery', 'custom'])
+
+// `prescription` stays a genuinely free object (PROGRAM-CARTRIDGE-SPEC.md:
+// "There is no fixed enum ... a cartridge is free to mix styles") — no
+// closed key set is enforced here (that would be re-implementing the
+// logged-payload validator's stricter contract). Only the specific fields
+// a formatter actually reads/renders are type-checked when present; an
+// unrecognized key is left alone.
+function isRenderSafePrescription(prescription) {
+    if (prescription === undefined || prescription === null) return true
+    if (!isPlainObject(prescription)) return false
+    if ('percent' in prescription && typeof prescription.percent !== 'number') return false
+    if ('rpe' in prescription && typeof prescription.rpe !== 'number') return false
+    if ('rir' in prescription && typeof prescription.rir !== 'number') return false
+    if ('addedLoad' in prescription && !isNullableString(prescription.addedLoad)) return false
+    if ('note' in prescription && !isNullableString(prescription.note)) return false
+    return true
+}
+
+// `pair` (PAP) — PROGRAM-CARTRIDGE-SPEC.md: `{ name, sets, reps, note? }`.
+// `name` is always rendered directly, so it's required-when-present-as-an-
+// object; `sets`/`reps`/`note` are the other fields a formatter reads.
+function isRenderSafePair(pair) {
+    if (pair === undefined || pair === null) return true
+    if (!isPlainObject(pair)) return false
+    if (typeof pair.name !== 'string' || pair.name.length === 0) return false
+    if ('sets' in pair && !isRenderSafeScalar(pair.sets)) return false
+    if ('reps' in pair && !isRenderSafeScalar(pair.reps)) return false
+    if ('note' in pair && !isNullableString(pair.note)) return false
+    return true
+}
+
+// Every entry, not just the container — `perRound.map(line => <li>{line}</li>)`
+// crashes on a non-string entry exactly as an Array-typed-wrong container would.
+function isRenderSafePerRound(perRound) {
+    if (perRound === undefined || perRound === null) return true
+    if (!Array.isArray(perRound)) return false
+    return perRound.every(entry => typeof entry === 'string')
+}
+
 function isRenderSafeCartridgeItem(item) {
     if (!isPlainObject(item)) return false
     if (typeof item.id !== 'string' || item.id.length === 0) return false
@@ -435,18 +485,30 @@ function isRenderSafeCartridgeItem(item) {
     if (!isNullableString(item.target)) return false
     if (!isNullableString(item.cue)) return false
     if (!isNullableString(item.note)) return false
-    // Render-accessed nested containers — wrong type here crashes whatever
-    // iterates/reads them (Object.entries(item.prescription), item.pair.name,
-    // item.perRound.map(...)), regardless of container CONTENT.
-    if ('prescription' in item && item.prescription !== null && !isPlainObject(item.prescription)) return false
-    if ('pair' in item && item.pair !== null && !isPlainObject(item.pair)) return false
-    if ('perRound' in item && item.perRound !== null && !Array.isArray(item.perRound)) return false
+    if (!isNullableString(item.roundLength)) return false
+    if (!isNullableString(item.rest)) return false
+    // `superset` (strength/core grouping label) — a non-empty string when
+    // present, matching the authored/spec convention (e.g. "A"); no
+    // requirement that it exist at all (most items have none).
+    if ('superset' in item && !isNullableString(item.superset)) return false
+    // `sets`/`rounds` are authored as numbers (cartridges/*.json); `reps`
+    // is authored as a string OR number ("4-5", "8 each side", or a bare
+    // number) — all three rendered directly, never an object.
+    if ('sets' in item && !isRenderSafeScalar(item.sets)) return false
+    if ('rounds' in item && !isRenderSafeScalar(item.rounds)) return false
+    if ('reps' in item && !isRenderSafeScalar(item.reps)) return false
+    // Render-accessed nested containers — wrong type OR wrong-typed
+    // consumed field inside them crashes whatever reads it, regardless of
+    // whether the container itself is superficially a plain object.
+    if (!isRenderSafePrescription(item.prescription)) return false
+    if (!isRenderSafePair(item.pair)) return false
+    if (!isRenderSafePerRound(item.perRound)) return false
     return true
 }
 
 function isRenderSafeCartridgeBlock(block) {
     if (!isPlainObject(block)) return false
-    if (typeof block.kind !== 'string' || block.kind.length === 0) return false
+    if (!KNOWN_CARTRIDGE_BLOCK_KINDS.has(block.kind)) return false
     if (typeof block.label !== 'string' || block.label.length === 0) return false
     if (!Array.isArray(block.items)) return false
     return block.items.every(isRenderSafeCartridgeItem)
@@ -455,6 +517,11 @@ function isRenderSafeCartridgeBlock(block) {
 /**
  * isRenderSafeCartridgeSnapshot — the frozen cartridge DAY's render safety.
  *
+ * - `value.type`, when present, must be one of the recognized day types
+ *   (training/rest/recovery/custom) — but it may legitimately be ABSENT
+ *   entirely: validateCartridge.js's own authoring convention is
+ *   `day.type || 'training'`, so an omitted type is not corrupt, it just
+ *   means "training" by the cartridge format's own default.
  * - `value.blocks` is OPTIONAL (rest/recovery/custom days legitimately omit
  *   it entirely) — but when present it must be an array of render-safe
  *   blocks. No "training must have blocks" rule is enforced here: that is
@@ -466,6 +533,7 @@ function isRenderSafeCartridgeBlock(block) {
 function isRenderSafeCartridgeSnapshot(value) {
     if (!isNullableString(value.label)) return false
     if (!isNullableString(value.focus)) return false
+    if ('type' in value && value.type !== undefined && !KNOWN_CARTRIDGE_DAY_TYPES.has(value.type)) return false
     if (value.blocks !== undefined) {
         if (!Array.isArray(value.blocks)) return false
         if (!value.blocks.every(isRenderSafeCartridgeBlock)) return false

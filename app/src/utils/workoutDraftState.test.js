@@ -11,6 +11,7 @@ import {
     classifyHydratedDraft,
     CARTRIDGE_STATE_FIELD_KEYS, trackedFieldValues,
 } from './workoutDraftState.js'
+import { CARTRIDGES } from '../data/cartridges/index.js'
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111'
 const OWNER_B = '22222222-2222-4222-8222-222222222222'
@@ -490,6 +491,110 @@ describe('validateDraftRow', () => {
             expect(validateDraftRow(cartridgeRow(validCartridgeFields(), snapshot), OWNER_A).ok).toBe(false)
         }
     })
+
+    // ─── Second corrective pass: nested render-consumed value regressions ──
+    // Six independently-reproduced cases where the FIRST pass's container-
+    // type-only checks let a corrupt value through as ok:true.
+
+    function withStrengthItem(overrides) {
+        return { ...trainingSnapshot, blocks: [{ kind: 'strength', label: 'Strength', items: [trainingItem(overrides)] }] }
+    }
+    function withConditioningItem(overrides) {
+        return { ...trainingSnapshot, blocks: [{ kind: 'conditioning', label: 'Bag Work', items: [conditioningItem(overrides)] }] }
+    }
+
+    it('reproduced case 1 — item.superset = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ superset: { bad: true } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 2 — item.sets = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ sets: { bad: true } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 3 — item.prescription = { note: { bad: true } } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ prescription: { note: { bad: true } } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 4 — item.pair = { name: { bad: true } } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withStrengthItem({ pair: { name: { bad: true } } }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 5 — item.perRound = [{ bad: true }] is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), withConditioningItem({ perRound: [{ bad: true }] }))
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('reproduced case 6 — day.type = { bad: true } is rejected as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, type: { bad: true } })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('a missing day.type defaults to "training" (the cartridge format\'s own convention) and is not corrupt', () => {
+        const { type, ...withoutType } = trainingSnapshot
+        const row = cartridgeRow(validCartridgeFields(), withoutType)
+        expect(validateDraftRow(row, OWNER_A).ok).toBe(true)
+    })
+
+    it('rejects an unrecognized block.kind (not one of the five renderer kinds) as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, blocks: [{ kind: 'bogus-kind', label: 'x', items: [mobilityItem()] }] })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects an unrecognized day.type string as corrupt', () => {
+        const row = cartridgeRow(validCartridgeFields(), { ...trainingSnapshot, type: 'bogus-type' })
+        expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a pair with a wrong-typed sets/reps/note as corrupt', () => {
+        const badSets = withStrengthItem({ pair: { name: 'Box Jump', sets: { bad: true } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badSets), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badNote = withStrengthItem({ pair: { name: 'Box Jump', sets: 4, note: { bad: true } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badNote), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+    })
+
+    it('rejects a prescription with a wrong-typed rpe/rir/percent/addedLoad as corrupt (unknown keys still tolerated)', () => {
+        const badRpe = withStrengthItem({ prescription: { rpe: '8' } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badRpe), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        const badAddedLoad = withStrengthItem({ prescription: { addedLoad: { kg: 20 } } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), badAddedLoad), OWNER_A)).toEqual({ ok: false, reason: 'corrupt' })
+
+        // A genuinely unrecognized prescription key is tolerated — prescription
+        // stays a free object per PROGRAM-CARTRIDGE-SPEC.md; only the fields a
+        // formatter actually reads are type-checked.
+        const unknownKey = withStrengthItem({ prescription: { rpe: 8, someFutureField: 'x' } })
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), unknownKey), OWNER_A).ok).toBe(true)
+    })
+
+    it('representative valid strength/mobility/conditioning snapshots still hydrate after the strengthened checks', () => {
+        expect(validateDraftRow(cartridgeRow(validCartridgeFields(), trainingSnapshot), OWNER_A).ok).toBe(true)
+    })
+
+    // ─── Every real authored day, from every bundled cartridge ─────────────
+    // Table-tested so the strengthened validator cannot accidentally reject
+    // real authored data — the single strongest guard against over-fitting
+    // to the reproduced synthetic cases above.
+
+    const allBundledDays = CARTRIDGES
+        .filter(c => c.type !== 'content') // content cartridges have no days[]/blocks — a different cartridge type entirely
+        .flatMap(c => (c.days || []).map(day => ({ cartridgeId: c.cartridgeId, day })))
+
+    it('the bundled-cartridge premise holds: at least one real cartridge with real days was found', () => {
+        expect(allBundledDays.length).toBeGreaterThan(0)
+    })
+
+    it.each(allBundledDays.map(({ cartridgeId, day }) => [`${cartridgeId} day ${day.day} (${day.type || 'training'})`, day]))(
+        '%s hydrates successfully as a real authored snapshot',
+        (_label, day) => {
+            const row = cartridgeRow(validCartridgeFields(), day)
+            expect(validateDraftRow(row, OWNER_A)).toEqual({ ok: true, row })
+        }
+    )
 
     it('rejects a legacy-workout-v1 snapshot with a non-array mobSlots/strSlots/clrSlots as corrupt (render-unsafe)', () => {
         const base = validRow()
