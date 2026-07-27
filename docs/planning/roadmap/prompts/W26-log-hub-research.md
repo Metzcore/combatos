@@ -61,6 +61,16 @@ The surfaces being redesigned and their data:
 5. **Programme-agnostic principle:** phrase the design in neutral concepts — sessions,
    completions, tallies, streaks, day-axes, metrics — not fight-camp-specific terms. The Train
    surfaces may someday host other programme styles; the Log hub should not hard-code this one.
+6. **Known limitation, not yet solved (D13, added 2026-07-27 during A7):** Checklist and Notes are
+   device-local and unauthenticated-to-any-account (`db/checklist.js`, `db/notes.js` carry no
+   owner/user column, unlike `workoutDrafts`' `[ownerUserId+slot]` key or Supabase `sessions.
+   user_id`). A unified Log view spanning workout completeness and checklist/habit streaks — which
+   this brief already anticipates — cannot work across devices, or for more than one account on a
+   shared device, until Checklist/Notes gain some owner-scoping and/or sync story. That decision
+   (migrate to Supabase / stay device-local and scope the Log view to one device / defer further)
+   is unruled — see `docs/planning/roadmap/OPEN-DECISIONS.md` D13. A7's `sessionActivities` field
+   makes workout sessions analytics-ready on the calendar-date axis regardless; this limitation is
+   specifically about the checklist/logical-day side of a unified view.
 
 ## What to produce (one document, in this order)
 
