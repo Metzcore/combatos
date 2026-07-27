@@ -511,13 +511,16 @@ describe('draft representations round-trip raw values through Dexie', () => {
         expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
     })
 
-    it('cartridge-workout-v1 round-trips every field untouched', async () => {
+    it('cartridge-workout-v1 round-trips every field untouched and hydrates successfully (A7a corrective pass)', async () => {
         const fields = {
-            itemStateById: { 'd1-str-1': { checked: true, kg: '100', reps: '5' } },
+            // itemStateById holds real ENTERED set values, not a legacy-style
+            // `checked` flag — v2 has no completion-flag concept on an item.
+            itemStateById: { 'd1-str-1': { sets: [{ kg: 100, reps: 5 }] } },
             substitutions: { 'd1-str-1': 'Front Squat' },
             itemNotes: { 'd1-str-1': 'felt heavy' },
             notes: 'good session', customSessionContent: '',
-            conditioningProgress: { 'd1-bag-1': { roundsDone: 3 } },
+            startedAt: '2026-08-02T17:04:11.902Z',
+            sessionDuration: '', sessionActivities: ['warmup'], otherActivity: '',
             blockOpen: { strength: true }, scrollY: 100,
         }
         const row = buildDraftRow({
@@ -532,9 +535,10 @@ describe('draft representations round-trip raw values through Dexie', () => {
         const loaded = await loadActiveDraft(OWNER_A)
         // Dexie round-trip fidelity — the row itself is stored/read intact.
         expect(loaded).toEqual(row)
-        // But NOT offered: the legacy HUD (the only renderer before A7) must
-        // never hydrate a cartridge-kind draft, even a well-formed one.
-        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: false, reason: 'unsupported-state' })
+        // A7a corrective pass (finding #1): a structurally valid cartridge
+        // draft now hydrates successfully — no longer force-rejected as
+        // 'unsupported-state'.
+        expect(validateDraftRow(loaded, OWNER_A)).toEqual({ ok: true, row: loaded })
     })
 })
 

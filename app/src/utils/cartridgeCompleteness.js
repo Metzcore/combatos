@@ -63,8 +63,9 @@ export function computeCartridgeCompleteness(blocks, dayType) {
 
     let totalUnits = 0
     let totalDone = 0
-    for (const block of blocks || []) {
-        for (const item of block.items || []) {
+    for (const block of Array.isArray(blocks) ? blocks : []) {
+        if (!block || typeof block !== 'object') continue
+        for (const item of Array.isArray(block.items) ? block.items : []) {
             const { units, done } = itemCompleteness(block.kind, item.prescribed, item.performed)
             totalUnits += units
             totalDone += done

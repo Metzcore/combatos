@@ -4,6 +4,8 @@ import { getDailyFocus } from '../hooks/usePlaybook.js'
 import WeeklyStats from './WeeklyStats.jsx'
 import TopTabs from './TopTabs.jsx'
 import { HUB_TOP_TABS } from '../utils/navState.js'
+import { categoryBadge, sessionBucket } from '../utils/sessionCategory.js'
+import { isReadableCartridgeRow } from '../utils/cartridgeSessionPayload.js'
 
 // view/onViewChange are owned by AppShell (W20) so the Log/Stats selection
 // survives hub switches. Everything else in this component is unchanged.
@@ -53,6 +55,8 @@ export default function Calendar({ view, onViewChange }) {
                             const displayDate = new Date(dateStr).toLocaleDateString('en-US', {
                                 weekday: 'short', month: 'short', day: 'numeric'
                             })
+                            const isCartridge = isReadableCartridgeRow(s)
+                            const badge = categoryBadge(s)
 
                             return (
                                 <div key={s.id} className="card" style={{ padding: 14 }}>
@@ -60,15 +64,18 @@ export default function Calendar({ view, onViewChange }) {
                                         <div>
                                             <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '1.05rem' }}>{displayDate}</div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--label)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                Phase {s.phase} • Day {s.day} {getDailyFocus(s.day) ? `— ${getDailyFocus(s.day)}` : ''}
+                                                {isCartridge
+                                                    ? (s.dayTemplateLabel || s.dayTemplateKey || '')
+                                                    : <>Phase {s.phase} • Day {s.day} {getDailyFocus(s.day) ? `— ${getDailyFocus(s.day)}` : ''}</>
+                                                }
                                             </div>
                                         </div>
-                                        <div className={`badge ${s.sessionType === 'S&C' ? 'badge-green' : s.sessionType === 'Combat' ? 'badge-red' : 'badge-amber'}`}>
-                                            {s.sessionType || 'S&C'}
-                                        </div>
+                                        {/* A7a (finding #6): the actual cartridge category, not a
+                                            guessed "S&C" default for any non-legacy row. */}
+                                        <div className={`badge ${badge.className}`}>{badge.label}</div>
                                     </div>
 
-                                    {s.sessionType === 'S&C' && s.completeness !== undefined && (
+                                    {sessionBucket(s) === 'sc' && s.completeness !== undefined && (
                                         <div style={{ fontSize: '0.8rem', color: 'var(--dim)', marginBottom: 8 }}>
                                             Completeness: <strong style={{ color: 'var(--primary)' }}>{s.completeness}%</strong>
                                         </div>

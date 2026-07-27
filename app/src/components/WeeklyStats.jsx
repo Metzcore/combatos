@@ -46,32 +46,52 @@ export default function WeeklyStats({ sessions }) {
                         )}
                     </div>
 
-                    {w.total === 0 ? (
+                    {w.total === 0 && w.restDays === 0 && w.recoveryDays === 0 ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--dim)', fontStyle: 'italic', marginTop: 8 }}>
                             — No sessions logged
                         </div>
                     ) : (
                         <>
-                            {/* S&C vs Fight split */}
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                            {/* sc / combat / other split (A7a: cartridge strength-conditioning/
+                                combat/custom sessions bucket correctly instead of being folded
+                                into "Fight"; rest/recovery shown separately, excluded from total) */}
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                                 <div className="badge badge-green">S&amp;C: {w.sc}</div>
-                                <div className="badge badge-red">Fight: {w.fight}</div>
+                                <div className="badge badge-red">Combat: {w.combat}</div>
+                                {w.other > 0 && <div className="badge badge-amber">Other: {w.other}</div>}
+                                {w.restDays > 0 && <div className="badge badge-dim">Rest: {w.restDays}</div>}
+                                {w.recoveryDays > 0 && <div className="badge badge-dim">Recovery: {w.recoveryDays}</div>}
                             </div>
 
-                            {/* Avg completeness (S&C only) */}
-                            <div style={{ marginBottom: 10 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 4 }}>
-                                    <span>Avg completeness (S&amp;C)</span>
-                                    <strong style={{ color: w.avgCompleteness !== null ? 'var(--primary)' : 'var(--dim)' }}>
-                                        {w.avgCompleteness !== null ? `${w.avgCompleteness}%` : '—'}
-                                    </strong>
-                                </div>
-                                {w.avgCompleteness !== null && (
-                                    <div className="progress-bar">
-                                        <div className="progress-bar__fill" style={{ width: `${Math.min(w.avgCompleteness, 100)}%` }} />
+                            {/* Avg completeness — legacy and cartridge S&C figures are never
+                                blended (A7a finding #6); a mixed week shows both. */}
+                            {w.avgCompletenessLegacy !== null && (
+                                <div style={{ marginBottom: 10 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 4 }}>
+                                        <span>Avg completeness (S&amp;C)</span>
+                                        <strong style={{ color: 'var(--primary)' }}>{w.avgCompletenessLegacy}%</strong>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="progress-bar">
+                                        <div className="progress-bar__fill" style={{ width: `${Math.min(w.avgCompletenessLegacy, 100)}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                            {w.avgCompletenessCartridge !== null && (
+                                <div style={{ marginBottom: 10 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 4 }}>
+                                        <span>Avg completeness (Cartridge S&amp;C)</span>
+                                        <strong style={{ color: 'var(--primary)' }}>{w.avgCompletenessCartridge}%</strong>
+                                    </div>
+                                    <div className="progress-bar">
+                                        <div className="progress-bar__fill" style={{ width: `${Math.min(w.avgCompletenessCartridge, 100)}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                            {w.avgCompletenessLegacy === null && w.avgCompletenessCartridge === null && w.total > 0 && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 10 }}>
+                                    Avg completeness: <strong style={{ color: 'var(--dim)' }}>—</strong>
+                                </div>
+                            )}
 
                             {/* Hip-score trend (date order) */}
                             {w.hipTrend.length > 0 && (

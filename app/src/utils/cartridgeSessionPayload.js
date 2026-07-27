@@ -10,7 +10,17 @@
  * `isReadableCartridgeRow` accepts either version for READING; the builder
  * only ever produces 2, and `validateCartridgeSessionPayload` rejects a `1`
  * as a write target exactly like any other malformed input.
+ *
+ * Invalid-input discipline (corrective-pass finding): nothing in this module
+ * silently repairs or silently drops a PRESENT invalid value. A fractional
+ * reps/rir/sessionDuration, a non-numeric kg, or a duplicate/unknown
+ * sessionActivities id is preserved verbatim into the built payload and
+ * left for `validateCartridgeSessionPayload` to reject — never truncated,
+ * coerced-to-absent, or silently deduplicated by the builder. Only a
+ * genuinely UNSET value (undefined/null/empty string — "not entered") is
+ * ever omitted.
  */
+import { computeCartridgeCompleteness } from './cartridgeCompleteness.js'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -68,6 +78,17 @@ const PERFORMED_SET_KEYS = new Set(['kg', 'reps', 'rpe', 'rir'])
 const PERFORMED_PAIR_SET_KEYS = new Set(['kg', 'reps'])
 const PERFORMED_PAIR_KEYS = new Set(['sets'])
 
+const BLOCK_ALLOWED_KEYS = new Set(['kind', 'label', 'items'])
+
+// `prescribed.pair` (PAP) — PROGRAM-CARTRIDGE-SPEC.md: `{ name, sets, reps, note? }`.
+const PRESCRIBED_PAIR_ALLOWED_KEYS = new Set(['name', 'sets', 'reps', 'note'])
+
+// `prescribed.prescription` — PROGRAM-CARTRIDGE-SPEC.md §"prescription": a
+// free object over exactly this documented vocabulary (percent/rpe/rir/
+// addedLoad/note, seen combined freely across the three shipped
+// cartridges) — closed here per the frozen contract; no new field invented.
+const PRESCRIPTION_ALLOWED_KEYS = new Set(['percent', 'rpe', 'rir', 'addedLoad', 'note'])
+
 // ─── Small predicates ──────────────────────────────────────────────────────
 
 function isPlainObject(value) {
@@ -82,15 +103,31 @@ function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0
 }
 
-function toFiniteNumberOrUndefined(raw) {
+/**
+ * coerceNumericField — best-effort numeric-string coercion for a raw UI
+ * input value, WITHOUT ever silently repairing or silently dropping a
+ * present-but-invalid value.
+ *
+ * - undefined/null/'' → undefined (genuinely "not entered" — legitimately
+ *   omittable, not an error).
+ * - a real number → returned exactly as-is, including a fraction, NaN, or
+ *   Infinity — never rounded/truncated into validity. The validator is the
+ *   only place an out-of-range or non-integer value is rejected.
+ * - a numeric-looking string → coerced to a Number (normal text-input
+ *   handling: '100' -> 100, '4.5' -> 4.5 — still a fraction, still left for
+ *   the validator to judge against the field's own integer/range rule).
+ * - a non-numeric string or any other type → returned VERBATIM, never
+ *   coerced to undefined — so a typo like 'abc' survives into the payload
+ *   as an invalid `kg`/`reps`/etc. value instead of silently vanishing.
+ */
+function coerceNumericField(raw) {
     if (raw === undefined || raw === null || raw === '') return undefined
-    const n = typeof raw === 'number' ? raw : Number(raw)
-    return Number.isFinite(n) ? n : undefined
-}
-
-function toFiniteIntegerOrUndefined(raw) {
-    const n = toFiniteNumberOrUndefined(raw)
-    return n === undefined ? undefined : Math.trunc(n)
+    if (typeof raw === 'number') return raw
+    if (typeof raw === 'string') {
+        const n = Number(raw)
+        return Number.isFinite(n) ? n : raw
+    }
+    return raw
 }
 
 // ─── normalizeSets — the RPE/RIR-only preservation fix ─────────────────────
@@ -101,6 +138,11 @@ function toFiniteIntegerOrUndefined(raw) {
 // entry survives if ANY of kg/reps/rpe/rir is present; only a truly empty
 // entry (nothing at all) is dropped. Pair sets never carry rpe/rir (schema
 // §5), so `includeEffort: false` strips those keys even if raw input had them.
+//
+// Numeric coercion never repairs invalid input (see coerceNumericField):
+// a fractional reps/rir or a non-numeric kg survives into the entry exactly
+// as typed, so `validateCartridgeSessionPayload` — not this function — is
+// what rejects it.
 
 export function normalizeSets(rawSets, { includeEffort = true } = {}) {
     if (!Array.isArray(rawSets)) return []
@@ -108,13 +150,13 @@ export function normalizeSets(rawSets, { includeEffort = true } = {}) {
     for (const raw of rawSets) {
         if (!isPlainObject(raw)) continue
         const entry = {}
-        const kg = toFiniteNumberOrUndefined(raw.kg)
-        const reps = toFiniteIntegerOrUndefined(raw.reps)
+        const kg = coerceNumericField(raw.kg)
+        const reps = coerceNumericField(raw.reps)
         if (kg !== undefined) entry.kg = kg
         if (reps !== undefined) entry.reps = reps
         if (includeEffort) {
-            const rpe = toFiniteNumberOrUndefined(raw.rpe)
-            const rir = toFiniteIntegerOrUndefined(raw.rir)
+            const rpe = coerceNumericField(raw.rpe)
+            const rir = coerceNumericField(raw.rir)
             if (rpe !== undefined) entry.rpe = rpe
             if (rir !== undefined) entry.rir = rir
         }
@@ -195,8 +237,10 @@ function buildBlocks(blockInputs) {
  * buildCartridgeSessionPayload — assembles a full, `payloadVersion: 2`
  * cartridge session payload from caller-supplied identity/day/item input.
  *
- * `completeness` is computed internally (never trusted from input) via
- * cartridgeCompleteness.js, using the exact same blocks this function builds.
+ * `completeness` is NON-INJECTABLE: it is always computed internally via
+ * `computeCartridgeCompleteness` (imported directly, not caller-suppliable)
+ * over the exact same `blocks` this function builds — no caller can omit,
+ * override, or replace the algorithm.
  */
 export function buildCartridgeSessionPayload(input) {
     const dayType = input.dayType
@@ -223,28 +267,27 @@ export function buildCartridgeSessionPayload(input) {
     if (isNonEmptyString(input.notes)) payload.notes = input.notes
 
     if (dayType === 'training' || dayType === 'custom') {
-        payload.sessionActivities = Array.isArray(input.sessionActivities)
-            ? [...new Set(input.sessionActivities)]
-            : []
+        // Preserved VERBATIM — never Set-deduplicated or filtered here. A
+        // duplicate or unknown id must survive into the payload so
+        // validateCartridgeSessionPayload can reject it; silently cleaning
+        // it up in the builder would hide invalid caller input.
+        payload.sessionActivities = Array.isArray(input.sessionActivities) ? [...input.sessionActivities] : []
         if (payload.sessionActivities.includes('other') && isNonEmptyString(input.otherActivity)) {
             payload.otherActivity = input.otherActivity.trim()
         }
     }
 
     if (dayType === 'training') {
-        // computeCartridgeCompleteness (cartridgeCompleteness.js) is the single
-        // source of truth — imported lazily via the caller-supplied function to
-        // avoid a hard cross-module dependency cycle risk; callers pass it in.
-        if (typeof input.computeCompleteness === 'function') {
-            const completeness = input.computeCompleteness(blocks, dayType)
-            if (completeness !== null && completeness !== undefined) payload.completeness = completeness
-        }
+        const completeness = computeCartridgeCompleteness(blocks, dayType)
+        if (completeness !== null) payload.completeness = completeness
     }
 
     if (dayType === 'custom') {
-        if (isFiniteNumber(toFiniteIntegerOrUndefined(input.sessionDuration))) {
-            payload.sessionDuration = toFiniteIntegerOrUndefined(input.sessionDuration)
-        }
+        // coerceNumericField never truncates a fractional duration into a
+        // valid integer, and never silently drops a present-but-invalid
+        // value — see the module-level note and finding #5.
+        const sessionDuration = coerceNumericField(input.sessionDuration)
+        if (sessionDuration !== undefined) payload.sessionDuration = sessionDuration
         if (isNonEmptyString(input.customContent)) payload.customContent = input.customContent
     }
 
@@ -304,6 +347,66 @@ function validateSetEntry(entry, label, { allowEffort }) {
     return errors
 }
 
+function validatePrescription(prescription, label) {
+    const errors = []
+    if (!isPlainObject(prescription)) {
+        errors.push(`${label}.prescription must be an object`)
+        return errors
+    }
+    if (Object.keys(prescription).length === 0) errors.push(`${label}.prescription must not be an empty object`)
+    for (const key of Object.keys(prescription)) {
+        if (!PRESCRIPTION_ALLOWED_KEYS.has(key)) errors.push(`${label}.prescription: unknown key "${key}"`)
+    }
+    if ('percent' in prescription && !(isFiniteNumber(prescription.percent) && prescription.percent >= 0)) {
+        errors.push(`${label}.prescription.percent must be a finite number >= 0`)
+    }
+    if ('rpe' in prescription && !(isFiniteNumber(prescription.rpe) && prescription.rpe >= 0 && prescription.rpe <= 10)) {
+        errors.push(`${label}.prescription.rpe must be a finite number between 0 and 10`)
+    }
+    if ('rir' in prescription && !(Number.isInteger(prescription.rir) && prescription.rir >= 0)) {
+        errors.push(`${label}.prescription.rir must be a finite non-negative integer`)
+    }
+    if ('addedLoad' in prescription && !isNonEmptyString(prescription.addedLoad)) {
+        errors.push(`${label}.prescription.addedLoad must be a non-empty string`)
+    }
+    if ('note' in prescription && typeof prescription.note !== 'string') {
+        errors.push(`${label}.prescription.note must be a string`)
+    }
+    return errors
+}
+
+function validatePrescribedPair(pair, label) {
+    const errors = []
+    if (!isPlainObject(pair)) {
+        errors.push(`${label}.pair must be an object`)
+        return errors
+    }
+    for (const key of Object.keys(pair)) {
+        if (!PRESCRIBED_PAIR_ALLOWED_KEYS.has(key)) errors.push(`${label}.pair: unknown key "${key}"`)
+    }
+    if (!isNonEmptyString(pair.name)) errors.push(`${label}.pair.name is required`)
+    if ('sets' in pair && !(Number.isInteger(pair.sets) && pair.sets >= 1)) {
+        errors.push(`${label}.pair.sets must be a finite positive integer`)
+    }
+    if ('reps' in pair && typeof pair.reps !== 'string' && typeof pair.reps !== 'number') {
+        errors.push(`${label}.pair.reps must be a string or number`)
+    }
+    if ('note' in pair && typeof pair.note !== 'string') errors.push(`${label}.pair.note must be a string`)
+    return errors
+}
+
+function validatePerRound(perRound, label) {
+    const errors = []
+    if (!Array.isArray(perRound)) {
+        errors.push(`${label}.perRound must be an array`)
+        return errors
+    }
+    perRound.forEach((entry, i) => {
+        if (typeof entry !== 'string') errors.push(`${label}.perRound[${i}] must be a string`)
+    })
+    return errors
+}
+
 function validatePrescribed(kind, prescribed, label) {
     const errors = []
     if (!isPlainObject(prescribed)) {
@@ -315,6 +418,39 @@ function validatePrescribed(kind, prescribed, label) {
         if (!allowedKeys.has(key)) errors.push(`${label}.prescribed: unknown key "${key}" for kind "${kind}"`)
     }
     if (!isNonEmptyString(prescribed.name)) errors.push(`${label}.prescribed.name is required`)
+
+    if (LOADED_KINDS.has(kind)) {
+        if ('prescription' in prescribed) errors.push(...validatePrescription(prescribed.prescription, `${label}.prescribed`))
+        if ('pair' in prescribed && prescribed.pair !== null) errors.push(...validatePrescribedPair(prescribed.pair, `${label}.prescribed`))
+        if ('superset' in prescribed && prescribed.superset !== null && !isNonEmptyString(prescribed.superset)) {
+            errors.push(`${label}.prescribed.superset must be null or a non-empty string`)
+        }
+        if ('target' in prescribed && typeof prescribed.target !== 'string') {
+            errors.push(`${label}.prescribed.target must be a string`)
+        }
+        if (!('sets' in prescribed) || !(Number.isInteger(prescribed.sets) && prescribed.sets >= 1)) {
+            errors.push(`${label}.prescribed.sets must be a finite positive integer`)
+        }
+        if (!('reps' in prescribed) || (typeof prescribed.reps !== 'string' && typeof prescribed.reps !== 'number')) {
+            errors.push(`${label}.prescribed.reps must be a string or number`)
+        }
+    } else if (kind === CONDITIONING_KIND) {
+        if (!('rounds' in prescribed) || !(Number.isInteger(prescribed.rounds) && prescribed.rounds >= 1)) {
+            errors.push(`${label}.prescribed.rounds must be a finite positive integer`)
+        }
+        if ('roundLength' in prescribed && typeof prescribed.roundLength !== 'string') {
+            errors.push(`${label}.prescribed.roundLength must be a string`)
+        }
+        if ('rest' in prescribed && typeof prescribed.rest !== 'string') {
+            errors.push(`${label}.prescribed.rest must be a string`)
+        }
+        if ('perRound' in prescribed) errors.push(...validatePerRound(prescribed.perRound, `${label}.prescribed`))
+    } else if (HOLD_KINDS.has(kind)) {
+        if (!('dose' in prescribed) || !isNonEmptyString(prescribed.dose)) {
+            errors.push(`${label}.prescribed.dose is required`)
+        }
+    }
+
     return errors
 }
 
@@ -411,7 +547,13 @@ function validateBlocks(blocks) {
             errors.push(`${blockLabel} must be an object`)
             return
         }
+        for (const key of Object.keys(block)) {
+            if (!BLOCK_ALLOWED_KEYS.has(key)) errors.push(`${blockLabel}: unknown key "${key}"`)
+        }
         if (!BLOCK_KINDS.includes(block.kind)) errors.push(`${blockLabel}.kind is unknown: "${block.kind}"`)
+        if (typeof block.label !== 'string' || block.label.trim().length === 0) {
+            errors.push(`${blockLabel}.label is required`)
+        }
         if (!Array.isArray(block.items) || block.items.length === 0) {
             errors.push(`${blockLabel}.items must be a non-empty array`)
             return
@@ -500,12 +642,36 @@ export function validateCartridgeSessionPayload(payload) {
 
     const dayType = payload.dayType
 
-    // completeness — training-only, exact numeric range.
-    if ('completeness' in payload) {
-        if (dayType !== 'training') errors.push('completeness may only be present on a training day')
-        if (!(isFiniteNumber(payload.completeness) && payload.completeness >= 0 && payload.completeness <= 100)) {
+    // completeness — NON-INJECTABLE: independently recomputed here (finding
+    // #3), never merely range-checked. A training payload with measurable
+    // strength/core/PAP units must carry EXACTLY the recomputed value;
+    // zero measurable units must carry no completeness at all; any other
+    // dayType must never carry one. A caller cannot omit, inflate, deflate,
+    // or otherwise falsify this figure without the validator catching it.
+    if (dayType === 'training') {
+        if (!(isFiniteNumber(payload.completeness) || !('completeness' in payload))) {
+            // present but not even a finite number — report the type error
+            // directly rather than letting the recompute-comparison below
+            // produce a confusing "expected X, got NaN"-style message.
             errors.push('completeness must be a finite number between 0 and 100')
+        } else {
+            const recomputed = Array.isArray(payload.blocks)
+                ? computeCartridgeCompleteness(payload.blocks, dayType)
+                : undefined // blocks itself is malformed — validateBlocks already reports that; skip the cross-check
+            if (recomputed !== undefined) {
+                if (recomputed === null) {
+                    if ('completeness' in payload) {
+                        errors.push('completeness must be absent — this training day has zero measurable strength/core/PAP units')
+                    }
+                } else if (!('completeness' in payload)) {
+                    errors.push(`completeness is required for this training day and must equal the recomputed value (expected ${recomputed})`)
+                } else if (payload.completeness !== recomputed) {
+                    errors.push(`completeness must exactly equal the recomputed value (expected ${recomputed}, got ${JSON.stringify(payload.completeness)})`)
+                }
+            }
         }
+    } else if ('completeness' in payload) {
+        errors.push('completeness may only be present on a training day')
     }
 
     // sessionActivities/otherActivity — required on training/custom, forbidden elsewhere.

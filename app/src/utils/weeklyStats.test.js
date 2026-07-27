@@ -114,7 +114,7 @@ describe('bucketSessionsByWeek', () => {
 })
 
 describe('summarizeWeek', () => {
-    it('splits S&C vs fight-gym counts', () => {
+    it('splits sc/combat/other counts', () => {
         const result = summarizeWeek([
             session({ sessionType: 'S&C' }),
             session({ sessionType: 'S&C' }),
@@ -124,17 +124,20 @@ describe('summarizeWeek', () => {
         ])
         expect(result.total).toBe(5)
         expect(result.sc).toBe(2)
-        expect(result.fight).toBe(3)
+        expect(result.combat).toBe(1)
+        expect(result.other).toBe(2) // Cardio + Mobility
     })
 
-    it('averages completeness over S&C sessions ONLY', () => {
+    it('averages completeness over legacy S&C sessions ONLY', () => {
         const result = summarizeWeek([
             session({ sessionType: 'S&C', completeness: 100 }),
             session({ sessionType: 'S&C', completeness: 50 }),
             // fight-gym completeness uses a different denominator — must be excluded
             session({ sessionType: 'Combat', day: 2, completeness: 0 })
         ])
-        expect(result.avgCompleteness).toBe(75)
+        expect(result.avgCompletenessLegacy).toBe(75)
+        expect(result.avgCompletenessCartridge).toBeNull()
+        expect(result.completenessMixed).toBe(false)
     })
 
     it('rounds average completeness to one decimal', () => {
@@ -143,26 +146,88 @@ describe('summarizeWeek', () => {
             session({ completeness: 66.7 }),
             session({ completeness: 66.7 })
         ])
-        expect(result.avgCompleteness).toBe(66.7)
+        expect(result.avgCompletenessLegacy).toBe(66.7)
     })
 
-    it('returns null avgCompleteness for an ALL-fight-gym week (no NaN, no 0)', () => {
+    it('returns null avgCompletenessLegacy for an ALL-fight-gym week (no NaN, no 0)', () => {
         const result = summarizeWeek([
             session({ sessionType: 'Combat', day: 2, completeness: 0 }),
             session({ sessionType: 'Cardio', day: 4, completeness: 0 })
         ])
-        expect(result.avgCompleteness).toBeNull()
+        expect(result.avgCompletenessLegacy).toBeNull()
         expect(result.total).toBe(2)
-        expect(result.fight).toBe(2)
+        expect(result.combat).toBe(1)
+        expect(result.other).toBe(1)
     })
 
     it('returns safe zeros/null for an EMPTY week (no division by zero)', () => {
         const result = summarizeWeek([])
         expect(result).toEqual({
-            total: 0, sc: 0, fight: 0,
-            avgCompleteness: null,
+            total: 0, sc: 0, combat: 0, other: 0, restDays: 0, recoveryDays: 0,
+            avgCompletenessLegacy: null, avgCompletenessCartridge: null, completenessMixed: false,
             hipTrend: [], daysCovered: [], phases: []
         })
+    })
+
+    // A7a corrective pass (finding #6) — mixed legacy/v1/v2 weeks.
+    function cartridgeSession({ sessionCategory, completeness, payloadVersion = 2, date = '2026-07-07' } = {}) {
+        return {
+            payloadVersion, sessionKind: 'cartridge', sessionId: `c-${nextId++}`,
+            date, completedAt: `${date}T18:00:00.000Z`, sessionCategory,
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: sessionCategory === 'rest' || sessionCategory === 'recovery' ? sessionCategory : 'training',
+            phaseId: null, blocks: [],
+            ...(completeness !== undefined ? { completeness } : {}),
+        }
+    }
+
+    it('a cartridge strength-conditioning/combat/custom session is bucketed correctly, not folded into "combat"', () => {
+        const result = summarizeWeek([
+            cartridgeSession({ sessionCategory: 'strength-conditioning' }),
+            cartridgeSession({ sessionCategory: 'combat' }),
+            cartridgeSession({ sessionCategory: 'custom' }),
+        ])
+        expect(result.sc).toBe(1)
+        expect(result.combat).toBe(1)
+        expect(result.other).toBe(1)
+        expect(result.total).toBe(3)
+    })
+
+    it('rest/recovery cartridge sessions are excluded from total and counted separately', () => {
+        const result = summarizeWeek([
+            session({ sessionType: 'S&C' }),
+            cartridgeSession({ sessionCategory: 'rest' }),
+            cartridgeSession({ sessionCategory: 'recovery' }),
+        ])
+        expect(result.total).toBe(1) // only the legacy S&C session
+        expect(result.restDays).toBe(1)
+        expect(result.recoveryDays).toBe(1)
+    })
+
+    it('legacy and cartridge completeness averages are never blended; a mixed week exposes both', () => {
+        const result = summarizeWeek([
+            session({ sessionType: 'S&C', completeness: 100 }),
+            cartridgeSession({ sessionCategory: 'strength-conditioning', completeness: 0 }),
+        ])
+        expect(result.avgCompletenessLegacy).toBe(100)
+        expect(result.avgCompletenessCartridge).toBe(0)
+        expect(result.completenessMixed).toBe(true)
+    })
+
+    it('a payloadVersion:1 historical row contributes to the cartridge average exactly like a v2 row', () => {
+        const result = summarizeWeek([
+            cartridgeSession({ sessionCategory: 'strength-conditioning', completeness: 40, payloadVersion: 1 }),
+            cartridgeSession({ sessionCategory: 'strength-conditioning', completeness: 60, payloadVersion: 2 }),
+        ])
+        expect(result.avgCompletenessCartridge).toBe(50)
+    })
+
+    it('a cartridge training session with no measurable units (no completeness field) never breaks the average', () => {
+        const result = summarizeWeek([
+            cartridgeSession({ sessionCategory: 'strength-conditioning' }), // no completeness key
+        ])
+        expect(result.avgCompletenessCartridge).toBeNull()
+        expect(result.sc).toBe(1) // still counted as a session, just not in the completeness average
     })
 
     it('orders hipTrend by DATE even when insertion (id) order diverges', () => {
@@ -216,12 +281,12 @@ describe('buildWeeklyStats', () => {
         const result = buildWeeklyStats(sessions, { weeks: 3, todayStr: '2026-07-10' })
         expect(result.map(w => w.total)).toEqual([1, 0, 1])
         expect(result[1].weekStart).toBe('2026-06-29') // the gap week is present, not skipped
-        expect(result[1].avgCompleteness).toBeNull()
+        expect(result[1].avgCompletenessLegacy).toBeNull()
     })
 
     it('handles a completely empty sessions array (all-empty weeks, no NaN)', () => {
         const result = buildWeeklyStats([], { weeks: 4, todayStr: '2026-07-10' })
-        expect(result.every(w => w.total === 0 && w.avgCompleteness === null)).toBe(true)
+        expect(result.every(w => w.total === 0 && w.avgCompletenessLegacy === null)).toBe(true)
     })
 
     it('spans a year boundary correctly', () => {

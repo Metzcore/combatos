@@ -30,7 +30,11 @@ function validTrainingPayload(overrides = {}) {
         dayTemplateLabel: 'Day 1 — S&C: Lower + Posterior',
         dayType: 'training',
         phaseId: null,
-        completeness: 62.5,
+        // 2 of 4 prescribed main sets filled (the third entry is RPE-only, no
+        // pair prescribed) — must exactly match computeCartridgeCompleteness's
+        // real output; the "completeness is non-injectable" tests below prove
+        // the validator recomputes and enforces this rather than trusting it.
+        completeness: 50,
         sessionActivities: ['warmup', 'bag-workout', 'cooldown'],
         notes: 'Solid session.',
         blocks: [
@@ -168,14 +172,15 @@ describe('validateCartridgeSessionPayload — day-type field restrictions', () =
         }))
         expect(errors.some(e => e.includes('blocks must be empty'))).toBe(true)
     })
-    it('requires at least one block on a training day (blocks must be a non-empty structurally-valid array)', () => {
-        const errors = validateCartridgeSessionPayload(validTrainingPayload({ blocks: [] }))
-        // blocks: [] is structurally valid (an empty array of blocks) — no
-        // block-level errors are raised; this fixture stays valid. Confirms
-        // the validator doesn't invent a "must have at least one block" rule
-        // for cartridge sessions (unlike the CARTRIDGE spec's day-authoring
-        // rule, a different, cartridge-definition-level concern).
-        expect(errors).toEqual([])
+    it('blocks: [] is structurally valid on a training day (no invented "must have a block" rule) — but then has zero measurable units, so completeness must be absent', () => {
+        // Confirms the validator doesn't invent a "must have at least one
+        // block" rule for cartridge sessions (unlike the CARTRIDGE spec's
+        // day-authoring rule, a different, cartridge-definition-level
+        // concern) — the only consequence of an empty blocks array is that
+        // completeness has nothing to measure (finding #3's recompute rule).
+        const payload = validTrainingPayload({ blocks: [] })
+        delete payload.completeness
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
     })
 })
 
@@ -283,6 +288,7 @@ describe('validateCartridgeSessionPayload — exact numeric ranges (schema §5)'
     it('accepts an RPE/RIR-only set entry (no kg/reps) — the fixed normalizeSets defect, at the validator level', () => {
         const payload = validTrainingPayload()
         payload.blocks[0].items[0].performed.sets = [{ rpe: 9 }]
+        payload.completeness = 0 // 0 of 4 main sets filled now (rpe-only never counts as filled)
         expect(validateCartridgeSessionPayload(payload)).toEqual([])
     })
     it('rejects a pair-set entry carrying rpe or rir', () => {
@@ -379,13 +385,19 @@ describe('normalizeSets', () => {
         expect(normalizeSets([{ rpe: 9 }])).toEqual([{ rpe: 9 }])
         expect(normalizeSets([{ rir: 1 }])).toEqual([{ rir: 1 }])
     })
-    it('drops a truly empty entry (nothing at all)', () => {
+    it('drops a truly empty entry (nothing at all — legitimately "not entered")', () => {
         expect(normalizeSets([{}])).toEqual([])
         expect(normalizeSets([{ kg: '', reps: undefined }])).toEqual([])
     })
-    it('coerces numeric strings and drops non-finite/garbage values', () => {
+    it('coerces legitimate numeric strings', () => {
         expect(normalizeSets([{ kg: '100', reps: '4' }])).toEqual([{ kg: 100, reps: 4 }])
-        expect(normalizeSets([{ kg: 'not-a-number', reps: '4' }])).toEqual([{ reps: 4 }])
+    })
+    it('never silently truncates a fractional reps/rir value into a valid integer (finding #5)', () => {
+        expect(normalizeSets([{ kg: 100, reps: 4.5 }])).toEqual([{ kg: 100, reps: 4.5 }])
+        expect(normalizeSets([{ kg: 100, reps: 4, rir: 1.5 }])).toEqual([{ kg: 100, reps: 4, rir: 1.5 }])
+    })
+    it('never silently drops a present-but-invalid non-numeric value — preserves it verbatim for the validator to reject (finding #5)', () => {
+        expect(normalizeSets([{ kg: 'not-a-number', reps: '4' }])).toEqual([{ kg: 'not-a-number', reps: 4 }])
     })
     it('keeps every entry, including extra sets beyond any prescribed count (retention, not truncation)', () => {
         const sets = [{ kg: 100, reps: 4 }, { kg: 100, reps: 4 }, { kg: 100, reps: 3 }, { kg: 90, reps: 5 }]
@@ -473,7 +485,6 @@ describe('buildCartridgeSessionPayload', () => {
             cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
             dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
             sessionActivities: ['warmup'], notes: 'good',
-            computeCompleteness: computeCartridgeCompleteness,
             blocks: [
                 {
                     kind: 'strength', label: 'Strength',
@@ -495,7 +506,7 @@ describe('buildCartridgeSessionPayload', () => {
             sessionId: 'uuid-build-2', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
             sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
             dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
-            sessionActivities: [], computeCompleteness: computeCartridgeCompleteness,
+            sessionActivities: [],
             blocks: [{ kind: 'mobility', label: 'Warm-up', items: [{ itemId: 'm1', cartridgeItem: { name: 'Hip 90/90', dose: '2x60s' }, performedInput: {} }] }],
         })
         expect(payload).not.toHaveProperty('completeness')
@@ -546,5 +557,272 @@ describe('buildCartridgeSessionPayload', () => {
         })
         expect(payload).not.toHaveProperty('blockOpen')
         expect(payload).not.toHaveProperty('scrollY')
+    })
+})
+
+// ─── Finding #3 — completeness is non-injectable ────────────────────────────
+
+function buildInputWithOneFilledSetOfFour(overrides = {}) {
+    return {
+        sessionId: 'uuid-nc-1', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+        sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+        dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null, sessionActivities: [],
+        blocks: [{
+            kind: 'strength', label: 'Strength',
+            items: [{ itemId: 'd1-str-1', cartridgeItem: { name: 'Back Squat', sets: 4, reps: '4' }, performedInput: { sets: [{ kg: 100, reps: 4 }] } }],
+        }],
+        ...overrides,
+    }
+}
+
+describe('buildCartridgeSessionPayload — completeness is non-injectable (finding #3)', () => {
+    it('has no computeCompleteness (or any other) input parameter that influences the value — always the real recompute', () => {
+        const payload = buildCartridgeSessionPayload(buildInputWithOneFilledSetOfFour({
+            computeCompleteness: () => 999, // a caller trying to inject a fake algorithm
+        }))
+        expect(payload.completeness).toBe(25) // 1 of 4 — the REAL algorithm, ignoring the injected function entirely
+    })
+
+    it('builder output always matches computeCartridgeCompleteness(blocks, dayType) exactly', () => {
+        const payload = buildCartridgeSessionPayload(buildInputWithOneFilledSetOfFour())
+        expect(payload.completeness).toBe(computeCartridgeCompleteness(payload.blocks, payload.dayType))
+    })
+
+    it('the validator independently recomputes and REJECTS a payload whose completeness was falsified after building (builder-plus-validator regression)', () => {
+        const payload = buildCartridgeSessionPayload(buildInputWithOneFilledSetOfFour())
+        expect(payload.completeness).toBe(25)
+        payload.completeness = 99 // simulate a tampered/incorrect value reaching the validator directly
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('must exactly equal the recomputed value'))).toBe(true)
+    })
+
+    it('the validator REJECTS a built payload with completeness deleted (omission)', () => {
+        const payload = buildCartridgeSessionPayload(buildInputWithOneFilledSetOfFour())
+        delete payload.completeness
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('is required'))).toBe(true)
+    })
+
+    it('the validator REJECTS a completeness value injected onto a zero-measurable-units built payload (extra)', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-nc-2', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null, sessionActivities: [],
+            blocks: [{ kind: 'mobility', label: 'Warm-up', items: [{ itemId: 'm1', cartridgeItem: { name: 'Hip 90/90', dose: '2x60s' }, performedInput: {} }] }],
+        })
+        expect(payload).not.toHaveProperty('completeness')
+        payload.completeness = 50 // caller tries to force one in anyway
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('must be absent'))).toBe(true)
+    })
+})
+
+// ─── Finding #4 — complete strict nested validation ─────────────────────────
+
+describe('validateCartridgeSessionPayload — block-level strictness', () => {
+    it('rejects an unknown key on a block object', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].bogus = 1
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('unknown key "bogus"'))).toBe(true)
+    })
+    it('requires a non-empty string label', () => {
+        const payload = validTrainingPayload()
+        delete payload.blocks[0].label
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('.label is required'))).toBe(true)
+        payload.blocks[0].label = '   '
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('.label is required'))).toBe(true)
+    })
+})
+
+describe('validateCartridgeSessionPayload — prescription (strict, frozen vocabulary)', () => {
+    it('accepts the documented vocabulary combined freely (percent+rpe, rir+note, addedLoad+note)', () => {
+        const p1 = validTrainingPayload()
+        p1.blocks[0].items[0].prescribed.prescription = { percent: 0.8, rpe: 8 }
+        expect(validateCartridgeSessionPayload(p1)).toEqual([])
+
+        const p2 = validTrainingPayload()
+        p2.blocks[0].items[0].prescribed.prescription = { rir: 4, note: 'moderate' }
+        expect(validateCartridgeSessionPayload(p2)).toEqual([])
+
+        const p3 = validTrainingPayload()
+        p3.blocks[0].items[0].prescribed.prescription = { addedLoad: '20kg', note: 'Phase 1 load' }
+        expect(validateCartridgeSessionPayload(p3)).toEqual([])
+    })
+    it('rejects an unknown/invented prescription field', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.prescription = { rpe: 8, tempo: '3-1-1' }
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescription: unknown key "tempo"'))).toBe(true)
+    })
+    it('rejects an empty prescription object', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.prescription = {}
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescription must not be an empty object'))).toBe(true)
+    })
+    it('rejects an out-of-range prescription.rpe and a fractional prescription.rir', () => {
+        const badRpe = validTrainingPayload()
+        badRpe.blocks[0].items[0].prescribed.prescription = { rpe: 11 }
+        expect(validateCartridgeSessionPayload(badRpe).length).toBeGreaterThan(0)
+
+        const badRir = validTrainingPayload()
+        badRir.blocks[0].items[0].prescribed.prescription = { rir: 2.5 }
+        expect(validateCartridgeSessionPayload(badRir).length).toBeGreaterThan(0)
+    })
+})
+
+describe('validateCartridgeSessionPayload — prescribed.pair (PAP)', () => {
+    it('accepts a well-formed pair', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.pair = { name: 'Box Jump', sets: 4, reps: '3', note: 'Land soft' }
+        payload.completeness = 25 // adding 4 prescribed (0 performed) pair units: 2 of (4+4) now
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+    })
+    it('rejects a pair missing name', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.pair = { sets: 3, reps: '3' }
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('pair.name is required'))).toBe(true)
+    })
+    it('rejects an unknown key inside pair', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.pair = { name: 'Box Jump', sets: 4, reps: '3', bogus: 1 }
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('pair: unknown key "bogus"'))).toBe(true)
+    })
+    it('rejects a non-positive-integer pair.sets', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.pair = { name: 'Box Jump', sets: 0, reps: '3' }
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('pair.sets must be'))).toBe(true)
+    })
+    it('null pair is explicitly allowed (no PAP for this item)', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.pair = null
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+    })
+})
+
+describe('validateCartridgeSessionPayload — prescribed.superset', () => {
+    it('accepts a non-empty string label or null', () => {
+        const withLabel = validTrainingPayload()
+        withLabel.blocks[0].items[0].prescribed.superset = 'A'
+        expect(validateCartridgeSessionPayload(withLabel)).toEqual([])
+
+        const withNull = validTrainingPayload()
+        withNull.blocks[0].items[0].prescribed.superset = null
+        expect(validateCartridgeSessionPayload(withNull)).toEqual([])
+    })
+    it('rejects a blank-string superset label', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.superset = '   '
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('superset must be null or a non-empty string'))).toBe(true)
+    })
+})
+
+describe('validateCartridgeSessionPayload — conditioning perRound', () => {
+    it('accepts an array of strings', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[1] = { kind: 'conditioning', label: 'Bag', items: [{ itemId: 'c1', prescribed: { name: 'Rounds', rounds: 6, perRound: ['R1', 'R2'] }, performed: {}, substituted: false }] }
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+    })
+    it('rejects a non-array perRound and a non-string entry', () => {
+        const notArray = validTrainingPayload()
+        notArray.blocks[1] = { kind: 'conditioning', label: 'Bag', items: [{ itemId: 'c1', prescribed: { name: 'Rounds', rounds: 6, perRound: 'R1' }, performed: {}, substituted: false }] }
+        expect(validateCartridgeSessionPayload(notArray).some(e => e.includes('perRound must be an array'))).toBe(true)
+
+        const badEntry = validTrainingPayload()
+        badEntry.blocks[1] = { kind: 'conditioning', label: 'Bag', items: [{ itemId: 'c1', prescribed: { name: 'Rounds', rounds: 6, perRound: [1, 2] }, performed: {}, substituted: false }] }
+        expect(validateCartridgeSessionPayload(badEntry).some(e => e.includes('perRound[0] must be a string'))).toBe(true)
+    })
+    it('rejects conditioning missing a positive-integer rounds', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[1] = { kind: 'conditioning', label: 'Bag', items: [{ itemId: 'c1', prescribed: { name: 'Rounds' }, performed: {}, substituted: false }] }
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescribed.rounds must be'))).toBe(true)
+    })
+})
+
+describe('validateCartridgeSessionPayload — strength/core sets/reps/target strictness', () => {
+    it('rejects a missing or non-positive-integer prescribed.sets', () => {
+        const payload = validTrainingPayload()
+        delete payload.blocks[0].items[0].prescribed.sets
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescribed.sets must be'))).toBe(true)
+    })
+    it('rejects a missing prescribed.reps', () => {
+        const payload = validTrainingPayload()
+        delete payload.blocks[0].items[0].prescribed.reps
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescribed.reps must be'))).toBe(true)
+    })
+    it('rejects a non-string target', () => {
+        const payload = validTrainingPayload()
+        payload.blocks[0].items[0].prescribed.target = 123
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescribed.target must be a string'))).toBe(true)
+    })
+})
+
+describe('validateCartridgeSessionPayload — mobility/cooldown dose', () => {
+    it('rejects a missing dose', () => {
+        const payload = validTrainingPayload()
+        delete payload.blocks[1].items[0].prescribed.dose
+        expect(validateCartridgeSessionPayload(payload).some(e => e.includes('prescribed.dose is required'))).toBe(true)
+    })
+})
+
+// ─── Finding #5 — builder-plus-validator regression: no silent repair/drop ──
+
+describe('buildCartridgeSessionPayload + validateCartridgeSessionPayload — invalid input is never silently repaired (finding #5)', () => {
+    it('a fractional reps value from raw UI input survives the builder and is rejected by the validator', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-f5-1', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null, sessionActivities: [],
+            blocks: [{ kind: 'strength', label: 'Strength', items: [{ itemId: 'd1-str-1', cartridgeItem: { name: 'Back Squat', sets: 4, reps: '4' }, performedInput: { sets: [{ kg: 100, reps: 4.5 }] } }] }],
+        })
+        expect(payload.blocks[0].items[0].performed.sets).toEqual([{ kg: 100, reps: 4.5 }]) // NOT truncated to 4
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('.reps must be'))).toBe(true)
+    })
+
+    it('a fractional sessionDuration from raw UI input survives the builder and is rejected by the validator', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-f5-2', date: '2026-08-05', completedAt: '2026-08-05T19:00:00.000Z',
+            sessionCategory: 'combat', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:2', dayTemplateLabel: 'Day 2 — Fight', dayType: 'custom', phaseId: null,
+            sessionActivities: [], sessionDuration: '75.5',
+        })
+        expect(payload.sessionDuration).toBe(75.5) // NOT truncated to 75
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('sessionDuration must be'))).toBe(true)
+    })
+
+    it('a non-numeric kg from raw UI input survives the builder as invalid data and is rejected by the validator, rather than being silently dropped', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-f5-3', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null, sessionActivities: [],
+            blocks: [{ kind: 'strength', label: 'Strength', items: [{ itemId: 'd1-str-1', cartridgeItem: { name: 'Back Squat', sets: 4, reps: '4' }, performedInput: { sets: [{ kg: 'lots', reps: 4 }] } }] }],
+        })
+        expect(payload.blocks[0].items[0].performed.sets).toEqual([{ kg: 'lots', reps: 4 }]) // preserved, not dropped to just {reps:4}
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('.kg must be'))).toBe(true)
+    })
+
+    it('a duplicate sessionActivities entry from raw input survives the builder and is rejected by the validator, rather than being silently deduplicated', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-f5-4', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            sessionActivities: ['warmup', 'warmup'],
+        })
+        expect(payload.sessionActivities).toEqual(['warmup', 'warmup']) // NOT silently deduplicated to ['warmup']
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('duplicate id "warmup"'))).toBe(true)
+    })
+
+    it('an unknown sessionActivities entry from raw input survives the builder and is rejected by the validator, rather than being silently filtered', () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-f5-5', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning', cartridgeId: 'x', cartridgeVersion: '1.0.0', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            sessionActivities: ['warmup', 'bogus-activity'],
+        })
+        expect(payload.sessionActivities).toEqual(['warmup', 'bogus-activity']) // NOT silently filtered out
+        const errors = validateCartridgeSessionPayload(payload)
+        expect(errors.some(e => e.includes('unknown id "bogus-activity"'))).toBe(true)
     })
 })

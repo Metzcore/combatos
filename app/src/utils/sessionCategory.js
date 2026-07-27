@@ -8,12 +8,11 @@
  * whether the row is even a cartridge row risks colliding with a legacy
  * field of a different meaning, though none exists here today).
  *
- * This module is new and freestanding: it is NOT wired into `weeklyStats.js`
- * or `Calendar.jsx`'s existing `sessionType === 'S&C'` aggregation/display
- * logic. Reusing it there would change their product-level aggregation
- * rules (a 3-way category split, rest/recovery exclusion) — out of scope for
- * A7a per the narrow reader-discriminator authorization; see the A7a
- * implementation report for the full reasoning.
+ * `sessionBucket`/`categoryBadge` wire this discrimination into
+ * `weeklyStats.js` and `Calendar.jsx` (corrective-pass finding #6): the
+ * schema §7/§8 aggregation rules are already frozen and ruled (D11), not an
+ * open product decision, so this module now implements them rather than
+ * merely existing unused.
  */
 
 import { isReadableCartridgeRow } from './cartridgeSessionPayload.js'
@@ -58,4 +57,57 @@ export function categoryOf(session) {
  */
 export function isWorkoutCategory(category) {
     return WORKOUT_CATEGORIES.has(category)
+}
+
+// Unifies legacy and cartridge category vocabularies into the schema §7
+// three-way workout split plus the two non-workout day types. Legacy never
+// produces 'rest'/'recovery' (the HUD has no rest-day concept), so those
+// two buckets are cartridge-only in practice, but the mapping itself is
+// shape-agnostic.
+const BUCKET_BY_CATEGORY = {
+    'S&C': 'sc', 'strength-conditioning': 'sc',
+    'Combat': 'combat', 'combat': 'combat',
+    'Cardio': 'other', 'Mobility': 'other', 'custom': 'other',
+    'rest': 'rest', 'recovery': 'recovery',
+}
+
+/**
+ * sessionBucket — schema §7's `sc` / `combat` / `other` / `rest` /
+ * `recovery` classification, tolerant across legacy/v1/v2 shapes. Returns
+ * `null` for an unrecognized/absent category rather than guessing — such a
+ * row contributes to NO bucket (never silently folded into "other").
+ *
+ * @param {object} session
+ * @returns {'sc'|'combat'|'other'|'rest'|'recovery'|null}
+ */
+export function sessionBucket(session) {
+    const category = categoryOf(session)
+    return BUCKET_BY_CATEGORY[category] ?? null
+}
+
+const BADGE_BY_BUCKET = {
+    sc: { className: 'badge-green' },
+    combat: { className: 'badge-red' },
+    other: { className: 'badge-amber' },
+    rest: { className: 'badge-dim' },
+    recovery: { className: 'badge-dim' },
+}
+
+/**
+ * categoryBadge — { label, className } for Calendar.jsx's session badge,
+ * using the row's ACTUAL category (finding #6) instead of defaulting every
+ * non-'S&C' row to an amber "fight" guess. `label` is the raw category
+ * string as stored (already human-readable: 'S&C', 'Combat', 'rest', …);
+ * an unrecognized/absent category falls back to the pre-existing legacy
+ * default ('S&C' / green) exactly as Calendar.jsx did before this change,
+ * so old rows keep rendering exactly as they always have.
+ *
+ * @param {object} session
+ * @returns {{ label: string, className: string }}
+ */
+export function categoryBadge(session) {
+    const category = categoryOf(session)
+    const bucket = sessionBucket(session)
+    if (bucket === null) return { label: 'S&C', className: 'badge-green' }
+    return { label: category, className: BADGE_BY_BUCKET[bucket].className }
 }

@@ -17,9 +17,24 @@
  * was extracted VERBATIM to utils/dateMath.js in W21 so other features can
  * use it without importing this stats-scoped module. It is imported and
  * re-exported here so this module's public API is unchanged.
+ *
+ * A7a corrective pass (finding #6): category counting is now
+ * `sessionBucket`-driven (utils/sessionCategory.js), tolerant across
+ * legacy/v1/v2 rows, per the FROZEN schema §7 rules (D11) — this is not a
+ * new/invented aggregation, it is the already-ruled contract:
+ *   - `sc` / `combat` / `other` replace the old binary `sc`/`fight` split —
+ *     a cartridge `strength-conditioning`/`combat`/`custom` row buckets
+ *     correctly instead of being silently folded into "fight".
+ *   - `restDays` / `recoveryDays` are counted separately and EXCLUDED from
+ *     `total` (`total = sc + combat + other`).
+ *   - `avgCompletenessLegacy` / `avgCompletenessCartridge` are NEVER
+ *     averaged together; `completenessMixed` is true only when both exist
+ *     for the week, so a mixed week can show both figures honestly.
  */
 
 import { DAY_MS, parseDateParts, toEpochMs, epochMsToStr, addDays } from './dateMath.js'
+import { sessionBucket } from './sessionCategory.js'
+import { isReadableCartridgeRow } from './cartridgeSessionPayload.js'
 
 export { parseDateParts, addDays }
 
@@ -58,17 +73,30 @@ export function bucketSessionsByWeek(sessions) {
 /**
  * Summarizes one week's sessions.
  *
- * - `avgCompleteness` averages `completeness` over S&C sessions ONLY —
- *   fight-gym sessions compute completeness against a different denominator
- *   and are not comparable. Returns null (not 0, not NaN) when the week has
- *   no S&C sessions.
+ * - `sc`/`combat`/`other` are counted via `sessionBucket()` (mixed legacy/
+ *   v1/v2 tolerant); `total = sc + combat + other`. `restDays`/`recoveryDays`
+ *   are reported separately and excluded from `total` — a rest/recovery
+ *   cartridge row is a real day, but not a "session" for this count.
+ * - `avgCompletenessLegacy` averages `completeness` over LEGACY 'S&C'
+ *   sessions only (byte-identical to the pre-A7a `avgCompleteness` calc).
+ *   `avgCompletenessCartridge` averages it over cartridge
+ *   `strength-conditioning` sessions with a numeric `completeness` (only
+ *   training days with measurable strength/core/PAP units carry one). The
+ *   two are NEVER averaged together; each is null (not 0/NaN) when its own
+ *   week has no matching sessions. `completenessMixed` is true only when
+ *   BOTH exist for the same week.
  * - `hipTrend` is in DATE order (Dexie insertion order can diverge from
- *   date order), ties broken by insertion id.
+ *   date order), ties broken by insertion id. Legacy-only (cartridge rows
+ *   never carry `hipScore`).
+ * - `daysCovered`/`phases` are likewise legacy-only concepts (cartridge
+ *   rows never carry numeric `day`/`phase`), unchanged from before.
  *
  * @param {Array<object>} weekSessions
  * @returns {{
- *   total: number, sc: number, fight: number,
- *   avgCompleteness: number|null,
+ *   total: number, sc: number, combat: number, other: number,
+ *   restDays: number, recoveryDays: number,
+ *   avgCompletenessLegacy: number|null, avgCompletenessCartridge: number|null,
+ *   completenessMixed: boolean,
  *   hipTrend: Array<{date: string, hipScore: number}>,
  *   daysCovered: number[], phases: number[]
  * }}
@@ -79,18 +107,33 @@ export function summarizeWeek(weekSessions) {
         return (a.id ?? 0) - (b.id ?? 0)
     })
 
-    const total = sorted.length
-    const sc = sorted.filter(s => s.sessionType === 'S&C').length
-    const fight = total - sc
+    let sc = 0, combat = 0, other = 0, restDays = 0, recoveryDays = 0
+    for (const s of sorted) {
+        switch (sessionBucket(s)) {
+            case 'sc': sc++; break
+            case 'combat': combat++; break
+            case 'other': other++; break
+            case 'rest': restDays++; break
+            case 'recovery': recoveryDays++; break
+            default: break // unrecognized category — counted nowhere, never guessed
+        }
+    }
+    const total = sc + combat + other
 
-    const scWithCompleteness = sorted.filter(
-        s => s.sessionType === 'S&C' && typeof s.completeness === 'number' && !Number.isNaN(s.completeness)
-    )
-    const avgCompleteness = scWithCompleteness.length > 0
-        ? Math.round(
-            (scWithCompleteness.reduce((sum, s) => sum + s.completeness, 0) / scWithCompleteness.length) * 10
-        ) / 10
+    const hasNumericCompleteness = s => typeof s.completeness === 'number' && !Number.isNaN(s.completeness)
+    const average = list => list.length > 0
+        ? Math.round((list.reduce((sum, s) => sum + s.completeness, 0) / list.length) * 10) / 10
         : null
+
+    const legacyScWithCompleteness = sorted.filter(
+        s => sessionBucket(s) === 'sc' && !isReadableCartridgeRow(s) && hasNumericCompleteness(s)
+    )
+    const cartridgeScWithCompleteness = sorted.filter(
+        s => sessionBucket(s) === 'sc' && isReadableCartridgeRow(s) && hasNumericCompleteness(s)
+    )
+    const avgCompletenessLegacy = average(legacyScWithCompleteness)
+    const avgCompletenessCartridge = average(cartridgeScWithCompleteness)
+    const completenessMixed = avgCompletenessLegacy !== null && avgCompletenessCartridge !== null
 
     const hipTrend = sorted
         .filter(s => typeof s.hipScore === 'number' && !Number.isNaN(s.hipScore))
@@ -104,7 +147,11 @@ export function summarizeWeek(weekSessions) {
         sorted.map(s => s.phase).filter(p => typeof p === 'number')
     )].sort((a, b) => a - b)
 
-    return { total, sc, fight, avgCompleteness, hipTrend, daysCovered, phases }
+    return {
+        total, sc, combat, other, restDays, recoveryDays,
+        avgCompletenessLegacy, avgCompletenessCartridge, completenessMixed,
+        hipTrend, daysCovered, phases,
+    }
 }
 
 /**
