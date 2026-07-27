@@ -107,8 +107,20 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       Android acceptance passed every reported scenario; sign-out and active-draft survival
       across a later PWA update were not exercised on-device._
 - [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
-      cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). ⛔ gated on
-      A6.5 and the payload-shape lock below.
+      cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). Payload shape
+      is locked (D11, revised corrective pass, `payloadVersion: 2`) — A6.5 is complete, so A7 is
+      ungated. Scope: every block kind, item field, and day type used by the three real shipped
+      cartridges (strength/core with PAP/superset grouping, mobility/cooldown/conditioning as
+      read-only guidance, custom/rest/recovery days, a zero- or one-block `cycle.blocks` phase
+      context, `sessionActivities` analytics-ready fields). Multi-phase (`cycle.blocks.length >=
+      2`) execution is explicitly out of scope for v1 (D12) — no shipped cartridge needs it. A
+      first end-to-end implementation attempt (unpushed, unmerged) is preserved on the
+      `attempt1/a7-*` branches; a Phase 0 review found real defects and the developer supplied
+      binding corrections — see `docs/planning/roadmap/prompts/A7-CORRECTIVE-IMPLEMENTATION-PLAN.md`.
+      Sequenced as four stages, each stopping for review before the next begins: **Stage 0**
+      (payload-lock docs, this entry), **A7a** (pure payload builder/validation/analytics fields +
+      cartridge draft/state integration, no UI change), **A7b** (interactive Today redesign +
+      reader compatibility), **A7c** (later, separate: app-wide `FocusedNoteEditor` adoption).
 - [x] **A8 · Cartridge Viewer UX/UI pass** — quiet block headers, collapsible days, collapsed About
       disclosure, and tab-contrast fix shipped. _2026-07-22._
 - [x] **A9 · Cartridge availability + activation** — A9a–A9d complete. Assigned-only Library,
@@ -122,8 +134,17 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       Library preserves assigned-only preview/activation; Today preserves the existing HUD pending
       A6.5/A7. Phone-approved; 369 tests and production build passed.
       _Merged through PR #52, 2026-07-23._
-- [ ] **Lock logging payload shape** (per-session vs per-set; carry prescribed+performed+substituted)
-      — open, gated on W26; blocks A7 only — A6 is unaffected and already live.
+- [x] **Lock logging payload shape** — **RULED (revised, corrective pass, 2026-07-27):** narrowly
+      decoupled from the unscheduled W26 research (D11); no completed W26 result exists or is
+      needed for the payload-critical questions. Contract:
+      `docs/reference/session-payload-schema.md` (`payloadVersion: 2` — bumped from a first
+      attempt's `v1` because one real `v1` test row already reached production Supabase and its
+      removal isn't confirmed), frozen under the existing `AGENTS.md` rule 2a (unmodified — its
+      exception already points at this document generically). One canonical structured `blocks[]`
+      record per cartridge session; completeness counts only strength/core (+ PAP/pair);
+      `sessionActivities` makes sessions analytics-ready for a future W26 without any new table.
+      Legacy sessions are completely unchanged; no migration or rewrite of any existing row, local
+      or remote.
 - [ ] **A11 · candidate · Exercise Reference layer** — design a stable canonical exercise identity
       and curated external-resource catalogue that can support explicit “Watch demo” actions in Plan
       and later Today. File-backed/offline-readable is the starting hypothesis, not yet a ruling.

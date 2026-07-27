@@ -18,6 +18,9 @@ _Quick reference for current decision status. Each section's **RULED:** / **Not 
 | D8 | W24 tracking (standalone vs counted) | **Ruled** — counted tasks |
 | D9 | Off-programme activity logging | **OPEN — not yet ruled** |
 | D10 | Cartridge weekly structure | **Ruled** — flexible pool + suggested order |
+| D11 | A7 permanent cartridge-session payload lock | **Ruled (revised, corrective pass)** — versioned `blocks[]` payload with `sessionActivities`, strength/core-only completeness |
+| D12 | A7 multi-phase cartridge execution | **OPEN — not yet ruled** |
+| D13 | Checklist/Notes owner-scoping for a unified/cross-device Log view | **OPEN — not yet ruled** |
 
 ## D1 — Delete Last Logged Day: hard vs. soft delete
 **Current state (shipped, by default not by decision):** hard delete on both ends — local Dexie record removed, `webhook.gs` removes the Sheet row entirely (`deleteRow`, with a code comment justifying it as avoiding formatting-inheritance bugs). The commit message and webhook header both *say* soft/strikethrough, which is wrong.
@@ -111,3 +114,116 @@ a renderer/UX behavior (let the athlete pick which day-template to log, defaulti
 next one). **Overlaps D9** (off-programme logging) — the flexible-logging surface should serve both.
 Cartridge `combatos-operator-2026` is authored on this assumption (7-day default order, S&C and
 fight interleaved).
+
+## D11 — A7 permanent cartridge-session payload lock (revised, corrective pass)
+**Context (2026-07-27, first ruling):** A7's diagnostic found no completed W26 research result
+checked into the repo and none scheduled, while a small, specific set of questions (day identity,
+session categories, prescribed/performed/substituted representation, per-set/per-round granularity,
+legacy compatibility, last-performance recall) genuinely blocked locking the permanent cartridge
+payload. A first implementation (Stage 0 + A7a + A7b) was built end-to-end in one session, without
+stopping at its own required review gates, and was live-verified against the developer's real,
+authenticated Supabase account — writing one real test session (Apex Protocol, Day 1) to
+**production**. That work is unpushed and unmerged, preserved on the `attempt1/a7-*` branches.
+**Context (2026-07-27, corrective pass):** a read-only Phase 0 review of that first attempt found
+real defects (RPE/RIR-only sets silently dropped, a completeness denominator that counted
+mobility/cooldown/conditioning, a validator that didn't enforce its own substitution/numeric-range/
+nested-key invariants, a last-performance recall that could be masked by a newer empty record, an
+inconsistent reader discriminator, a new browser `confirm()`, tiny tap targets, dead collapse
+state, absent scroll restoration, hardcoded colors, anonymous PAP rows with no superset grouping)
+and the developer supplied a further set of binding product rulings correcting the design. This
+entry replaces the prior D11 ruling in full; the prior ruling's content is superseded, not deleted
+from history (see the `attempt1/*` branches and `A7-FINAL-IMPLEMENTATION-PLAN.md`).
+**Full detail:** `docs/reference/session-payload-schema.md` and
+`docs/planning/roadmap/prompts/A7-CORRECTIVE-IMPLEMENTATION-PLAN.md`.
+**RULED (2026-07-27, corrective):**
+1. **Payload version is `payloadVersion: 2`, not `1`.** One real `payloadVersion: 1` row already
+   reached production Supabase during the first attempt's verification and its removal is not
+   confirmed. Reusing `1` for the corrected shape would let a future reader misinterpret that row.
+   `payloadVersion: 1` becomes a permanently tolerated, read-only, never-written-again historical
+   variant (schema doc §10); if that specific row is later confirmed removed, this ruling does not
+   change — v2 stays v2.
+2. **`sessionActivities`** (required array, closed 8-value ID set: `warmup`/`cooldown`/
+   `bag-workout`/`cardio`/`mobility`/`abs`/`corrective-exercises`/`other`) is a new required field on
+   every `training`/`custom` cartridge session — `[]` is valid and distinct from the field being
+   absent (legacy or pre-this-change rows: unknown, never coerced to "none selected").
+   `otherActivity` (trimmed, single-line, ≤120 characters) exists only when `'other'` is selected
+   and non-blank.
+3. **Completeness counts only strength/core main sets and a prescribed PAP/pair's own sets.**
+   Mobility, cooldown, and conditioning are excluded from the denominator entirely (reversing the
+   first attempt, which counted all three). Extra performed sets beyond the prescribed count are
+   retained in the payload but never inflate completeness past its cap. A conditioning-only or
+   mobility-only day legitimately omits completeness.
+4. **Mobility/cooldown/conditioning items keep prescribed guidance, substitution, and optional
+   notes, but no completion tracking of any kind** — no checkbox, no rounds stepper, no
+   `performed.done`/`performed.roundsCompleted` field. What happened on those blocks is recorded
+   through `sessionActivities` plus free-text notes, not a per-item control.
+5. **Today's save-state indicator reports local draft durability only** (`Saving…` / `Saved on
+   device ✓` / `Not saved — Retry`) — no remote-sync signal is shown in the current session's UI.
+6. **`FocusedNoteEditor` is controlled UI over the existing centralized draft persistence** — no
+   second Dexie writer, no independent debounce/autosave chain. It updates the parent's controlled
+   state synchronously on every input change; only `useWorkoutDraftPersistence` debounces
+   persistence.
+7. **Scroll state is exposed and kept continuously (throttled) current**, not just captured at
+   flush time; collapse initialization is transition-safe (first-incomplete-block-open applies once
+   at a fresh Start, never on remount, never overrides a manual toggle; Continue always honors the
+   persisted collapse map verbatim).
+8. **Strict nested payload validation and exact numeric ranges are locked now** (schema doc §5) —
+   every nested object (item `prescribed`/`performed`, each `performed.sets[]`/`performed.pair.
+   sets[]` entry) is validated against its own closed key set and numeric range, not just checked
+   for being "an object."
+9. **"Use Last Values" requires the same effective exercise** (today's substitution, if any, must
+   match the recalled record's own substitution or prescribed identity) **and never copies beyond
+   the current prescribed slot count**, even when history has more sets recorded.
+10. **Superset member-count mismatches are communicated via header set counts** (e.g. "A1: 4 sets ·
+    A2: 3 sets"), never an absent-round placeholder row.
+11. **`AGENTS.md` is not modified.** Rule 2a's exception already reads "a new logged-session payload
+    shape for cartridge-driven sessions, exactly as specified in
+    `docs/reference/session-payload-schema.md`" — field-agnostic by design. Adding
+    `sessionActivities`/`otherActivity` to the schema document is sufficient; enumerating individual
+    field names in the rule itself would be redundant and would need re-editing on every future
+    additive field.
+12. **Branch topology:** the three first-attempt branches are preserved, renamed under `attempt1/`,
+    kept until separately authorized for deletion — never rebased or force-rewritten.
+13. **Sequencing:** Stage 0 (payload lock, this ruling) → A7a (pure payload builder, validation,
+    analytics fields, draft persistence — no Today UI) → A7b (Today UI redesign) → A7c (later,
+    separate: adopt `FocusedNoteEditor` app-wide). Each stage stops for independent review before
+    the next begins — the first attempt's process failure (building all three stages in one
+    session with no review checkpoint) must not repeat.
+**Blocks:** A7 implementation. **Does not block:** A6, A9, A10 (already shipped and unaffected).
+
+## D12 — A7 multi-phase cartridge execution (OPEN — not yet ruled)
+**Context:** `cycle.blocks` (named phases) is currently presentation metadata only — no day in any
+of the three shipped cartridges references a phase, and `validateCartridge` never inspects
+`cycle.blocks` for content selection. A7 therefore defines Today's behavior only for zero phases
+(no phase UI) and exactly one phase (a static, non-interactive context label). None of the three
+real cartridges have two or more `cycle.blocks` entries, so this does not block shipping A7.
+**The actual question:** if a future cartridge defines two or more phases, does each phase select
+different day content, gate on a counter (like the legacy phase-unlock threshold), or something
+else — and what does the payload's `phaseId` mean once more than one phase can apply to the same
+day template?
+**Options:** (a) design a phase-to-day-content mapping and a selection/unlock mechanism before any
+multi-phase cartridge is authored; (b) treat multi-phase as permanently out of scope and let a
+periodized program stay one-phase-per-cartridge (the pattern Foundation → Operator already uses);
+(c) revisit only when a real multi-phase cartridge is actually authored.
+**Blocks:** nothing today. A7 ships an explicit "not supported yet" state for `cycle.blocks.length
+>= 2` rather than guessing; Plan and Library remain fully functional for such a cartridge.
+**Not ruled — do not default silently.**
+
+## D13 — Checklist/Notes owner-scoping for a unified/cross-device Log view (OPEN — not yet ruled)
+**Context (2026-07-27):** A7's `sessionActivities` field makes workout sessions analytics-ready for
+a future W26 Log-hub view. Checklist and Notes, however, remain device-local and
+unauthenticated-to-any-account (`db/checklist.js`, `db/notes.js` carry no owner/user column at all,
+unlike `workoutDrafts`' `[ownerUserId+slot]` key or Supabase `sessions.user_id`). A unified Log view
+that wants to show workout completeness alongside checklist/habit streaks — as W26's own research
+brief anticipates — cannot do so across devices or for more than one account on a shared device
+until Checklist/Notes gain some owner-scoping and/or sync story.
+**The actual question:** should Checklist/Notes eventually move to Supabase (owner-scoped, synced,
+matching `workoutDrafts`/`sessions`), stay device-local forever with only a single-device Log view
+supported, or something in between (e.g., export/import without live sync)?
+**Options:** (a) migrate Checklist/Notes to Supabase with owner scoping, matching the workout-data
+model; (b) keep them device-local permanently and scope any unified Log view to "this device only,"
+documented as such; (c) defer the decision entirely until W26 actually needs to answer it.
+**Blocks:** nothing today — A7 does not implement any Log-hub UI. This is recorded now because it
+was surfaced while designing A7's analytics-readiness plan, not because A7 needs it answered.
+**Not ruled — do not default silently.** See
+`docs/planning/roadmap/prompts/W26-log-hub-research.md` for where this must be picked back up.
