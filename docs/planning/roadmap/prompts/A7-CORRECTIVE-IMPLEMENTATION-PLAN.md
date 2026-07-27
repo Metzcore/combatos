@@ -103,20 +103,23 @@ Recorded in full in `docs/planning/roadmap/OPEN-DECISIONS.md`. Summary:
   owns **no Dexie access, no `workoutDraftController` reference, no independent timer** — it is
   strictly a presentation layer (compact idle preview → full-screen editor sized against the
   visible viewport when the keyboard opens, internal scrolling, explicit Done) over state the
-  parent already autosaves. Any internal debounce inside the editor is a **local React re-render
-  optimization only**, never a second path to Dexie. This is the exact correction to "no second
-  writer or debounce chain."
+  parent already autosaves. It calls the parent's `onChange` synchronously on every input change —
+  **no internal debounce of any kind, even framed as a React rendering optimization**; only
+  `useWorkoutDraftPersistence`'s existing debounce/schedule path may delay persistence. This is the
+  exact correction to "no second writer or debounce chain," and prevents losing the latest
+  characters if the app backgrounds or the component unmounts mid-edit.
 
 **Today-scoped additions** (`components/today/`):
 
 - `TodayHeader.jsx` — persistent header: day label, a `N/M sets` progress figure derived from the
   same completeness units (not a separate count), and a save-state string drawn **only** from
-  `cartridgeDraftSaveStatus` (`Saving…` / `Saved ✓` / `Not saved — Retry`) — **no remote-sync
-  signal of any kind**, resolving the open question from Phase 0 exactly as ruled.
+  `cartridgeDraftSaveStatus` (`Saving…` / `Saved on device ✓` / `Not saved — Retry`) — **no
+  remote-sync signal of any kind**, resolving the open question from Phase 0 exactly as ruled.
 - `SessionSummary.jsx` — two preparation checkboxes (Warm-up, Cooldown) + six activity chips + the
-  conditional `otherActivity` field (single line, live-truncated/validated at 120 chars) + the
-  session `notes` field via `FocusedNoteEditor`. All eight IDs write into one `sessionActivities`
-  array; the checkbox/chip split is presentational only.
+  conditional `otherActivity` field (single line, bounded via `maxLength={120}` at the input plus
+  validator rejection of any over-length or multi-line value on submit — user text is never
+  silently truncated) + the session `notes` field via `FocusedNoteEditor`. All eight IDs write into
+  one `sessionActivities` array; the checkbox/chip split is presentational only.
 - `EffortGuideSheet.jsx` — a `BottomSheet` explaining RPE / RIR / %1RM. Explanatory only; no math
   changes.
 - `SupersetGroup.jsx` — groups a block's strength/core items by `item.superset`, renders

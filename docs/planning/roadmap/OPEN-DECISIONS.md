@@ -157,11 +157,12 @@ from history (see the `attempt1/*` branches and `A7-FINAL-IMPLEMENTATION-PLAN.md
    notes, but no completion tracking of any kind** — no checkbox, no rounds stepper, no
    `performed.done`/`performed.roundsCompleted` field. What happened on those blocks is recorded
    through `sessionActivities` plus free-text notes, not a per-item control.
-5. **Today's save-state indicator reports local draft durability only** (`Saving…` / `Saved ✓` /
-   `Not saved — Retry`) — no remote-sync signal is shown in the current session's UI.
+5. **Today's save-state indicator reports local draft durability only** (`Saving…` / `Saved on
+   device ✓` / `Not saved — Retry`) — no remote-sync signal is shown in the current session's UI.
 6. **`FocusedNoteEditor` is controlled UI over the existing centralized draft persistence** — no
-   second Dexie writer, no independent debounce/autosave chain; any internal debounce is a
-   React-render optimization only.
+   second Dexie writer, no independent debounce/autosave chain. It updates the parent's controlled
+   state synchronously on every input change; only `useWorkoutDraftPersistence` debounces
+   persistence.
 7. **Scroll state is exposed and kept continuously (throttled) current**, not just captured at
    flush time; collapse initialization is transition-safe (first-incomplete-block-open applies once
    at a fresh Start, never on remount, never overrides a manual toggle; Continue always honors the
