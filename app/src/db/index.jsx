@@ -19,11 +19,17 @@ import { computeSessionCounts } from '../utils/phaseUnlock.js'
 import { trySyncQueue, enqueueSync, initSyncListeners } from '../sync/syncQueue.js'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { workoutDraftController, loadActiveDraft, commitLoggedSession } from './workoutDrafts.js'
+import { performCartridgeLog, CartridgeValidationError } from './cartridgeLogging.js'
 import {
     classifyHydratedDraft, parseLegacyDay, parseLegacyPhase, parseCartridgeDay,
     buildLegacyIdentity, buildCartridgeIdentity, pickFields,
     LEGACY_STATE_FIELD_KEYS, CARTRIDGE_STATE_FIELD_KEYS,
 } from '../utils/workoutDraftState.js'
+
+// Re-exported so callers (CartridgeToday.jsx) can catch the typed validation
+// error via `import { CartridgeValidationError } from '../../db/index.jsx'`
+// alongside the useDB()/db imports they already make from this module.
+export { CartridgeValidationError }
 
 // Re-export for backward compatibility (syncQueue.test.js and any external
 // consumer importing trySyncQueue from db/index.jsx keep working unchanged).
@@ -166,6 +172,21 @@ const WORKOUT_DEFAULTS = {
     // fabricated (schema §4). No legacy equivalent.
     startedAt: null,
 
+    // A7b — the frozen authored day DEFINITION (not a logged session), set
+    // the instant a cartridge workout starts or a cartridge draft is
+    // resumed. Lives HERE, not as CartridgeToday local state: Today
+    // unmounts on every Today<->Plan/Library tab switch (TrainHub's
+    // conditional render), so local state would be silently wiped on
+    // remount — exactly the trap HUD.jsx's own frozenWorkout avoids only
+    // because day/phase/hipScore identity (which a live playbook lookup
+    // could re-derive from) already lives in this provider. A cartridge
+    // day's content is keyed by cartridgeId alone in the bundled registry
+    // (data/cartridges/index.js), so a re-lookup after a cartridgeVersion
+    // bump could silently resolve to different content than what the
+    // session actually started against — this field is the fix, not a
+    // convenience: it is the actual snapshot, never re-derived.
+    cartridgeFrozenDay: null,
+
     // Per-item live editing state, keyed by itemId.
     itemStateById: {},
     substitutions: {},
@@ -280,6 +301,7 @@ export function DBProvider({ children }) {
     const [cartridgeDay, setCartridgeDay] = useState(WORKOUT_DEFAULTS.cartridgeDay)
     const [cartridgePhaseId, setCartridgePhaseId] = useState(WORKOUT_DEFAULTS.cartridgePhaseId)
     const [startedAt, setStartedAt] = useState(WORKOUT_DEFAULTS.startedAt)
+    const [cartridgeFrozenDay, setCartridgeFrozenDay] = useState(WORKOUT_DEFAULTS.cartridgeFrozenDay)
     const [itemStateById, setItemStateById] = useState(WORKOUT_DEFAULTS.itemStateById)
     const [substitutions, setSubstitutions] = useState(WORKOUT_DEFAULTS.substitutions)
     const [itemNotes, setItemNotes] = useState(WORKOUT_DEFAULTS.itemNotes)
@@ -557,6 +579,7 @@ export function DBProvider({ children }) {
         setCartridgeDay(WORKOUT_DEFAULTS.cartridgeDay)
         setCartridgePhaseId(WORKOUT_DEFAULTS.cartridgePhaseId)
         setStartedAt(WORKOUT_DEFAULTS.startedAt)
+        setCartridgeFrozenDay(WORKOUT_DEFAULTS.cartridgeFrozenDay)
         setItemStateById(WORKOUT_DEFAULTS.itemStateById)
         setSubstitutions(WORKOUT_DEFAULTS.substitutions)
         setItemNotes(WORKOUT_DEFAULTS.itemNotes)
@@ -683,6 +706,13 @@ export function DBProvider({ children }) {
             const resumedDay = parseCartridgeDay(workoutIdentity.dayTemplateKey)
             if (resumedDay != null) setCartridgeDay(resumedDay)
             setCartridgePhaseId(workoutIdentity.phaseId)
+            // Freeze from the ACTUAL persisted snapshot, never a fresh
+            // registry re-lookup — a cartridgeVersion bump between when
+            // this draft was saved and now could otherwise silently swap in
+            // different day content (see WORKOUT_DEFAULTS.cartridgeFrozenDay).
+            if (continueDraft.definitionSnapshot?.value) {
+                setCartridgeFrozenDay(continueDraft.definitionSnapshot.value)
+            }
 
             const f = state.fields || {}
             if (f.startedAt !== undefined) setStartedAt(f.startedAt)
@@ -900,6 +930,38 @@ export function DBProvider({ children }) {
         trySyncQueue(refreshPending)
     }, [refreshCounts, refreshPending, resetActiveWorkout, ownerUserId])
 
+    /**
+     * logCartridgeSession — the ONE provider-owned boundary for a cartridge
+     * session log (corrective plan finding B / Step 1). `rawInput` carries
+     * RAW cartridge state only — no sessionId, no built payload, no
+     * caller-side validation call. This function owns identity generation,
+     * building, validation (throwing CartridgeValidationError on failure,
+     * BEFORE any transaction is opened or draft touched), the commit, and
+     * the same post-success refreshCounts/refreshPending/resetActiveWorkout/
+     * trySyncQueue tail logSession already uses.
+     *
+     * The caller's own pre-log durability gate (CartridgeToday's
+     * flushCartridgeDraftNow) must already have succeeded before this is
+     * ever called — see performCartridgeLog's own doc comment for why.
+     */
+    const logCartridgeSession = useCallback(async (rawInput) => {
+        const { payload } = await performCartridgeLog({
+            rawInput,
+            ownerUserId,
+            invalidateDraft: () => workoutDraftController.invalidate(),
+            commit: commitLoggedSession,
+        })
+
+        await refreshCounts()
+        await refreshPending()
+        // Reset in-progress workout state after successful log — unreachable
+        // if performCartridgeLog threw (validation or transaction failure).
+        resetActiveWorkout()
+        trySyncQueue(refreshPending)
+
+        return payload
+    }, [refreshCounts, refreshPending, resetActiveWorkout, ownerUserId])
+
     const resetSession = useCallback(() => {
         resetActiveWorkout()
     }, [resetActiveWorkout])
@@ -957,7 +1019,7 @@ export function DBProvider({ children }) {
             dailyIgnitionEnabled, setDailyIgnitionEnabled,
             bookmarkedIgnitions, toggleIgnitionBookmark,
             ignitionHasShown, setIgnitionHasShown,
-            sessionCount, pendingSync, logSession, resetSession, deleteLastSession,
+            sessionCount, pendingSync, logSession, logCartridgeSession, resetSession, deleteLastSession,
             refreshCounts, refreshPending,
             storagePersisted,
 
@@ -992,6 +1054,7 @@ export function DBProvider({ children }) {
             cartridgeDay, setCartridgeDay,
             cartridgePhaseId, setCartridgePhaseId,
             startedAt, setStartedAt,
+            cartridgeFrozenDay, setCartridgeFrozenDay,
             itemStateById, setItemStateById,
             substitutions, setSubstitutions,
             itemNotes, setItemNotes,

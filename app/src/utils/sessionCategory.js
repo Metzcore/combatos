@@ -150,3 +150,29 @@ export function categoryBadge(session) {
     if (!label) return UNKNOWN_BADGE
     return { label, className: BADGE_BY_BUCKET[BUCKET_BY_CATEGORY[category]].className }
 }
+
+/**
+ * fixedCategoryForDayType — A7b: a cartridge day's `type` determines its
+ * `sessionCategory` outright for `rest`/`recovery`/`training` (every shipped
+ * training day is strength/conditioning work — the cartridge format has no
+ * other training flavor). Returns `null` for `custom`, which has no single
+ * implied category (a "Fight" day, a recovery-studio day, a bonus class —
+ * genuinely different real-world activities) and must be asked via
+ * `PICKER_CATEGORIES` instead. Never guesses for an unrecognized dayType.
+ *
+ * @param {string} dayType
+ * @returns {string|null}
+ */
+export function fixedCategoryForDayType(dayType) {
+    if (dayType === 'training') return 'strength-conditioning'
+    if (dayType === 'rest') return 'rest'
+    if (dayType === 'recovery') return 'recovery'
+    return null
+}
+
+/**
+ * PICKER_CATEGORIES — the choices CategorySheet offers for a `custom` day.
+ * Deliberately excludes `rest`/`recovery` (schema §3: those are dedicated
+ * dayTypes with their own fixed category, never a custom-day user choice).
+ */
+export const PICKER_CATEGORIES = ['strength-conditioning', 'combat', 'custom']

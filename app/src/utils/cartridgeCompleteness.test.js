@@ -2,7 +2,7 @@
  * cartridgeCompleteness.test.js — A7a completeness (schema §7).
  */
 import { describe, it, expect } from 'vitest'
-import { itemCompleteness, computeCartridgeCompleteness } from './cartridgeCompleteness.js'
+import { itemCompleteness, computeCartridgeCompleteness, liveCartridgeCompleteness } from './cartridgeCompleteness.js'
 
 describe('itemCompleteness — mobility/cooldown/conditioning never contribute', () => {
     it('returns {units:0, done:0} regardless of performed content', () => {
@@ -104,5 +104,49 @@ describe('computeCartridgeCompleteness — day-level aggregation', () => {
         ]
         // total units = 4 + 3 + 3 = 10; done = 1 + 2 + 3 = 6 -> 60.0
         expect(computeCartridgeCompleteness(blocks, 'training')).toBe(60)
+    })
+})
+
+describe('liveCartridgeCompleteness — A7b: authored day + itemStateById, before a payload is ever built', () => {
+    // Authored cartridge item shape (data/cartridges/*.json) — flat fields,
+    // NOT the built payload's item.prescribed/item.performed sub-objects.
+    const authoredDay = {
+        blocks: [
+            { kind: 'mobility', items: [{ id: 'm1', name: 'Warm-up', dose: '10 min' }] },
+            {
+                kind: 'strength',
+                items: [
+                    { id: 's1', name: 'Squat', sets: 4, reps: '4' },
+                    { id: 's2', name: 'RDL', sets: 3, reps: '8', pair: { name: 'Jump', sets: 3, reps: '3' } },
+                ],
+            },
+        ],
+    }
+
+    it('matches computeCartridgeCompleteness\'s arithmetic exactly once wired through a built payload', () => {
+        const itemStateById = {
+            s1: { sets: [{ kg: 100, reps: 4 }, { kg: 100, reps: 4 }] }, // 2/4
+            s2: { sets: [{ kg: 24, reps: 6 }], pair: { sets: [{ reps: 3 }, { reps: 3 }, { reps: 2 }] } }, // main 1/3 + pair 3/3
+        }
+        // total units = 4 + 3 + 3 = 10; done = 2 + 1 + 3 = 6 -> 60.0
+        expect(liveCartridgeCompleteness(authoredDay.blocks, itemStateById, 'training')).toBe(60)
+    })
+
+    it('mobility never contributes — a mobility-only day has zero measurable units', () => {
+        const mobilityOnlyBlocks = [{ kind: 'mobility', items: [{ id: 'm1', name: 'Warm-up', dose: '10 min' }] }]
+        const itemStateById = { m1: { sets: [{ kg: 1, reps: 1 }] } }
+        expect(liveCartridgeCompleteness(mobilityOnlyBlocks, itemStateById, 'training')).toBeNull()
+    })
+
+    it('is null for custom/rest/recovery regardless of blocks content', () => {
+        const itemStateById = { s1: { sets: [{ kg: 100, reps: 4 }] } }
+        expect(liveCartridgeCompleteness(authoredDay.blocks, itemStateById, 'custom')).toBeNull()
+        expect(liveCartridgeCompleteness(authoredDay.blocks, itemStateById, 'rest')).toBeNull()
+        expect(liveCartridgeCompleteness(authoredDay.blocks, itemStateById, 'recovery')).toBeNull()
+    })
+
+    it('tolerates a missing/empty itemStateById (fresh Start, nothing entered yet)', () => {
+        expect(liveCartridgeCompleteness(authoredDay.blocks, {}, 'training')).toBe(0)
+        expect(liveCartridgeCompleteness(authoredDay.blocks, undefined, 'training')).toBe(0)
     })
 })

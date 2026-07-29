@@ -184,6 +184,23 @@ describe('isCartridgeStateMeaningful', () => {
         expect(isCartridgeStateMeaningful({ sessionDuration: '' })).toBe(false)
         expect(isCartridgeStateMeaningful({})).toBe(false)
     })
+
+    // A7b corrective pass (finding J2): pressing Start must produce a
+    // durable draft immediately, before any set value is ever typed, so a
+    // reload right after Start still restores the frozen day/start time.
+    it('a non-blank startedAt alone is meaningful, even with no other content', () => {
+        expect(isCartridgeStateMeaningful({ startedAt: '2026-08-02T17:04:11.902Z' })).toBe(true)
+        expect(isCartridgeStateMeaningful({
+            startedAt: '2026-08-02T17:04:11.902Z',
+            itemStateById: {}, substitutions: {}, itemNotes: {}, notes: '', customSessionContent: '',
+        })).toBe(true)
+    })
+    it('a blank/absent startedAt is not meaningful by itself (no spurious row from the idle screen)', () => {
+        expect(isCartridgeStateMeaningful({ startedAt: '' })).toBe(false)
+        expect(isCartridgeStateMeaningful({ startedAt: null })).toBe(false)
+        expect(isCartridgeStateMeaningful({ startedAt: undefined })).toBe(false)
+        expect(isCartridgeStateMeaningful({})).toBe(false)
+    })
 })
 
 describe('CARTRIDGE_STATE_FIELD_KEYS — A7a additions', () => {

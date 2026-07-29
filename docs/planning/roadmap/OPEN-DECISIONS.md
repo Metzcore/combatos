@@ -189,6 +189,16 @@ from history (see the `attempt1/*` branches and `A7-FINAL-IMPLEMENTATION-PLAN.md
     separate: adopt `FocusedNoteEditor` app-wide). Each stage stops for independent review before
     the next begins — the first attempt's process failure (building all three stages in one
     session with no review checkpoint) must not repeat.
+14. **Performed pair-set UI is reps-only (A7b corrective pass, approved during the
+    reconciliation review).** The performed-value UI for a prescribed PAP/pair exposes a reps
+    input only — the pair `kg` input is removed from `PerformedStrengthItem.jsx`. Pair inputs
+    appear only for authored pair data (`item.pair` present); an item with no pair renders no
+    pair/PAP cells at all, unchanged. This is a UI narrowing only: **no frozen payload-schema
+    change** — `docs/reference/session-payload-schema.md` §5 still permits `performed.pair.
+    sets[].kg` for reading, and existing readers (and any historically-logged pair `kg` value)
+    continue to be tolerated verbatim. This ruling was previously implicit only in the corrective
+    implementation plan's brief, not recorded here — recorded now so a future session cannot
+    re-derive or second-guess the pair `kg` field's removal.
 **Blocks:** A7 implementation. **Does not block:** A6, A9, A10 (already shipped and unaffected).
 
 ## D12 — A7 multi-phase cartridge execution (OPEN — not yet ruled)
