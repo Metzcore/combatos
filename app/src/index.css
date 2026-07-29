@@ -2968,13 +2968,16 @@ button.cartridge-block__head {
   right: 0;
   top: 0;
   height: 100vh;
-  /* A7b corrective pass: must stay above .today-safe-actions (900, raised
-     from the pre-fix 60 to clear .bottom-nav — see Step 7) so the full-
-     screen note editor isn't rendered UNDER the Finish bar. Stays below
-     .bottom-nav (1000) by the same layered-nav convention the rest of the
-     app uses: this modal covers workout content and the action bar, but
-     the persistent bottom nav remains the outermost chrome. */
-  z-index: 950;
+  /* A7b corrective pass (independent-review finding): this is a MODAL
+     editing surface (role="dialog" aria-modal="true", FocusedNoteEditor.jsx)
+     — it takes the app's established modal layer, matching .sheet-backdrop
+     (BottomSheet.jsx, the one other modal primitive here), not a value
+     relative to the workout chrome it covers. A modal sits above
+     EVERYTHING, including .bottom-nav (1000) and .today-safe-actions (900)
+     — a persistent bottom nav remaining tappable UNDER a full-screen modal
+     editor would contradict aria-modal semantics and let a stray tap reach
+     navigation the user cannot currently see is still live underneath. */
+  z-index: 1100;
   display: flex;
   flex-direction: column;
   background: var(--bg);
