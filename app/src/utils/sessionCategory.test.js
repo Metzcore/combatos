@@ -2,7 +2,10 @@
  * sessionCategory.test.js — A7a reader discrimination.
  */
 import { describe, it, expect } from 'vitest'
-import { categoryOf, isWorkoutCategory, sessionBucket, categoryBadge } from './sessionCategory.js'
+import {
+    categoryOf, isWorkoutCategory, sessionBucket, categoryBadge,
+    fixedCategoryForDayType, PICKER_CATEGORIES,
+} from './sessionCategory.js'
 
 describe('categoryOf — mixed legacy/v1/v2 tolerance', () => {
     it('reads sessionType off a legacy row', () => {
@@ -139,5 +142,32 @@ describe('categoryBadge — unrecognized "versioned" rows are neutral Unknown, n
         expect(categoryBadge(null)).toEqual({ label: 'Unknown', className: 'badge-dim' })
         expect(categoryBadge(undefined)).toEqual({ label: 'Unknown', className: 'badge-dim' })
         expect(categoryBadge('a string')).toEqual({ label: 'Unknown', className: 'badge-dim' })
+    })
+})
+
+describe('fixedCategoryForDayType — A7b', () => {
+    it('training is always strength-conditioning', () => {
+        expect(fixedCategoryForDayType('training')).toBe('strength-conditioning')
+    })
+    it('rest is always rest, recovery is always recovery', () => {
+        expect(fixedCategoryForDayType('rest')).toBe('rest')
+        expect(fixedCategoryForDayType('recovery')).toBe('recovery')
+    })
+    it('custom has no fixed category — must be asked', () => {
+        expect(fixedCategoryForDayType('custom')).toBeNull()
+    })
+    it('an unrecognized dayType never guesses', () => {
+        expect(fixedCategoryForDayType('bogus')).toBeNull()
+        expect(fixedCategoryForDayType(undefined)).toBeNull()
+    })
+})
+
+describe('PICKER_CATEGORIES — A7b custom-day choices', () => {
+    it('never offers rest or recovery — those have their own dedicated dayTypes', () => {
+        expect(PICKER_CATEGORIES).not.toContain('rest')
+        expect(PICKER_CATEGORIES).not.toContain('recovery')
+    })
+    it('offers exactly the three workout categories', () => {
+        expect(PICKER_CATEGORIES).toEqual(['strength-conditioning', 'combat', 'custom'])
     })
 })

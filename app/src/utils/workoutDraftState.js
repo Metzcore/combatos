@@ -214,6 +214,16 @@ function isItemStateEntryMeaningful(entry) {
 export function isCartridgeStateMeaningful(fields) {
     if (!isPlainObject(fields)) return false
 
+    // A7b corrective pass (finding J2): a non-blank startedAt is captured
+    // ONLY when Start was actually pressed (schema §4) — it is real
+    // recorded content about what happened, not mere selection/UI state,
+    // even before any set value is ever typed. Without this, pressing Start
+    // and reloading immediately loses the frozen day and true start time
+    // silently (useWorkoutDraftPersistence refuses to write a row for a
+    // non-meaningful draft). isLegacyStateMeaningful is deliberately
+    // untouched — legacy has no equivalent field.
+    if (nonBlank(fields.startedAt)) return true
+
     if (isPlainObject(fields.itemStateById)) {
         for (const entry of Object.values(fields.itemStateById)) {
             if (isItemStateEntryMeaningful(entry)) return true
@@ -237,9 +247,10 @@ export function isCartridgeStateMeaningful(fields) {
     if (nonBlank(fields.otherActivity)) return true
     if (nonEmpty(fields.sessionDuration)) return true
 
-    // startedAt, blockOpen, scrollY are identity/selection/UI-only state —
-    // deliberately never checked here, same as legacy's hudScrollY/
-    // *BlockOpen fields never making a legacy draft meaningful by themselves.
+    // blockOpen, scrollY are UI-only state — deliberately never checked
+    // here, same as legacy's hudScrollY/*BlockOpen fields never making a
+    // legacy draft meaningful by themselves. (startedAt IS checked above —
+    // see the corrective-pass note at the top of this function.)
 
     return false
 }

@@ -75,3 +75,33 @@ export function computeCartridgeCompleteness(blocks, dayType) {
     if (totalUnits === 0) return null
     return Math.round((totalDone / totalUnits) * 100 * 10) / 10
 }
+
+/**
+ * liveCartridgeCompleteness — A7b: the SAME units/done arithmetic as
+ * computeCartridgeCompleteness, but callable directly against an AUTHORED
+ * day's blocks (flat item shape, e.g. `{id, sets, pair}` straight from
+ * data/cartridges/*.json) and a live `itemStateById` map — i.e. BEFORE a
+ * logged payload is ever built. Today's live progress display calls this;
+ * the payload actually written by Finish still always computes its stored
+ * `completeness` via computeCartridgeCompleteness against the BUILT
+ * `prescribed`/`performed` blocks (never duplicated, never allowed to
+ * disagree) — this is purely a pre-build read of the identical formula.
+ */
+export function liveCartridgeCompleteness(dayBlocks, itemStateById, dayType) {
+    if (dayType === 'custom' || dayType === 'rest' || dayType === 'recovery') return null
+
+    let totalUnits = 0
+    let totalDone = 0
+    for (const block of Array.isArray(dayBlocks) ? dayBlocks : []) {
+        if (!block || typeof block !== 'object') continue
+        for (const item of Array.isArray(block.items) ? block.items : []) {
+            const performed = (itemStateById && itemStateById[item.id]) || {}
+            const { units, done } = itemCompleteness(block.kind, item, performed)
+            totalUnits += units
+            totalDone += done
+        }
+    }
+
+    if (totalUnits === 0) return null
+    return Math.round((totalDone / totalUnits) * 100 * 10) / 10
+}

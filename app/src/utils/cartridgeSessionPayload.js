@@ -120,7 +120,7 @@ function isNonEmptyString(value) {
  *   coerced to undefined — so a typo like 'abc' survives into the payload
  *   as an invalid `kg`/`reps`/etc. value instead of silently vanishing.
  */
-function coerceNumericField(raw) {
+export function coerceNumericField(raw) {
     if (raw === undefined || raw === null || raw === '') return undefined
     if (typeof raw === 'number') return raw
     if (typeof raw === 'string') {

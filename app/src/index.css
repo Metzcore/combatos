@@ -30,6 +30,14 @@
   /* Safe area for notch/home indicator */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* A7b — scoped LAYOUT custom property (not a design/brand token): the
+     Finish bar's own content height, shared with its content spacer so the
+     two can never drift apart (see ".today-safe-actions" below). Declared
+     at :root, not on .today-safe-actions itself, because the spacer is a
+     preceding SIBLING in the DOM, not a descendant — a custom property
+     declared on .today-safe-actions would not be visible to it. */
+  --today-actions-bar-height: 64px;
 }
 
 /* Base reset */
@@ -2468,5 +2476,619 @@ input.note-editor__tag-input {
    .card__body cap — raise it for this section only so nothing clips. */
 .str-section.open .card__body {
   max-height: 4000px;
+}
+
+/* ══════════════════════════════════════════════════════
+   A7b — interactive cartridge Today (components/today/*,
+   FocusedNoteEditor.jsx, TodayRouter.jsx). Existing tokens/primitives only
+   (.card, .card--collapsible, .badge, .btn-primary/-secondary, .sheet*,
+   .cartridge-block*, .history-badge, .draft-banner) are reused unchanged;
+   this is the small additive layer for performed-value input, real
+   touch-target sizing, session-summary chips, and the focused note editor.
+   ══════════════════════════════════════════════════════ */
+
+/* Real open/close wiring on the existing read-only block header — scoped to
+   the <button> element so ProgramOverview.jsx's plain <div> usage (Plan/
+   Library) is completely unaffected. */
+button.cartridge-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding-right: 4px;
+}
+
+.today-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 2px;
+  /* A7b corrective pass (finding F): genuinely sticky while workout content
+     scrolls beneath it. top respects the same safe-top layout every other
+     fixed/sticky bar uses (.page-header, .focused-note-overlay). z-index is
+     well above ordinary content (auto/0) but far below .bottom-nav (1000)
+     and .focused-note-overlay (200) — it never fights either shared layer. */
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 40;
+  background: var(--bg);
+}
+
+.today-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.today-header__day {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.today-header__row--meta {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+.today-header__progress {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.today-header__save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.today-header__save-status--error {
+  color: var(--warn);
+}
+
+.today-header__retry {
+  /* A7b corrective pass (finding J5): was 28px — the most failure-critical
+     control in the header (the only way to retry a failed save) must meet
+     the same 44px minimum as every other interactive control. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  padding: 2px 14px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  min-height: 44px;
+}
+
+.today-day-focus {
+  text-align: center;
+  margin: 8px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.today-suggestion {
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 10px;
+}
+
+.today-suggestion__kicker {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.today-suggestion__label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.today-suggestion__focus {
+  font-size: 0.85rem;
+  color: var(--dim);
+  margin-top: 4px;
+}
+
+/* ── Item card shell (mobility/cooldown/conditioning/strength) ── */
+.today-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.today-item:last-child {
+  border-bottom: none;
+}
+
+.today-item__name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.today-item__superset-badge {
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.today-item__meta {
+  font-size: 0.78rem;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+.today-item__cue {
+  font-size: 0.8rem;
+  color: var(--dim);
+  border-left: 2px solid var(--divider);
+  padding-left: 8px;
+  margin-top: 6px;
+}
+
+.today-item__perround {
+  margin: 6px 0 0 18px;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.today-changed-exercise {
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
+.today-changed-exercise__line {
+  color: var(--text);
+}
+
+.today-changed-exercise__line--dim {
+  color: var(--dim);
+}
+
+/* Large one-thumb controls — corrects the first attempt's 0.75rem text
+   links (Phase 0 review finding: tiny tap targets). */
+.today-item__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.today-item__action-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.today-item__action-btn:active {
+  border-color: var(--accent);
+}
+
+.today-reset-trigger {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  text-align: center;
+  color: var(--dim);
+}
+
+/* ── PAP / Power Pair ──
+   A7b corrective pass (finding J6): unified onto ONE amber treatment
+   derived directly from var(--accent) via color-mix() — for the
+   superset/pair/activity-chip "special state" tint — this rule and
+   .today-set-unit--pair previously used the --warn triplet while
+   .superset-group/.today-chip--active used --accent for the same visual
+   concept. --accent is the app's general tactical-amber identity; --warn
+   stays reserved for genuine warning/error semantics elsewhere
+   (.today-header__save-status--error, .sync-indicator, .today-header__retry).
+   color-mix() is a first use in this codebase (no prior occurrence, no
+   existing derived-accent token) — supported from Chrome 111, the
+   installed-PWA target here, and left untransformed by Vite. */
+.pap-pair-row {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+
+.pap-pair-row__line {
+  color: var(--text);
+}
+
+.pap-pair-row__tag {
+  display: inline-block;
+  min-width: 44px;
+  font-weight: 800;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+}
+
+.pap-pair-row__tag--power {
+  color: var(--accent);
+}
+
+.pap-pair-row__dose {
+  color: var(--dim);
+}
+
+.pap-pair-row__note {
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 0.75rem;
+}
+
+/* ── Superset grouping ── */
+.superset-group {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.superset-group__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.superset-group__counts {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--dim);
+}
+
+.superset-group__member-header {
+  margin-top: 4px;
+}
+
+.superset-group__round {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--divider);
+}
+
+.superset-group__round-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.superset-group__member-footer {
+  margin-top: 6px;
+}
+
+.today-item__superset-badge--member {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.today-set-unit__member {
+  color: var(--accent);
+}
+
+.today-set-unit__row--pair {
+  grid-template-columns: 1fr;
+}
+
+/* ── Set units — one bounded visual block per set, load+reps then a
+   CONDITIONAL effort row (never both RPE and RIR by default). ── */
+.today-set-unit {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--input);
+}
+
+.today-set-unit--pair {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.today-set-unit__head {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.today-set-unit__extra-tag {
+  color: var(--accent);
+  text-transform: none;
+  font-weight: 600;
+}
+
+.today-set-unit__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.today-set-unit__row + .today-set-unit__row {
+  margin-top: 6px;
+}
+
+.today-set-unit__row--effort {
+  grid-template-columns: 1fr;
+  opacity: 0.9;
+}
+
+.today-set-unit input {
+  min-height: 44px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+/* ── Session summary (D11 point 2) ── */
+.today-session-summary {
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.today-session-summary__section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-top: 12px;
+}
+
+.today-session-summary__section-label:first-child {
+  margin-top: 0;
+}
+
+.today-session-summary__checks {
+  display: flex;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.today-session-summary__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.today-session-summary__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.today-chip {
+  /* A7b corrective pass (finding J5): was 40px — all six activity chips
+     need the same 44px minimum every other tappable control gets. */
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--divider);
+  background: var(--input);
+  color: var(--dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.today-chip--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.today-session-summary__other-input {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 44px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+/* ── FocusedNoteEditor — compact preview + full-screen editor ── */
+.focused-note--preview {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: var(--input);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+}
+
+.focused-note__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.focused-note__preview-text {
+  display: block;
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focused-note-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  /* A7b corrective pass: must stay above .today-safe-actions (900, raised
+     from the pre-fix 60 to clear .bottom-nav — see Step 7) so the full-
+     screen note editor isn't rendered UNDER the Finish bar. Stays below
+     .bottom-nav (1000) by the same layered-nav convention the rest of the
+     app uses: this modal covers workout content and the action bar, but
+     the persistent bottom nav remains the outermost chrome. */
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* A7b corrective pass (finding F): when window.visualViewport is available,
+   FocusedNoteEditor.jsx drives exact `top`/`height` via inline style (see
+   utils/viewportGeometry.js) so the on-screen keyboard never clips the
+   textarea. `--fallback` only applies when visualViewport is unsupported —
+   100dvh where supported (tracks dynamic browser UI), 100vh otherwise. */
+@supports (height: 100dvh) {
+  .focused-note-overlay--fallback {
+    height: 100dvh;
+  }
+}
+
+.focused-note-overlay__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.focused-note-overlay__label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.focused-note-overlay__done {
+  /* A7b corrective pass (finding J5): was 40px and shrunk .btn-primary's
+     14px/24px padding down to 6px/18px — the only dismissal control on the
+     full-screen note editor needs a real 44px+ touch target, not a
+     compromise on it. */
+  min-height: 44px;
+  padding: 10px 20px;
+}
+
+.focused-note-overlay__textarea {
+  flex: 1;
+  min-height: 0; /* required for a flex child to actually shrink/scroll internally, not overflow its column parent */
+  width: 100%;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  padding: 14px;
+  font-size: 1rem;
+  resize: none;
+  overflow-y: auto;
+}
+
+/* ── Day picker rows (reused by DaySelectSheet) ── */
+.today-day-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.today-day-row__label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.today-day-row__meta {
+  font-size: 0.72rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Fixed Finish/overflow bar — additive; the shared .actions-bar HUD.jsx
+   still uses is untouched.
+   A7b corrective pass (finding J1, BLOCKER): the previous z-index (60) sat
+   BELOW .bottom-nav's 1000, so Finish rendered almost entirely occluded and
+   untappable behind the permanent nav — the single most important defect
+   this pass fixes. Follows the established .quick-add-bar convention
+   (index.css, "Pinned quick-add bar") instead of merely raising z-index:
+   `bottom: calc(85px + var(--safe-bottom))` STACKS the bar immediately
+   ABOVE the bottom-nav's reserved zone rather than overlapping it, so no
+   z-index race with the nav is even possible; max-width/margin center it
+   with `.app` on wide viewports (finding J1's secondary defect); safe-bottom
+   is accounted for exactly once, by the `bottom` offset — the bar's own
+   padding must NOT add it again (the prior padding did, finding J1/J4).
+   `--today-actions-bar-height` is a SCOPED LAYOUT custom property (not a
+   design/brand token) so the spacer below derives from the exact same
+   value as the bar itself and the two can never drift apart (finding J4). ── */
+.today-safe-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(85px + var(--safe-bottom));
+  max-width: 640px;
+  margin: 0 auto;
+  z-index: 900; /* under .bottom-nav (1000), matches .quick-add-bar's convention */
+  height: var(--today-actions-bar-height);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--divider);
+}
+
+.today-safe-actions .btn-primary {
+  width: 100%;
+}
+
+.today-safe-actions-spacer {
+  /* Must clear BOTH the bar's own height AND the reserved bottom-nav zone
+     it sits above — derived from the bar's own custom property so spacer
+     and bar cannot drift apart. */
+  height: calc(var(--today-actions-bar-height) + 85px + var(--safe-bottom));
 }
 
