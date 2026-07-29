@@ -5,6 +5,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { groupItemsBySuperset, buildSupersetRounds } from './SupersetGroup.jsx'
+import { removeExtraSetAtIndex } from '../../utils/extraSetState.js'
 
 describe('groupItemsBySuperset', () => {
     it('an item with no superset field is its own ungrouped singleton', () => {
@@ -125,5 +126,36 @@ describe('buildSupersetRounds', () => {
     it('handles empty/non-array items and a missing performedByItemId map without throwing', () => {
         expect(buildSupersetRounds([], {})).toEqual([])
         expect(buildSupersetRounds(undefined, undefined)).toEqual([])
+    })
+})
+
+// ─── extra-set removal composes with round order (Android acceptance
+//     remediation plan §7 test 10) ───
+
+describe('removeExtraSetAtIndex × buildSupersetRounds', () => {
+    it('removing one member\'s extra reduces ONLY that member\'s generated extra round (test 10)', () => {
+        const a1 = { id: 'a1', sets: 2 }
+        const a2 = { id: 'a2', sets: 2 }
+        // Both members did one extra round; a1's extra was populated, a2's blank.
+        const performedByItemId = {
+            a1: { sets: [{ kg: 100 }, { kg: 100 }, { kg: 90, reps: 5 }] },
+            a2: { sets: [{ kg: 50 }, { kg: 50 }, {}] },
+        }
+        expect(buildSupersetRounds([a1, a2], performedByItemId)).toHaveLength(3)
+
+        // Remove a1's extra — a2's extra round must survive untouched.
+        const a1Result = removeExtraSetAtIndex(performedByItemId.a1.sets, a1.sets, 2)
+        expect(a1Result.removed).toBe(true)
+        const afterA1 = { ...performedByItemId, a1: { ...performedByItemId.a1, sets: a1Result.sets } }
+        const roundsAfterA1 = buildSupersetRounds([a1, a2], afterA1)
+        expect(roundsAfterA1).toHaveLength(3)
+        expect(roundsAfterA1[2]).toEqual([{ itemId: 'a2', index: 2 }]) // a2 keeps its extra round
+        expect(performedByItemId.a1.sets).toHaveLength(3) // original map never mutated
+
+        // Remove a2's extra too — the group collapses back to the prescribed rounds.
+        const a2Result = removeExtraSetAtIndex(afterA1.a2.sets, a2.sets, 2)
+        expect(a2Result.removed).toBe(true)
+        const afterBoth = { ...afterA1, a2: { ...afterA1.a2, sets: a2Result.sets } }
+        expect(buildSupersetRounds([a1, a2], afterBoth)).toHaveLength(2)
     })
 })

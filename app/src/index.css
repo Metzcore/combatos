@@ -2525,6 +2525,18 @@ button.cartridge-block__head {
   gap: 8px;
 }
 
+/* A7b Android acceptance remediation (plan §3.1): the phase context as a
+   compact left-aligned eyebrow ABOVE the day title — no pill, so even the
+   longest real label ("Phase 1 — Foundation (4 weeks)") reads as one quiet
+   line of context and never competes with the title. */
+.today-header__phase {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
 .today-header__day {
   font-size: 1.1rem;
   font-weight: 800;
@@ -2662,7 +2674,12 @@ button.cartridge-block__head {
 }
 
 /* Large one-thumb controls — corrects the first attempt's 0.75rem text
-   links (Phase 0 review finding: tiny tap targets). */
+   links (Phase 0 review finding: tiny tap targets).
+   A7b Android acceptance remediation (plan §3.4): the BASE button is now the
+   QUIETER secondary utility control (Change exercise, Use last values, the
+   effort-guide trigger) — recessed, low-contrast border, softened amber; the
+   deliberate amber execution action (Add set / Add round) gets the --amber
+   modifier below so the hierarchy reads at a glance. */
 .today-item__actions {
   display: flex;
   gap: 10px;
@@ -2672,15 +2689,63 @@ button.cartridge-block__head {
 .today-item__action-btn {
   min-height: 44px;
   padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
   border-radius: var(--radius-sm);
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 75%, var(--dim));
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 .today-item__action-btn:active {
+  border-color: var(--accent);
+}
+
+.today-item__action-btn--amber {
+  background: color-mix(in srgb, var(--accent) 13%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--divider));
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 22%, transparent),
+    0 1px 4px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.today-item__action-btn--amber:active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
+  border-color: var(--accent);
+}
+
+/* The frequent Add set control keeps a full 44px thumb target while its
+   visible capsule is inset and separated from the preceding set card. */
+.today-item__action-btn--compact {
+  display: block;
+  margin-top: 6px;
+  padding: 5px 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.today-item__action-btn--compact .today-item__action-btn-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--accent) 13%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--divider));
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 22%, transparent),
+    0 1px 4px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.today-item__action-btn--compact:active {
+  background: transparent;
+  border-color: transparent;
+}
+
+.today-item__action-btn--compact:active .today-item__action-btn-label {
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
   border-color: var(--accent);
 }
 
@@ -2806,13 +2871,22 @@ button.cartridge-block__head {
 }
 
 /* ── Set units — one bounded visual block per set, load+reps then a
-   CONDITIONAL effort row (never both RPE and RIR by default). ── */
+   CONDITIONAL effort row (never both RPE and RIR by default).
+   A7b Android acceptance remediation (plan §3.4): surface depth instead of
+   outlining — each unit is a subtly RAISED dark surface (lifted token-mix
+   background, soft outer shadow, faint top inner highlight) and its numeric
+   inputs are RECESSED wells inside it (darker --panel floor, restrained
+   inner depth). All values derive from existing tokens via color-mix(); no
+   new hex, no animation. ── */
 .today-set-unit {
   margin-top: 8px;
   padding: 8px;
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
   border-radius: var(--radius-sm);
-  background: var(--input);
+  background: color-mix(in srgb, var(--input) 92%, var(--label) 8%);
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--bg) 85%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 12%, transparent);
 }
 
 .today-set-unit--pair {
@@ -2851,12 +2925,35 @@ button.cartridge-block__head {
 
 .today-set-unit input {
   min-height: 44px;
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 65%, transparent);
   border-radius: var(--radius-sm);
   background: var(--panel);
+  box-shadow:
+    inset 0 2px 5px color-mix(in srgb, var(--bg) 90%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--label) 8%, transparent);
   color: var(--text);
   padding: 8px 10px;
   font-size: 0.9rem;
+}
+
+/* A7b Android acceptance remediation (plan §3.2): the extra-set Remove
+   action. Rendered by StrengthSetRow ONLY on extra units; visually compact
+   but the padded hit area still meets the 44px thumb-target minimum. */
+.today-set-unit__remove {
+  display: block;
+  margin: 6px 0 0 auto;
+  min-height: 44px;
+  padding: 4px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.today-set-unit__remove:active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* ── Session summary (D11 point 2) ── */
@@ -2930,17 +3027,51 @@ button.cartridge-block__head {
   padding: 8px 10px;
 }
 
-/* ── FocusedNoteEditor — compact preview + full-screen editor ── */
+/* ── FocusedNoteEditor — compact preview + full-screen editor ──
+   A7b Android acceptance remediation (plan §3.3): the preview must read as
+   unmistakably TAPPABLE — leading edit icon, label + "Add a note"/first-line
+   body, trailing chevron — while staying subordinate to the workout
+   completion controls around it. */
 .focused-note--preview {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   margin-top: 10px;
   padding: 10px 12px;
   min-height: 44px;
   background: var(--input);
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 85%, transparent);
   border-radius: var(--radius-sm);
+}
+
+.focused-note--preview:active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--input));
+}
+
+.focused-note--preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.focused-note__icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.focused-note__body {
+  flex: 1;
+  min-width: 0; /* lets the preview line ellipsize instead of stretching the row */
+}
+
+.focused-note__chevron {
+  flex-shrink: 0;
+  color: var(--dim);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .focused-note__label {
@@ -2960,6 +3091,10 @@ button.cartridge-block__head {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.focused-note__preview-text--empty {
+  color: var(--dim);
 }
 
 .focused-note-overlay {
@@ -3086,6 +3221,19 @@ button.cartridge-block__head {
 
 .today-safe-actions .btn-primary {
   width: 100%;
+  /* A7b Android acceptance remediation (plan §3.4): the strongest emerald
+     execution state on the screen — a token-derived emerald gradient with
+     restrained edge illumination and a single static inner top reflection.
+     Scoped to this bar, so .btn-primary elsewhere is untouched. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 24%, var(--panel)) 0%,
+    color-mix(in srgb, var(--primary) 13%, var(--bg)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--primary) 65%, var(--divider));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--primary) 16%, transparent);
 }
 
 .today-safe-actions-spacer {
@@ -3093,5 +3241,19 @@ button.cartridge-block__head {
      it sits above — derived from the bar's own custom property so spacer
      and bar cannot drift apart. */
   height: calc(var(--today-actions-bar-height) + 85px + var(--safe-bottom));
+}
+
+/* ── A7b Android acceptance remediation (plan §3.4) — Training-mode block
+   cards. Scoped under .today-active (CartridgeToday's active-workout <main>)
+   because .cartridge-block is SHARED with ProgramOverview's read-only
+   renderer in Plan/Library — this raised treatment must never leak there.
+   Subtly lifted token-mix surface, softened border, soft outer shadow, and
+   one static top inner highlight; no animation, no new hex. ── */
+.today-active .cartridge-block {
+  border-color: color-mix(in srgb, var(--divider) 75%, transparent);
+  background: color-mix(in srgb, var(--panel) 93%, var(--label) 7%);
+  box-shadow:
+    0 3px 12px color-mix(in srgb, var(--bg) 85%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 10%, transparent);
 }
 

@@ -51,16 +51,26 @@ export default function FocusedNoteEditor({ value, onChange, label = 'Note', pla
     }, [open])
 
     if (!open) {
+        // Compact preview (Android acceptance remediation plan §3.3): the
+        // affordance pass ONLY — leading edit icon, label + "Add a note"
+        // when empty (the existing first-line preview when populated), and
+        // a trailing chevron, all inside the same single <button>. The open
+        // editor below, the synchronous onChange contract, and the parent's
+        // autosave path are completely untouched.
         return (
             <button
                 type="button"
                 className="focused-note focused-note--preview"
                 onClick={() => setOpen(true)}
             >
-                <span className="focused-note__label">{label}</span>
-                <span className="focused-note__preview-text">
-                    {previewLine || placeholder}
+                <span className="focused-note__icon" aria-hidden="true">✎</span>
+                <span className="focused-note__body">
+                    <span className="focused-note__label">{label}</span>
+                    <span className={`focused-note__preview-text${previewLine ? '' : ' focused-note__preview-text--empty'}`}>
+                        {previewLine || 'Add a note'}
+                    </span>
                 </span>
+                <span className="focused-note__chevron" aria-hidden="true">›</span>
             </button>
         )
     }

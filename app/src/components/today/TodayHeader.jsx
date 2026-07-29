@@ -29,10 +29,14 @@ export default function TodayHeader({ day, itemStateById, saveLabel, saveStatusK
 
     return (
         <div className="today-header">
-            <div className="today-header__row">
-                <div className="today-header__day">{day?.label || 'Today'}</div>
-                {phaseLabel && <span className="badge badge-dim">{phaseLabel}</span>}
-            </div>
+            {/* Android acceptance remediation plan §3.1: phase context renders
+                EXACTLY ONCE, as a compact left-aligned eyebrow directly above
+                the day title — never a filled pill (a long label forced the
+                old .badge.badge-dim pill to wrap and compete with the title),
+                and never duplicated elsewhere. The label text itself is the
+                factual phaseBlock.label, rendered verbatim. */}
+            {phaseLabel && <div className="today-header__phase">{phaseLabel}</div>}
+            <div className="today-header__day">{day?.label || 'Today'}</div>
             <div className="today-header__row today-header__row--meta">
                 {units > 0 && <span className="today-header__progress">{done}/{units} sets</span>}
                 {saveLabel && (

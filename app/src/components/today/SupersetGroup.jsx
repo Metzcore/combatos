@@ -88,7 +88,7 @@ export function buildSupersetRounds(items, performedByItemId) {
 export default function SupersetGroup({
     items, renderItem, onAddRound,
     itemStateById, substitutions, itemNotes, getLastPerformance,
-    onSetField, onPairSetField, onAddSet, onUseLastValues, onSubstitute, onItemNote,
+    onSetField, onPairSetField, onAddSet, onRemoveSet, onUseLastValues, onSubstitute, onItemNote,
 }) {
     const groups = groupItemsBySuperset(items)
 
@@ -157,6 +157,9 @@ export default function SupersetGroup({
                                             effortKind={view.effortKind}
                                             memberLabel={memberLabelByItemId[itemId]}
                                             onSetChange={(setIndex, field, value) => onSetField(itemId, setIndex, field, value)}
+                                            onRemoveSet={onRemoveSet
+                                                ? () => onRemoveSet(itemId, index, view.prescribedSets)
+                                                : undefined}
                                         />
                                     )
                                 })}
@@ -181,7 +184,7 @@ export default function SupersetGroup({
                         {onAddRound && (
                             <button
                                 type="button"
-                                className="today-item__action-btn"
+                                className="today-item__action-btn today-item__action-btn--amber"
                                 onClick={() => onAddRound(group.items.map((it) => it.id))}
                             >
                                 + Add round
