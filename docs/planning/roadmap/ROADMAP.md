@@ -202,6 +202,71 @@ All seven decisions were ruled the same day the roadmap was produced. Gate/scope
 - **D7 (Supabase): leaning go, gates unchanged.**
 - **Process ruling:** adopt proper branch workflow (feature branches + PRs to main) as part of working "the GitHub way" — W5's CI and templates support this; batch prompts should create a branch per batch.
 
+---
+
+## Track B — Coaching operations & onboarding (ACTIVE, parallel to Track A)
+
+Client onboarding, the coaching dossier, and the coach-facing website. **Runs in parallel with the
+Track A app work and deliberately shares no files with it.** Design and rationale:
+`docs/planning/rebuild/ONBOARDING-SYSTEM-DESIGN.md`.
+
+### Parallel-track protocol (read before starting any session here)
+
+| Track | Owns | Files |
+|---|---|---|
+| **A — app** | Train / Plan / exercise reference / nav / Log hub | `app/`, `cartridges/` |
+| **B — coaching ops** | Onboarding, questionnaire, dossier, coaching site | `docs/planning/rebuild/`, the separate site project |
+
+1. **One writer per working tree.** A second concurrent agent uses its own `git worktree` and branch.
+   Readers may run in parallel; writers may not.
+2. **Never infer app state from `STATUS.md` or `ROADMAP.md`.** Both go stale between sessions —
+   verify against code, `git`, and the database (AI-WORKFLOW §1).
+3. **Delegated agents get an explicit read-first file list** and are told not to explore the repo.
+
+### Items
+
+- [x] **B1 · Pilot coaching data architecture diagnostic** — where client data may live, the privacy
+      boundary, and the six-phase Supabase implementation gate. Diagnostic only; no migration,
+      bucket, or policy created. → `docs/planning/rebuild/PILOT-COACHING-DATA-ARCHITECTURE-DIAGNOSTIC.md`
+- [x] **B2 · Pilot onboarding pack draft** — coach-facing welcome copy, staged intake, gym-photo
+      brief, dossier templates, clarification loop, readiness checklist, plus four proposed doctrine
+      improvements. Authored by Grok 4.5 against a bounded plan; independently reviewed (gates
+      verified against `INTAKE-SCHEMA.md`, external citations verified live, authoring kit
+      untouched). → `docs/planning/rebuild/PILOT-ONBOARDING-PACK-DRAFT.md`
+- [x] **B3 · Onboarding system design** — channels, surfaces, data model, n8n workflows, deferrals,
+      and build order. Supersedes the earlier Slack-mediated and form-tool assumptions: onboarding
+      moves to a bespoke authenticated page, accountability moves to Telegram, Slack is dropped.
+      → `docs/planning/rebuild/ONBOARDING-SYSTEM-DESIGN.md`
+- [x] **B4 · Question spec + gym-photo vision prompt** — the canonical ~17-question set mapped to all
+      seven `[GATES]`, targeted at under ten minutes, plus the vision prompt that keeps equipment
+      inventory out of both the questionnaire and Supabase Storage.
+      → `ONBOARDING-QUESTION-SPEC.md`, `GYM-PHOTO-VISION-PROMPT.md`
+- [ ] **B5 · Onboarding site v1** — authenticated single-page questionnaire, magic-link auth, save
+      and resume, own Cloudflare Pages project, shared Supabase. Coach applies the migration and RLS;
+      the implementation agent writes SQL for review only. No uploads, no agents, no dashboard.
+      → `docs/planning/rebuild/ONBOARDING-SITE-IMPLEMENTATION-PLAN.md`
+- [ ] **B6 · n8n notification workflows** — submission → Telegram with an intake-gate completeness
+      report, client confirmation email, dossier-skeleton render, and a 48-hour abandonment nudge.
+      Deterministic rules, no model calls. New workflows only; the stack itself stays untouched
+      (guardrail 5).
+- [ ] **B7 · Authoring-kit doctrine edit** — fold the four approved proposals from B2 into
+      `COACH-PROMPT.md` / `INTAKE-SCHEMA.md` / `REVIEWER-CHECKLIST.md`, plus the priority-ranking
+      elicitation note (top-2 in the form, coach confirms the full order at the summary step — the
+      `[GATES]` requirement itself is unchanged). **One bounded edit**, after B5 settles.
+- [ ] **B8 · PILOT-01 trial run, end to end** — real intake through to a deployed, assigned
+      cartridge, entirely manual. **This is the actual test of the design**, not B5.
+- [ ] ⛔ **B9 · Client web dashboard** — gated on B8. A `/dashboard` route on the B5 site: read-only
+      analytics, magic-link auth, no uploads. Split ruling in `ONBOARDING-SYSTEM-DESIGN.md` §8 —
+      mobile answers "did I do the work," web answers "is it working." Fed to the running **W26**
+      Log-hub research as a scope input, **not** a separate decision record. Existing W9 mobile
+      analytics must not be stripped before this exists.
+- [ ] ⛔ **Deferred, with reasons on record** — client photo upload, agent-based answer validation,
+      automated plan generation, consent and retention framework, profile pictures, and the
+      feed/platform concept. See `ONBOARDING-SYSTEM-DESIGN.md` §7. The platform concept overlaps the
+      parked "sell-as-product" item; do not silently un-park it.
+
+---
+
 ## Standing guardrails (apply to every item)
 1. Never touch `%1RM`/e1RM logic without explicit instruction.
 2. Never alter webhook payload shapes or the Sheets integration (exception: W17, explicitly).
