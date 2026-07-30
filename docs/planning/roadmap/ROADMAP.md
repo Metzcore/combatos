@@ -169,9 +169,13 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       2026-07-30:_ one shared fail-safe primary-video resolver; compact 48px direct-open DEMO links
       across all Today item renderers and superset headers; prescribed links hidden for free-text
       substitutions; 26 focused component/integration cases; and developer localhost acceptance
-      (`f104028`). Independent final evidence: 44 files / 893 tests pass and the production PWA
-      build succeeds. Plan/Library and Today adoption are proven; A11 remains in progress only for
-      the separately curated warm-up routine reference. No new main-nav button.
+      (`f104028`). _Today visual phase accepted 2026-07-31:_ the frontend-only “Execution Strata”
+      pass translates Plan/Library's layered material and semantic spines into the execution
+      surface, using the existing canonical `done/units` count for its header progress rail and no
+      invented gamification (`c77ea94`). Independent final evidence: 45 test files / 900 tests pass,
+      the production PWA build succeeds, and the developer accepted the complete Today experience
+      after localhost testing. Plan/Library and Today adoption are proven; A11 remains in progress
+      only for the separately curated warm-up routine reference. No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do

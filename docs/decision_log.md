@@ -544,3 +544,23 @@ offline model. The developer approved the amended architecture before implementa
 **Next:** implement and independently review A11a from
 `docs/planning/roadmap/prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`; then curate a deliberately
 small reference set before Plan adoption.
+
+---
+
+## 2026-07-31 · Today “Execution Strata” visual baseline accepted
+
+**Context:** After the A11 reference layer was proven in Plan/Library and then Today, Kimi K3
+implemented a strictly frontend-only Today experiment under a protected file/behavior contract.
+Codex independently reviewed the diff and verification, and the developer accepted the result
+after localhost use.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | “Execution Strata” is the accepted active-Today visual baseline: closed blocks recede, the open block is the raised working stratum, and full-height semantic spines preserve block identity | The execution surface now shares the successful Plan/Library material language while making “where am I working?” immediately legible |
+| 2 | Workout motivation must come from truthful existing progress and lower cognitive friction, not invented scores or reward mechanics | The header rail mirrors the canonical `done/units` value; no new completion semantics, XP, streaks, readiness, or stored gamification state are justified |
+| 3 | Cross-surface visual coherence does not mean identical layouts: Plan/Library stay read-only browsing surfaces; Today remains the denser one-thumb execution surface | Shared typography, materials, and semantic accents create continuity without importing Plan geometry into mid-workout data entry |
+| 4 | Future model-led visual passes remain one-surface, diagnostic-first, frontend-bounded tasks with protected data/persistence contracts | The Kimi experiment produced a strong result because creative latitude was broad inside presentation and zero outside it |
+
+**Not done / deferred:** the curated warm-up reference remains the only incomplete A11 slice; A12
+Academy / Exercise Guides remains gated on real A11 usage; broader Playbook and Log redesign work
+keeps its separate roadmap/research scope.

@@ -1,18 +1,22 @@
 ## Current state (one line)
-A6.5 durable active-workout drafts are merged through PR #57 and deployed on `origin/main` at
-`1687451`. The final suite passes 450/450 tests and the production build is clean. Android
-acceptance passed every reported scenario, including Reset; sign-out and active-draft survival
-across a later PWA update were not exercised on-device.
+Branch `codex/kimi-trial-1` contains the locally accepted A7 interactive renderer and A11
+Plan/Library/Today exercise-reference experience through `c77ea94`, including the device-accepted
+Today “Execution Strata” visual pass. Independent evidence: 45 test files / 900 tests pass and the
+production PWA build succeeds. The branch is not merged into local `main`; remote/PR/deploy state
+was not checked on 2026-07-31.
 
 ## Pending
 
-- [ ] **Complete the relevant W26 decision work and lock the permanent cartridge-session
-      payload:** resolve prescribed/performed/substituted representation and per-session versus
-      per-set shape.
-- [ ] **A7 — interactive cartridge renderer:** start only after the payload lock; A6.5 is complete.
-- [ ] **Future independent diagnostic:** Exercise Reference layer (A11), followed later by
-      Academy / Exercise Guides IA (A12).
-- [ ] **Still outside the current train-renderer sequence:** D9 remains open; optional later
-      device checks can cover sign-out and active-draft survival across a PWA update.
-- [ ] **After the app work is finished, rotate the developer Supabase password-login user's
-      password:** replace the temporary placeholder with something long and random.
+- [ ] **A11 closeout decision:** optionally curate and annotate an approved reference for the
+      generic “Your own 10-min warm-up routine.” This is the only incomplete A11 reference slice.
+- [ ] **A12 remains gated:** do not build Academy / Exercise Guides IA until real usage of the
+      accepted A11 links justifies the information architecture.
+- [ ] **Future visual work stays surgical:** use the accepted bounded Kimi-worker pattern one
+      surface at a time. Playbook and Log already have separate roadmap/research context; do not
+      merge them into an unscheduled app-wide redesign.
+- [ ] **Branch integration:** review/push/merge `codex/kimi-trial-1` when the developer is ready;
+      local refs only were checked this session.
+- [ ] **Still outside this sequence:** D9 remains open; optional device checks can still cover
+      sign-out and active-draft survival across a later PWA update.
+- [ ] **After app work is finished, rotate the developer Supabase password-login user's password:**
+      replace the temporary placeholder with something long and random.

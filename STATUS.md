@@ -1,18 +1,19 @@
 # STATUS
-_Last updated: 2026-07-30 · A11 Plan/Library/Today reference experience accepted locally_
+_Last updated: 2026-07-31 · A11 Today “Execution Strata” experience accepted locally_
 
 ## Last session
-A11's file-backed exercise-reference experience is now proven across Plan, Library Preview, and
-the active Today workout. The catalogue carries seven curated references and ten cartridge
-annotations. Plan/Library show a fail-safe `WATCH DEMO` action with publisher attribution; Today
-uses the same primary-video resolver through a compact 48px `DEMO` external link.
+A11's file-backed exercise-reference experience is proven across Plan, Library Preview, and the
+active Today workout. Plan/Library show a fail-safe `WATCH DEMO` action with publisher attribution;
+Today uses the same primary-video resolver through a compact 48px `DEMO` link. Missing references
+render nothing, and a free-text exercise substitution hides the prescribed video instead of
+guessing a replacement.
 
-Today links render across the mobility/cooldown, strength/core, conditioning, and shared superset
-header paths. Missing references render nothing. A free-text exercise substitution hides the
-prescribed exercise's video rather than guessing a replacement; reverting restores the prescribed
-link. The developer verified link visibility, navigation, layout, and substitution behavior in
-localhost acceptance. The accepted screenshot is preserved at
-`archive/Snippets-for-review/▶ DEMO ↗.png`.
+The developer also accepted Kimi K3's protected frontend-only Today experiment, “Execution
+Strata.” It translates the Plan/Library layered-material and semantic-spine language into the
+execution surface: canonical session progress in the sticky header, recessed closed blocks, one
+raised open block, stronger exercise/set hierarchy, a clearer Session Summary, and an integrated
+Finish bar. The progress rail is only a visual reading of the existing `done/units` calculation;
+no new completion rule, score, stored state, or fabricated gamification was added.
 
 Local A11 commits:
 
@@ -22,39 +23,37 @@ Local A11 commits:
 - `f51f94f` · added the accepted hybrid Plan/TRAIN visual polish
 - `e027388` · recorded Plan acceptance in the roadmap
 - `f104028` · added and accepted Today demonstration links
+- `5fb3821` · recorded Today reference acceptance and the protected Kimi packet
+- `c77ea94` · added the device-accepted Today “Execution Strata” visual pass
 
-Independent final evidence: 44 test files / 893 tests pass, the production PWA build succeeds,
-PWA precache remains 11 entries, and developer localhost acceptance passed. No Dexie, Supabase,
-authentication, payload, webhook/Sheets, PWA-configuration, dependency, `%1RM`/e1RM, or n8n
-change was made.
+Independent final evidence observed 2026-07-31: 45 test files / 900 tests pass, the production PWA
+build succeeds with 11 precache entries, and developer localhost acceptance passed. No Dexie,
+Supabase, authentication, payload, webhook/Sheets, PWA-configuration, dependency, `%1RM`/e1RM, or
+n8n change was made.
 
 ## Current focus
-Branch `codex/kimi-trial-1` contains the accepted A7 and A11 local work and is not pushed or merged
-into `main`.
+Branch `codex/kimi-trial-1` contains the accepted A7 and A11 local work. It is not merged into local
+`main`; remote refs, PR state, CI, and deployment were not checked this session.
 
-A11's identity architecture remains unchanged: cartridge `item.id` is the prescription-slot
-identity; optional canonical `exerciseId` resolves against a manually curated, bundled catalogue;
-references are offline-available metadata and absent by default. Functional adoption is proven in
-Plan, Library, and Today.
+Roadmap position: Track A / Stage-2 is active. A1–A10 are complete. A11 remains `[~]`, but
+only because the generic “Your own 10-min warm-up routine” has no curated `exerciseId` and approved
+source yet. Plan, Library, Today reference adoption, and their current visual passes are accepted.
+A12 Academy / Exercise Guides remains a gated architecture candidate after enough real A11 usage.
 
-The next implementation experiment is a protected, frontend-only Kimi K3 redesign of the active
-Today workout. Its worker packet is
-`docs/planning/roadmap/prompts/A11-TODAY-UX-UI-EXPERIMENT-KIMI.md`. Kimi may make broad
-presentational decisions inside Today but may not touch workout logic, persistence, Supabase,
-Dexie, payloads, webhooks, programme data, dependencies, navigation, or PWA configuration.
-
-The generic “Your own 10-min warm-up routine” is technically capable of showing DEMO through the
-mobility renderer, but it has no `exerciseId` yet. A curated routine identity and approved source
-remain the only incomplete A11 reference slice.
+The accepted Today visual baseline is now a durable design convention: use truthful existing
+progress, clear execution hierarchy, static token-derived depth, and Today-scoped selectors.
+Future Kimi visual work should follow the same bounded-worker pattern and earn its own roadmap or
+ICEBOX decision rather than silently expanding this slice.
 
 Local environment state is intentional: `.env.local` remains gitignored for localhost Supabase
-authentication, and the intentional deletion of `app/.env.example` remains outside the app-work
+authentication, and the intentional deletion of `app/.env.example` remains outside app-work
 commits.
 
 ## Up next
-1. Run the protected Kimi K3 Today UX/UI experiment, then Codex-review and device-test it
-2. Curate and annotate an approved warm-up routine reference as a separate data-only A11 slice
-3. Use the accepted reference links in real training before expanding the catalogue further
-4. Revisit A12 Academy / Exercise Guides IA only after enough real A11 usage
+1. Decide whether to close A11 with the separate curated warm-up reference slice
+2. Use the accepted Plan/Library/Today experience in real training before expanding the catalogue
+3. Revisit A12 only after enough real A11 usage to justify its information architecture
+4. Scope future Kimi visual passes one surface at a time; Playbook and Log already have separate
+   roadmap/research context and must not be bundled casually
 5. Push/review/merge the accepted local branch when ready
 6. Rotate the temporary Supabase developer password once app work is finished
