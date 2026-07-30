@@ -912,6 +912,57 @@ input[type="checkbox"] {
   margin-bottom: 2px;
 }
 
+/* ── Exercise reference link (A11) — per-item "WATCH DEMO" external demo
+   control. Own row at the end of the item stack (below the cue, or below
+   meta when no cue exists); self-width ghost pill plus a subordinate, non-
+   interactive provider caption consuming the rest of the row. Existing
+   tokens only; no motion, no new colours. */
+.exercise-ref {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exercise-ref__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  background: var(--input);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  color: var(--label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.exercise-ref__glyph {
+  color: var(--accent);
+}
+
+.exercise-ref__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.exercise-ref__provider {
+  flex: 1;
+  min-width: 0; /* lets a long provider name ellipsize instead of growing the row */
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Badges ─────────────────────────────────────── */
 .badge {
   display: inline-flex;
