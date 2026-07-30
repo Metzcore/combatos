@@ -165,10 +165,13 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       Android acceptance, then Today separately if Plan proves the pattern. _Plan phase accepted
       locally 2026-07-30:_ A11a foundation; seven-entry catalogue + ten cartridge annotations
       (`0db2f54`); fail-safe direct-open Plan/Library links and focused tests (`ad8a8cc`); and the
-      developer-accepted hybrid Plan/TRAIN visual polish (`f51f94f`). Independent final evidence:
-      43 files / 867 tests pass and the production PWA build succeeds. Plan/Library adoption is
-      proven; A11 remains in progress only for the separate Today-adoption decision and curated
-      warm-up routine reference. No new main-nav button.
+      developer-accepted hybrid Plan/TRAIN visual polish (`f51f94f`). _Today phase accepted locally
+      2026-07-30:_ one shared fail-safe primary-video resolver; compact 48px direct-open DEMO links
+      across all Today item renderers and superset headers; prescribed links hidden for free-text
+      substitutions; 26 focused component/integration cases; and developer localhost acceptance
+      (`f104028`). Independent final evidence: 44 files / 893 tests pass and the production PWA
+      build succeeds. Plan/Library and Today adoption are proven; A11 remains in progress only for
+      the separately curated warm-up routine reference. No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do
