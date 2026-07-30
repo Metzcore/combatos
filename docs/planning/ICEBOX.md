@@ -25,6 +25,18 @@ Anything ruled that isn't ready → record it in `OPEN-DECISIONS.md` (with ratio
 
 ## Current icebox (newest first)
 
+### TRAIN visual-system follow-ons after the A11 hybrid polish
+- **Semantic slab/well tokens:** the accepted Plan treatment now has a real three-level material
+  hierarchy (canvas → raised day slab → recessed block well). If another surface needs it, promote
+  those token-derived mixes into named semantic tokens rather than copying selectors or changing
+  the global palette opportunistically.
+- **Library-list and cue unification:** consider extending the slab language to Library index cards
+  and reconciling the slightly different Plan/Today cue treatments. Both are visual-consistency
+  ideas, not blockers; require before/after phone evidence before scheduling.
+- **Amber load-value hook:** an additive class around the formatted prescription could let Plan
+  reserve amber for the load instruction itself. Defer until real usage shows that load needs more
+  emphasis; do not add markup merely to imitate a mockup.
+
 ### Track A — make the app read cartridge JSON (the rebuild core)
 - **Shape:** the universal-player rebuild — app renders days/exercises/prescription-models from a
   cartridge JSON (`docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md`) instead of the hardcoded
