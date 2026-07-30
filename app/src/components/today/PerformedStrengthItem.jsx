@@ -42,6 +42,7 @@ import ChangeExerciseSheet, { ChangedExerciseNote } from './ChangeExerciseSheet.
 import PowerPairItem from './PowerPairItem.jsx'
 import BottomSheet from '../BottomSheet.jsx'
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
+import TodayExerciseReferenceLink from './TodayExerciseReferenceLink.jsx'
 
 function formatLastSet(set) {
     const parts = []
@@ -97,11 +98,14 @@ export function StrengthItemHeader({ item, view, memberLabel, onUseLastValues, s
     const { displayName, rx, lastPerformance, useLastSets } = view
     return (
         <>
-            <div className="today-item__name">
-                {displayName}
-                {memberLabel
-                    ? <span className="today-item__superset-badge today-item__superset-badge--member"> · {memberLabel}</span>
-                    : (item.superset && <span className="today-item__superset-badge"> · Superset {item.superset}</span>)}
+            <div className="today-item__header-row">
+                <div className="today-item__name">
+                    {displayName}
+                    {memberLabel
+                        ? <span className="today-item__superset-badge today-item__superset-badge--member"> · {memberLabel}</span>
+                        : (item.superset && <span className="today-item__superset-badge"> · Superset {item.superset}</span>)}
+                </div>
+                <TodayExerciseReferenceLink exerciseId={item.exerciseId} substitutedName={substitutedName} />
             </div>
             {item.target && <div className="today-item__meta">Target: {item.target}</div>}
             <div className="today-item__meta">Sets: {item.sets} × {item.reps}{rx ? ` · ${rx}` : ''}</div>

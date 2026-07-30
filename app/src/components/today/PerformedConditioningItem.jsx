@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import ChangeExerciseSheet, { ChangedExerciseNote } from './ChangeExerciseSheet.jsx'
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
+import TodayExerciseReferenceLink from './TodayExerciseReferenceLink.jsx'
 
 export default function PerformedConditioningItem({ item, substitutedName, onSubstitute, note, onNoteChange }) {
     const [subOpen, setSubOpen] = useState(false)
@@ -17,7 +18,10 @@ export default function PerformedConditioningItem({ item, substitutedName, onSub
 
     return (
         <div className="today-item">
-            <div className="today-item__name">{displayName}</div>
+            <div className="today-item__header-row">
+                <div className="today-item__name">{displayName}</div>
+                <TodayExerciseReferenceLink exerciseId={item.exerciseId} substitutedName={substitutedName} />
+            </div>
             <div className="today-item__meta">
                 <span><strong>Rounds:</strong> {item.rounds}{item.roundLength ? ` × ${item.roundLength}` : ''}</span>
                 {item.rest && <span> · <strong>Rest:</strong> {item.rest}</span>}

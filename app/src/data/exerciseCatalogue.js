@@ -42,4 +42,37 @@ export function getExerciseReference(exerciseId) {
     return EXERCISE_BY_ID.get(exerciseId) || null
 }
 
+/**
+ * Fail-safe primary-video resolver — the one shared URL-selection rule for
+ * every render surface (Plan/Library, Today). Builds on
+ * {@link getExerciseReference}: resolves the catalogue entry, then defensively
+ * selects its first usable resource. Never throws; missing or malformed
+ * input simply yields `null` so no caller needs its own defensive branch.
+ *
+ * @param {string} [exerciseId] - optional canonical exercise identity from a cartridge item
+ * @returns {{name: string, url: string, provider: string, label?: string, type?: string}|null}
+ *   a compact usable reference, or null when none exists
+ */
+export function getPrimaryExerciseVideoReference(exerciseId) {
+    const entry = getExerciseReference(exerciseId)
+    if (!entry || typeof entry.name !== 'string' || entry.name.length === 0) return null
+
+    const resource = Array.isArray(entry.resources) ? entry.resources[0] : null
+    if (
+        !resource ||
+        typeof resource.url !== 'string' || resource.url.length === 0 ||
+        typeof resource.provider !== 'string' || resource.provider.length === 0
+    ) {
+        return null
+    }
+
+    return {
+        name: entry.name,
+        url: resource.url,
+        provider: resource.provider,
+        ...(typeof resource.label === 'string' && resource.label.length > 0 ? { label: resource.label } : {}),
+        ...(typeof resource.type === 'string' && resource.type.length > 0 ? { type: resource.type } : {}),
+    }
+}
+
 export default EXERCISE_CATALOGUE
