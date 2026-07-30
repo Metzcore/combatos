@@ -1,5 +1,5 @@
 # STATUS
-_Last updated: 2026-07-30 · A11a architecture approved and ready for implementation_
+_Last updated: 2026-07-30 · A11a foundation complete locally_
 
 ## Last session
 A7b's interactive cartridge Today renderer was hardened through the approved Android acceptance
@@ -28,22 +28,24 @@ A7 is complete through Stage 0, A7a, A7b, Android acceptance remediation, and th
 no-adoption ruling. The accepted work is recorded on local branch `codex/kimi-trial-1`; the branch
 is not pushed or merged into `main`.
 
-The A11 Exercise Reference diagnostic is complete and independently reviewed. The approved
-architecture keeps cartridge `item.id` as prescription-slot identity and adds an optional canonical
-`exerciseId` resolved against a separate bundled catalogue. A11a is intentionally foundation-only:
-empty catalogue, contract, validators, resolver, and consistency gates—no real links or UI.
+The A11 Exercise Reference diagnostic is complete and independently reviewed. A11a now implements
+the approved foundation: cartridge `item.id` remains prescription-slot identity; optional canonical
+`exerciseId` resolves against a separate bundled catalogue; validators, mirror equality,
+cross-reference integrity, and fail-safe runtime resolution are covered. The catalogue is
+intentionally empty—no real identities, links, or UI were added.
 
 The implementation plan is
-`docs/planning/roadmap/prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`. A12 remains gated on A11 and
-real catalogue usage.
+`docs/planning/roadmap/prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`. Independent final evidence:
+851 tests pass across 42 files, the production PWA build passes, and the Vitest mock-placement
+warning found during review was corrected. A12 remains gated on A11 and real catalogue usage.
 
 Local environment state is intentional: `.env.local` remains gitignored for localhost Supabase
 authentication, and the pre-existing deletion of `app/.env.example` remains outside the app-work
 commit.
 
 ## Up next
-1. Kimi implements A11a foundation, then Codex reviews before commit
-2. Curate a small initial reference set and implement Plan “Watch demo” with Android acceptance
+1. Curate a small initial reference set and write the bounded Plan “Watch demo” implementation plan
+2. Implement Plan adoption and complete Android acceptance
 3. Consider Today adoption only after Plan acceptance
 4. Academy / Exercise Guides information architecture (A12, gated on real A11 usage)
 5. Rotate the temporary Supabase developer password once the app work is finished

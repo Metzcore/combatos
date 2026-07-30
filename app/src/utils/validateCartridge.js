@@ -14,6 +14,12 @@
  * { rpe } / { percent } / { note }) — the v1 "one model per cartridge" rule was
  * dropped because real multi-modal days mix prescription styles freely.
  *
+ * Any training item may carry an OPTIONAL `exerciseId` — the canonical exercise
+ * identity (additive schema-v3 metadata, never logged). It is validated here
+ * for syntax only (lowercase-kebab); resolution against the exercise catalogue
+ * is a separate deterministic integrity check, so this module stays free of
+ * product data.
+ *
  * Pure and side-effect free: takes a parsed cartridge object, returns an array
  * of human-readable error strings — empty array === structurally valid.
  */
@@ -245,6 +251,12 @@ export function validateCartridge(cartridge) {
                 if (!item.id) errors.push(`${itemLabel}: id is required`)
                 else if (seenItemIds.has(item.id)) errors.push(`duplicate item id "${item.id}"`)
                 else seenItemIds.add(item.id)
+
+                if (item.exerciseId != null) {
+                    if (typeof item.exerciseId !== 'string' || !LOWER_KEBAB_PATTERN.test(item.exerciseId)) {
+                        errors.push(`${itemLabel}: exerciseId must be a lowercase-kebab string`)
+                    }
+                }
 
                 errors.push(...itemFieldErrors(block.kind, item, itemLabel))
 

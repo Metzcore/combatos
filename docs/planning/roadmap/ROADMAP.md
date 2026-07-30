@@ -162,7 +162,10 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       change; manual identity/link curation only; PAP/pair references deferred; no name/fuzzy
       matching. Sequence: **A11a** contract/catalogue/validation foundation
       (`prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`), then a small curated set + Plan adoption and
-      Android acceptance, then Today separately if Plan proves the pattern. No new main-nav button.
+      Android acceptance, then Today separately if Plan proves the pattern. _A11a completed locally
+      2026-07-30: empty canonical/bundled catalogue, fail-safe registry, additive `exerciseId`
+      validation, deterministic mirror/reference integrity gates, and authoring contract; 851 tests
+      and production build pass._ No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do
