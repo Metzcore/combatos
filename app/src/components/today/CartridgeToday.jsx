@@ -582,10 +582,10 @@ export default function CartridgeToday() {
                     phaseLabel={phaseBlock?.label}
                 />
 
-                {day.focus && <div className="today-day-focus">🔥 {day.focus}</div>}
+                {day.focus && <div className="today-day-focus">{day.focus}</div>}
 
                 {dayType === 'training' && (
-                    <button type="button" className="today-item__action-btn" onClick={() => setEffortGuideOpen(true)}>
+                    <button type="button" className="today-item__action-btn today-item__action-btn--wide" onClick={() => setEffortGuideOpen(true)}>
                         What do RPE / RIR / %1RM mean?
                     </button>
                 )}

@@ -36,6 +36,10 @@ export default function SessionSummary({
 
     return (
         <div className="today-session-summary card">
+            {/* A11 Today polish: eyebrow title so the card reads as the
+                session's closing section in the page hierarchy, not an
+                unlabeled group of fields. Presentation only. */}
+            <div className="today-session-summary__title">Session summary</div>
             <div className="today-session-summary__section-label">Preparation</div>
             <div className="today-session-summary__checks">
                 {PREPARATION.map(({ id, label }) => (

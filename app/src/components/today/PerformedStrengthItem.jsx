@@ -102,7 +102,7 @@ export function StrengthItemHeader({ item, view, memberLabel, onUseLastValues, s
                 <div className="today-item__name">
                     {displayName}
                     {memberLabel
-                        ? <span className="today-item__superset-badge today-item__superset-badge--member"> · {memberLabel}</span>
+                        ? <span className="today-item__superset-badge today-item__superset-badge--member">{memberLabel}</span>
                         : (item.superset && <span className="today-item__superset-badge"> · Superset {item.superset}</span>)}
                 </div>
                 <TodayExerciseReferenceLink exerciseId={item.exerciseId} substitutedName={substitutedName} />

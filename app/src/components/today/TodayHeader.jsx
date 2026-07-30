@@ -41,6 +41,13 @@ export default function TodayHeader({ day, itemStateById, saveLabel, saveStatusK
                 {units > 0 && <span className="today-header__progress">{done}/{units} sets</span>}
                 {saveLabel && (
                     <span className={`today-header__save-status today-header__save-status--${saveStatusKind}`}>
+                        {/* A11 Today polish: decorative status dot — the
+                            saveLabel text beside it already carries the full
+                            meaning, so state is never colour-only. 'idle'
+                            with a label present IS the proven-saved state
+                            (mapSaveStatusToLabel only returns a label for
+                            idle once a persisted row is proven). */}
+                        <span className={`today-header__save-dot today-header__save-dot--${saveStatusKind}`} aria-hidden="true" />
                         {saveLabel}
                         {saveStatusKind === 'error' && onRetry && (
                             <button type="button" className="today-header__retry" onClick={onRetry}>Retry</button>
@@ -48,6 +55,19 @@ export default function TodayHeader({ day, itemStateById, saveLabel, saveStatusK
                     </span>
                 )}
             </div>
+            {/* A11 Today polish: thin progress rail derived from the SAME
+                canonical done/units shown as text above (never a separate
+                count or formula) — pure presentation of the existing
+                itemCompleteness aggregate, hidden from screen readers because
+                the "N/M sets" text already states it. */}
+            {units > 0 && (
+                <div className={`today-header__rail${done >= units ? ' today-header__rail--complete' : ''}`} aria-hidden="true">
+                    <div
+                        className="today-header__rail-fill"
+                        style={{ width: `${Math.min(100, Math.round((done / units) * 100))}%` }}
+                    />
+                </div>
+            )}
         </div>
     )
 }

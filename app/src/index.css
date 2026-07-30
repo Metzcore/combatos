@@ -2666,16 +2666,21 @@ button.cartridge-block__head {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 2px;
+  padding: 10px 2px 12px;
   /* A7b corrective pass (finding F): genuinely sticky while workout content
      scrolls beneath it. top respects the same safe-top layout every other
      fixed/sticky bar uses (.page-header, .focused-note-overlay). z-index is
      well above ordinary content (auto/0) but far below .bottom-nav (1000)
-     and .focused-note-overlay (200) — it never fights either shared layer. */
+     and .focused-note-overlay (200) — it never fights either shared layer.
+     A11 Today polish: a hairline divider + soft drop separates the sticky
+     instrument header from content scrolling beneath it (static, bounded). */
   position: sticky;
   top: var(--safe-top);
   z-index: 40;
   background: var(--bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--divider) 70%, transparent);
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--bg) 75%, transparent);
+  margin-bottom: 4px;
 }
 
 .today-header__row {
@@ -2698,13 +2703,17 @@ button.cartridge-block__head {
 }
 
 .today-header__day {
-  font-size: 1.1rem;
+  /* A11 Today polish: the day title is the loudest element on the screen —
+     same promotion the A11 Plan pass gave .cartridge-day__title. */
+  font-size: 1.28rem;
   font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
   color: var(--text);
 }
 
 .today-header__row--meta {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--dim);
 }
 
@@ -2713,12 +2722,66 @@ button.cartridge-block__head {
   color: var(--accent);
 }
 
+/* A11 Today polish: thin canonical progress rail under the meta row. The
+   fill width is derived in TodayHeader.jsx from the SAME done/units the
+   "N/M sets" text reports (itemCompleteness aggregate) — a second reading
+   of one number, never a new metric. Amber in progress, primary only when
+   the canonical count is genuinely complete (done >= units). */
+.today-header__rail {
+  height: 3px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--input) 80%, var(--bg) 20%);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--bg) 80%, transparent);
+  overflow: hidden;
+}
+
+.today-header__rail-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 85%, var(--warn) 15%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.today-header__rail--complete .today-header__rail-fill {
+  background: var(--primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
 .today-header__save-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* A11 Today polish: decorative state dot beside the (already truthful)
+   save label — reinforcement, never the sole carrier of state. */
+.today-header__save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--dim);
+}
+
+.today-header__save-dot--idle {
+  /* idle WITH a label present is the proven-saved state (see TodayHeader) */
+  background: var(--primary);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.today-header__save-dot--saving {
+  background: var(--accent);
+}
+
+.today-header__save-dot--error {
+  background: var(--warn);
+}
+
+.today-header__save-status--saving {
+  color: color-mix(in srgb, var(--accent) 85%, var(--dim));
 }
 
 .today-header__save-status--error {
@@ -2742,12 +2805,18 @@ button.cartridge-block__head {
 }
 
 .today-day-focus {
-  text-align: center;
-  margin: 8px 0;
-  font-size: 1.05rem;
+  /* A11 Today polish: the day's focus reads as a quiet guidance strip —
+     left-aligned, accent-ticked, subordinate to the header, clearly
+     guidance rather than editable data. */
+  margin: 8px 0 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text);
-  letter-spacing: 0.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--label) 80%, var(--dim));
+  border-left: 3px solid color-mix(in srgb, var(--accent) 60%, var(--divider));
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .today-suggestion {
@@ -2807,6 +2876,11 @@ button.cartridge-block__head {
 .today-item__name {
   font-weight: 700;
   color: var(--text);
+  /* A11 Today polish: the exercise name is the loudest text inside the
+     block — mirrors the A11 Plan promotion of .cartridge-item-name so the
+     two surfaces share one type hierarchy. */
+  font-size: 1.04rem;
+  line-height: 1.38;
 }
 
 .today-item__superset-badge {
@@ -2858,17 +2932,25 @@ button.cartridge-block__head {
 }
 
 .today-item__meta {
-  font-size: 0.78rem;
-  color: var(--dim);
-  margin-top: 2px;
+  font-size: 0.8rem;
+  /* A11 Today polish: same dim/label mix the A11 Plan pass measured at
+     ~7:1 on recessed wells — quiet but comfortably above the AA floor. */
+  color: color-mix(in srgb, var(--dim) 45%, var(--label) 55%);
+  margin-top: 3px;
+  line-height: 1.45;
 }
 
 .today-item__cue {
-  font-size: 0.8rem;
-  color: var(--dim);
+  font-size: 0.82rem;
+  /* A11 Today polish: cues read as coaching guidance (italic, label
+     tint, divider tick) — visually distinct from editable performed
+     data, matching .cartridge-item-cue's accepted Plan treatment. */
+  color: var(--label);
+  font-style: italic;
   border-left: 2px solid var(--divider);
-  padding-left: 8px;
-  margin-top: 6px;
+  padding-left: 10px;
+  margin-top: 7px;
+  line-height: 1.5;
 }
 
 .today-item__perround {
@@ -2917,6 +2999,18 @@ button.cartridge-block__head {
 
 .today-item__action-btn:active {
   border-color: var(--accent);
+}
+
+/* A11 Today polish: full-width quiet variant for standalone utility
+   triggers in the page flow (the effort-guide trigger) — same recessed
+   utility tier as the base button, centred, one thumb row. */
+.today-item__action-btn--wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
 }
 
 .today-item__action-btn--amber {
@@ -3026,10 +3120,15 @@ button.cartridge-block__head {
 /* ── Superset grouping ── */
 .superset-group {
   margin-top: 10px;
-  padding: 10px;
-  border: 1px solid var(--divider);
+  padding: 10px 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--divider));
+  border-left: 3px solid color-mix(in srgb, var(--accent) 70%, var(--divider));
   border-radius: var(--radius-sm);
+  /* A11 Today polish: the group reads as one recessed instrument well with
+     an amber spine — the same Signal-Spine idea as the block rails, one
+     tier down. */
   background: color-mix(in srgb, var(--accent) 4%, transparent);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 65%, transparent);
 }
 
 .superset-group__head {
@@ -3064,10 +3163,12 @@ button.cartridge-block__head {
 
 .superset-group__round-label {
   font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dim);
+  /* A11 Today polish: round markers join the amber member/rail language
+     instead of reading as unrelated dim text. */
+  color: color-mix(in srgb, var(--accent) 70%, var(--dim));
   margin-bottom: 4px;
 }
 
@@ -3076,8 +3177,20 @@ button.cartridge-block__head {
 }
 
 .today-item__superset-badge--member {
-  font-weight: 700;
+  /* A11 Today polish: the A1/A2 member label reads as a small instrument
+     chip beside the exercise name instead of trailing prose — glanceable
+     when round rows interleave members. */
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  vertical-align: 2px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--divider));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .today-set-unit__member {
@@ -3114,9 +3227,11 @@ button.cartridge-block__head {
 .today-set-unit__head {
   font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--dim);
+  /* A11 Today polish: a half-step brighter than --dim so the SET n label
+     stays legible on the raised unit well without competing with inputs. */
+  color: color-mix(in srgb, var(--dim) 55%, var(--label) 45%);
   margin-bottom: 4px;
 }
 
@@ -3180,6 +3295,19 @@ button.cartridge-block__head {
   margin-top: 14px;
 }
 
+/* A11 Today polish: eyebrow title so the card reads as the session's
+   closing section in the page hierarchy. */
+.today-session-summary__title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--label);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
+}
+
 .today-session-summary__section-label {
   font-size: 0.68rem;
   font-weight: 700;
@@ -3189,7 +3317,8 @@ button.cartridge-block__head {
   margin-top: 12px;
 }
 
-.today-session-summary__section-label:first-child {
+.today-session-summary__section-label:first-child,
+.today-session-summary__title + .today-session-summary__section-label {
   margin-top: 0;
 }
 
@@ -3232,6 +3361,9 @@ button.cartridge-block__head {
   border-color: var(--accent);
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* A11 Today polish: the active chip gets the same rim-light the other
+     amber execution controls carry, so "selected" reads tactile. */
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .today-session-summary__other-input {
@@ -3404,6 +3536,112 @@ button.cartridge-block__head {
   letter-spacing: 0.04em;
 }
 
+/* ── A7b Android acceptance remediation (plan §3.4) — Training-mode block
+   cards. Scoped under .today-active (CartridgeToday's active-workout <main>)
+   because .cartridge-block is SHARED with ProgramOverview's read-only
+   renderer in Plan/Library — this raised treatment must never leak there.
+   Subtly lifted token-mix surface, softened border, soft outer shadow, and
+   one static top inner highlight; no animation, no new hex.
+
+   A11 Today polish (Execution Strata): the accepted Plan/Library Signal
+   Spine is translated into an execution surface. EVERY block carries the
+   full-height per-kind rail (same semantic mapping as .library-week:
+   mobility --label, strength/core --accent, conditioning --warn, cooldown
+   --primary). A CLOSED block sits one tier down — recessed, darker than the
+   canvas — so the OPEN block reads as the raised active stratum the user is
+   working in right now: spatial "you are here" without any new state or
+   metric. ── */
+.today-active .cartridge-block {
+  border-color: color-mix(in srgb, var(--divider) 65%, transparent);
+  border-left: 3px solid var(--divider);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.today-active .cartridge-block--mobility {
+  border-left-color: var(--label);
+}
+
+.today-active .cartridge-block--strength,
+.today-active .cartridge-block--core {
+  border-left-color: var(--accent);
+}
+
+.today-active .cartridge-block--conditioning {
+  border-left-color: var(--warn);
+}
+
+.today-active .cartridge-block--cooldown {
+  border-left-color: var(--primary);
+}
+
+/* The full-height rail supersedes the head's short marker inside Today,
+   exactly as in .library-week; the head keeps its per-kind text tint. */
+.today-active .cartridge-block__head {
+  border-left: none;
+  padding-left: 0;
+}
+
+/* The open (active) block: the raised strata slab — top-lit token-mix
+   gradient, softened edge, rim reflection, one static ambient shadow.
+   Closed blocks stay recessed so only one stratum reads as active. */
+.today-active .cartridge-block.open {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 46%
+  );
+  border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+}
+
+/* Hairline separating the toggle header from the opened body — an inset
+   shadow, not a border, so opening never shifts geometry (same technique
+   as .cartridge-day.open .cartridge-day__toggle). */
+.today-active .cartridge-block.open .cartridge-block__head {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
+}
+
+/* A11 Today polish: factual last-performance recall as a recessed history
+   chip — left-aligned (it is data to scan, not a banner), visually quieter
+   than the live inputs below it. Scoped to Today: .history-badge is shared
+   with the legacy HUD and must stay untouched there. */
+.today-active .history-badge {
+  text-align: left;
+  font-size: 0.68rem;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--divider) 65%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  color: color-mix(in srgb, var(--dim) 55%, var(--label) 45%);
+  line-height: 1.45;
+}
+
+/* A11 Today polish: the shared CompletenessBar reads as one calm summary
+   instrument inside Today. Markup and thresholds are the shared
+   component's own (CompletenessBar.jsx is untouched); this only re-frames
+   its container and label, scoped so the HUD's usage is unaffected. */
+.today-active .completeness-block {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--panel) 70%, var(--bg) 30%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--label) 8%, transparent),
+    0 2px 8px color-mix(in srgb, var(--bg) 75%, transparent);
+}
+
+.today-active .completeness-block .pct-label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
 /* ── Fixed Finish/overflow bar — additive; the shared .actions-bar HUD.jsx
    still uses is untouched.
    A7b corrective pass (finding J1, BLOCKER): the previous z-index (60) sat
@@ -3435,6 +3673,9 @@ button.cartridge-block__head {
   padding: 0 16px;
   background: var(--bg);
   border-top: 1px solid var(--divider);
+  /* A11 Today polish: one static, bounded lift shadow integrates the fixed
+     Finish bar with the page instead of floating it flat on the canvas. */
+  box-shadow: 0 -8px 16px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .today-safe-actions .btn-primary {
@@ -3459,20 +3700,6 @@ button.cartridge-block__head {
      it sits above — derived from the bar's own custom property so spacer
      and bar cannot drift apart. */
   height: calc(var(--today-actions-bar-height) + 85px + var(--safe-bottom));
-}
-
-/* ── A7b Android acceptance remediation (plan §3.4) — Training-mode block
-   cards. Scoped under .today-active (CartridgeToday's active-workout <main>)
-   because .cartridge-block is SHARED with ProgramOverview's read-only
-   renderer in Plan/Library — this raised treatment must never leak there.
-   Subtly lifted token-mix surface, softened border, soft outer shadow, and
-   one static top inner highlight; no animation, no new hex. ── */
-.today-active .cartridge-block {
-  border-color: color-mix(in srgb, var(--divider) 75%, transparent);
-  background: color-mix(in srgb, var(--panel) 93%, var(--label) 7%);
-  box-shadow:
-    0 3px 12px color-mix(in srgb, var(--bg) 85%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--label) 10%, transparent);
 }
 
 /* Interactive Today blocks: the generic 1500px .card__body cap clips long
