@@ -14,8 +14,8 @@
 // `itemId`) and is never derived from it, from item position, or from the
 // display name. It is additive schema-v3 metadata and is never logged.
 //
-// A11a foundation scope: the production catalogue is intentionally empty —
-// entries are curated by a later human pass. Resolution here is fail-safe
+// The production catalogue carries a small curated seed; entries are added
+// only by a deliberate human curation pass. Resolution here is fail-safe
 // (absent or unknown ID → null) so no render path can throw on a missing
 // reference. Structural validation lives in deterministic tests
 // (app/src/utils/validateExerciseCatalogue.test.js), matching the cartridge

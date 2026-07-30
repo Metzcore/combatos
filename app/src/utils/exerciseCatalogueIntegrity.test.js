@@ -7,9 +7,8 @@
  *   1. The canonical root catalogue and the app-bundled mirror stay equal.
  *   2. Every `exerciseId` authored on a training cartridge item resolves to
  *      exactly one catalogue entry — an unknown authored ID must not silently
- *      ship. The production cartridges currently author none, so the live
- *      audit is valid but empty; explicit fixtures prove both a resolving ID
- *      and an unknown ID.
+ *      ship. The production cartridges author a small curated set; explicit
+ *      fixtures additionally prove both a resolving ID and an unknown ID.
  *   3. The runtime resolver (app/src/data/exerciseCatalogue.js) is fail-safe:
  *      known ID → entry, unknown/absent ID → null, never a throw.
  *
@@ -24,9 +23,9 @@ import { validateExerciseCatalogue } from './validateExerciseCatalogue.js'
 const here = dirname(fileURLToPath(import.meta.url))
 const loadJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
 
-// The production catalogue is empty, so a known-ID resolver lookup needs a
-// fixture: mock the bundled JSON before the registry module is imported.
-// Declared at top level (Vitest hoists it above the imports).
+// Resolver tests stay independent of curated production content: a known-ID
+// lookup uses a fixture, mocking the bundled JSON before the registry module
+// is imported. Declared at top level (Vitest hoists it above the imports).
 vi.mock('../data/exerciseCatalogue.json', () => ({
     default: {
         catalogueVersion: '1.0.0',
@@ -68,7 +67,7 @@ describe('exercise catalogue — canonical/mirror equality', () => {
         expect(loadJson(BUNDLED_CATALOGUE_PATH)).toEqual(loadJson(CANONICAL_CATALOGUE_PATH))
     })
 
-    it('production catalogue validates clean (empty A11a foundation)', () => {
+    it('production catalogue validates clean', () => {
         expect(validateExerciseCatalogue(loadJson(CANONICAL_CATALOGUE_PATH))).toEqual([])
     })
 })

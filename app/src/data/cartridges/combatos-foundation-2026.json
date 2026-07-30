@@ -48,8 +48,8 @@
           "kind": "strength",
           "label": "Strength",
           "items": [
-            { "id": "f1-str-1", "name": "45° Leg Press", "target": "Quads / Glutes", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Heavy but controlled, full range, mid-foot drive. Loads your legs hard with zero spinal compression." },
-            { "id": "f1-str-2", "name": "Single-Leg Glute Machine (kickback)", "target": "Glutes (single-leg)", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 7 }, "cue": "Elbows supported, full extension, hard squeeze and a beat's pause. Strong glutes = a stable pelvis and a protected lower back." },
+            { "id": "f1-str-1", "exerciseId": "45-degree-leg-press", "name": "45° Leg Press", "target": "Quads / Glutes", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Heavy but controlled, full range, mid-foot drive. Loads your legs hard with zero spinal compression." },
+            { "id": "f1-str-2", "exerciseId": "single-leg-machine-glute-kickback", "name": "Single-Leg Glute Machine (kickback)", "target": "Glutes (single-leg)", "sets": 3, "reps": "10 each side", "prescription": { "rpe": 7 }, "cue": "Elbows supported, full extension, hard squeeze and a beat's pause. Strong glutes = a stable pelvis and a protected lower back." },
             { "id": "f1-str-3", "name": "Single-Leg RDL (DB, light)", "target": "Hamstrings / Glute-med / balance", "sets": 3, "reps": "8 each side", "prescription": { "rir": 4 }, "cue": "Light — hip control and balance, not load. Teaches the clean hinge your spine wants." }
           ]
         },
@@ -57,7 +57,7 @@
           "kind": "core",
           "label": "Deep Core",
           "items": [
-            { "id": "f1-core-1", "name": "Dead Bug", "sets": 3, "reps": "10 each side", "prescription": { "rir": 4 }, "cue": "Slow, ribs down, low back glued to the floor. Deep-core anti-extension is priority #1 post-adjustment." }
+            { "id": "f1-core-1", "exerciseId": "dead-bug", "name": "Dead Bug", "sets": 3, "reps": "10 each side", "prescription": { "rir": 4 }, "cue": "Slow, ribs down, low back glued to the floor. Deep-core anti-extension is priority #1 post-adjustment." }
           ]
         }
       ]
@@ -82,8 +82,8 @@
           "items": [
             { "id": "f3-str-1", "name": "Chest-Supported Row (plate-loaded)", "target": "Back / Upper back", "sets": 3, "reps": "10", "prescription": { "rpe": 7 }, "cue": "Chest on the pad — zero lower-back demand. Squeeze the shoulder blades, control the return." },
             { "id": "f3-str-2", "name": "Machine Shoulder Press", "target": "Shoulders", "sets": 3, "reps": "8", "prescription": { "rpe": 7 }, "cue": "Machine keeps it stable this month. Maintains pressing strength without axial load." },
-            { "id": "f3-str-3", "name": "Cable Face Pull", "target": "Rear delts / Lower traps", "sets": 3, "reps": "15", "prescription": { "rir": 3 }, "cue": "The area you flagged as weak. High elbows, pull to the eyes, pause. Do it religiously." },
-            { "id": "f3-str-4", "name": "Cable External Rotation", "target": "Rotator cuff", "sets": 2, "reps": "12 each side", "prescription": { "rir": 4 }, "cue": "Light, elbow pinned to your side, slow. Direct rotator-cuff health." }
+            { "id": "f3-str-3", "exerciseId": "cable-face-pull", "name": "Cable Face Pull", "target": "Rear delts / Lower traps", "sets": 3, "reps": "15", "prescription": { "rir": 3 }, "cue": "The area you flagged as weak. High elbows, pull to the eyes, pause. Do it religiously." },
+            { "id": "f3-str-4", "exerciseId": "cable-external-rotation", "name": "Cable External Rotation", "target": "Rotator cuff", "sets": 2, "reps": "12 each side", "prescription": { "rir": 4 }, "cue": "Light, elbow pinned to your side, slow. Direct rotator-cuff health." }
           ]
         }
       ]
@@ -114,8 +114,8 @@
           "kind": "core",
           "label": "Core",
           "items": [
-            { "id": "f5-core-1", "name": "Pallof Press (cable)", "sets": 3, "reps": "12 each side", "prescription": { "rir": 3 }, "cue": "Resist the rotation, don't create it. Protects the spine and builds punch-transferable core." },
-            { "id": "f5-core-2", "name": "Farmer Carry (DB)", "sets": 3, "reps": "30 m", "prescription": { "rpe": 7 }, "cue": "Heavy DBs, stand tall and braced, walk slow. The most spine-friendly core builder there is. Use the turf track." }
+            { "id": "f5-core-1", "exerciseId": "cable-pallof-press", "name": "Pallof Press (cable)", "sets": 3, "reps": "12 each side", "prescription": { "rir": 3 }, "cue": "Resist the rotation, don't create it. Protects the spine and builds punch-transferable core." },
+            { "id": "f5-core-2", "exerciseId": "dumbbell-farmer-carry", "name": "Farmer Carry (DB)", "sets": 3, "reps": "30 m", "prescription": { "rpe": 7 }, "cue": "Heavy DBs, stand tall and braced, walk slow. The most spine-friendly core builder there is. Use the turf track." }
           ]
         }
       ]

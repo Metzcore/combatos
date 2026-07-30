@@ -2,9 +2,8 @@
  * validateExerciseCatalogue.test.js
  *
  * Pins the deterministic validation contract for the canonical exercise
- * reference catalogue (A11a foundation). Inline fixtures per rule — the
- * production catalogue ships empty, so all entries here are test-only and
- * use placeholder URLs, never real curated links.
+ * reference catalogue. Inline fixtures per rule — all entries here are
+ * test-only and use placeholder URLs, never real curated links.
  */
 import { describe, it, expect } from 'vitest'
 import { validateExerciseCatalogue } from './validateExerciseCatalogue.js'
@@ -26,7 +25,7 @@ function validCatalogue() {
 }
 
 describe('validateExerciseCatalogue — valid input', () => {
-    it('accepts the empty A11a foundation catalogue', () => {
+    it('accepts an empty catalogue (empty stays structurally valid)', () => {
         expect(validateExerciseCatalogue({ catalogueVersion: '1.0.0', exercises: [] })).toEqual([])
     })
 

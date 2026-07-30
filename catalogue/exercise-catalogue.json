@@ -1,4 +1,89 @@
 {
   "catalogueVersion": "1.0.0",
-  "exercises": []
+  "exercises": [
+    {
+      "exerciseId": "45-degree-leg-press",
+      "name": "45° Leg Press",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "PureGym",
+          "label": "Watch demo",
+          "url": "https://www.puregym.com/exercises/legs/quad-exercises/leg-presses/45-degree-leg-press/"
+        }
+      ]
+    },
+    {
+      "exerciseId": "single-leg-machine-glute-kickback",
+      "name": "Single-Leg Glute Machine (kickback)",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Live Lean TV",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/watch?v=24pvhNOoK80"
+        }
+      ]
+    },
+    {
+      "exerciseId": "dead-bug",
+      "name": "Dead Bug",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "NASM",
+          "label": "Watch demo",
+          "url": "https://www.nasm.org/resource-center/exercise-library/dead-bug"
+        }
+      ]
+    },
+    {
+      "exerciseId": "cable-face-pull",
+      "name": "Cable Face Pull",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "NASM",
+          "label": "Watch demo",
+          "url": "https://www.nasm.org/resource-center/exercise-library/face-pull"
+        }
+      ]
+    },
+    {
+      "exerciseId": "cable-external-rotation",
+      "name": "Cable External Rotation",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Physitrack",
+          "label": "Watch demo",
+          "url": "https://us.physitrack.com/home-exercise-video/cable-machine-ghjt-external-rotation"
+        }
+      ]
+    },
+    {
+      "exerciseId": "cable-pallof-press",
+      "name": "Pallof Press (cable)",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Hawkes Physiotherapy",
+          "label": "Watch demo",
+          "url": "https://hawkesphysiotherapy.co.uk/exercise/cable-exercise-band-pallof-press/"
+        }
+      ]
+    },
+    {
+      "exerciseId": "dumbbell-farmer-carry",
+      "name": "Farmer Carry (DB)",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Runna",
+          "label": "Watch demo",
+          "url": "https://support.runna.com/en/articles/6382767-farmer-s-carry-exercise-tutorial"
+        }
+      ]
+    }
+  ]
 }

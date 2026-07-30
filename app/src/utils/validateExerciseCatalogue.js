@@ -73,7 +73,8 @@ export function validateExerciseCatalogue(catalogue) {
         return errors
     }
 
-    // An empty exercises array is valid: the A11a foundation ships no entries.
+    // An empty exercises array remains structurally valid: emptiness is not
+    // an error, even though production now ships curated entries.
 
     const seenIds = new Set()
     for (const exercise of catalogue.exercises) {
