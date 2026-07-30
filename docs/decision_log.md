@@ -522,3 +522,25 @@ on-device sign-out testing; active-draft survival across a later PWA update.
 
 **To do next session:** complete the W26-dependent payload architecture required to unlock A7.
 Rotate the Supabase developer password after the app work is finished.
+
+---
+
+## 2026-07-30 · A11 canonical exercise identity and catalogue architecture
+
+**Context:** Claude's read-only A11 diagnostic mapped identity across all three real cartridges;
+Codex independently verified the slot-ID collisions, validator behavior, payload boundary, and
+offline model. The developer approved the amended architecture before implementation.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Keep cartridge `item.id` / logged `itemId` as prescription-slot identity; add optional canonical `exerciseId` | Real item IDs collide across cartridges and history recall already scopes/double-checks them; repurposing would misidentify exercises |
+| 2 | Store curated exercise resources in a separate source-controlled catalogue, canonical at `catalogue/exercise-catalogue.json` with an app-bundled mirror | Read-only product content must work offline and does not justify Dexie or Supabase v1 |
+| 3 | `exerciseId` is additive schema-v3 metadata; no cartridge schema-version or session-payload change | Old cartridges remain valid and reference metadata never belongs in the locked workout log |
+| 4 | Assignment is manual-only; no normalized-name or fuzzy identity matching | Similar names can be materially different movements, and substitutions are unconstrained free text |
+| 5 | Authored IDs must pass a deterministic catalogue cross-reference audit while runtime lookup still fails safe | Typos must fail before shipping without turning malformed optional metadata into an app crash |
+| 6 | PAP/pair references, real-link curation, Plan UI, and Today UI are outside A11a | Foundation first; Plan proves the interaction before the denser mid-workout Today surface |
+| 7 | No external media caching/download, Dexie table, Supabase migration, or new navigation | External video may require network, but the installed workout app and bundled metadata remain offline-capable |
+
+**Next:** implement and independently review A11a from
+`docs/planning/roadmap/prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`; then curate a deliberately
+small reference set before Plan adoption.

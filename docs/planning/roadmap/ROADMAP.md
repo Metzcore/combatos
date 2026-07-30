@@ -154,12 +154,15 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       `sessionActivities` makes sessions analytics-ready for a future W26 without any new table.
       Legacy sessions are completely unchanged; no migration or rewrite of any existing row, local
       or remote.
-- [ ] **A11 · candidate · Exercise Reference layer** — design a stable canonical exercise identity
-      and curated external-resource catalogue that can support explicit “Watch demo” actions in Plan
-      and later Today. File-backed/offline-readable is the starting hypothesis, not yet a ruling.
-      Diagnostic must cover cartridge schema/authoring/validator impact, link validation, touch
-      targets, external-browser return, offline behaviour, link maintenance and future Supabase
-      migration. No new main-nav button.
+- [~] **A11 · Exercise Reference layer** — design a stable canonical exercise identity and curated
+      external-resource catalogue supporting explicit “Watch demo” actions in Plan and later Today.
+      _Diagnostic and architecture approved 2026-07-30:_ keep cartridge `item.id` as its existing
+      prescription-slot identity; add optional canonical `exerciseId` as additive schema-v3 metadata,
+      resolved against a separate bundled catalogue. File-backed v1; no Dexie/Supabase or payload
+      change; manual identity/link curation only; PAP/pair references deferred; no name/fuzzy
+      matching. Sequence: **A11a** contract/catalogue/validation foundation
+      (`prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`), then a small curated set + Plan adoption and
+      Android acceptance, then Today separately if Plan proves the pattern. No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do
