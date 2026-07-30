@@ -1,5 +1,5 @@
 # STATUS
-_Last updated: 2026-07-30 · A7b and Android acceptance follow-ups complete locally_
+_Last updated: 2026-07-30 · A7 complete locally_
 
 ## Last session
 A7b's interactive cartridge Today renderer was hardened through the approved Android acceptance
@@ -17,21 +17,25 @@ Both follow-ups passed independent review and developer Android acceptance.
 Final evidence: 787 tests pass across 40 files; the production PWA build passes. No Dexie,
 Supabase, webhook/Sheets, service-worker, authentication, `%1RM`/e1RM, or n8n change was made.
 
-## Current focus
-Stage 0, A7a, and A7b are complete. The accepted Weights and clipping follow-ups are recorded on
-local branch `codex/kimi-trial-1`; the branch is not pushed or merged into `main`.
+The final A7c diagnostic evaluated `FocusedNoteEditor` against the existing Checklist and Notes
+surfaces. Notes already has a purpose-built full-screen editor with its own autosave/flush
+lifecycle; the Checklist task note and daily template are explicit-save fields inside bottom
+sheets. Reusing the Today editor there would create incompatible nested-modal and save semantics.
+The developer approved the no-adoption ruling, so A7c and A7 close with no app change.
 
-A7 remains open only for the separately scoped A7c adoption of `FocusedNoteEditor` in appropriate
-Checklist/Notes surfaces. That work requires a fresh diagnostic before implementation so existing
-Notes autosave and specialized editor behavior are preserved.
+## Current focus
+A7 is complete through Stage 0, A7a, A7b, Android acceptance remediation, and the A7c
+no-adoption ruling. The accepted work is recorded on local branch `codex/kimi-trial-1`; the branch
+is not pushed or merged into `main`.
+
+The next roadmap item is the Exercise Reference layer diagnostic (A11). A12 remains gated on the
+A11 information model.
 
 Local environment state is intentional: `.env.local` remains gitignored for localhost Supabase
 authentication, and the pre-existing deletion of `app/.env.example` remains outside the app-work
 commit.
 
 ## Up next
-1. A7c diagnostic: identify the correct Checklist/Notes adoption surfaces, then stop for approval
-2. A7c implementation and Android acceptance after the diagnostic is approved
-3. Exercise Reference layer diagnostic (A11)
-4. Academy / Exercise Guides information architecture (A12, gated on A11)
-5. Rotate the temporary Supabase developer password once the app work is finished
+1. Exercise Reference layer diagnostic (A11)
+2. Academy / Exercise Guides information architecture (A12, gated on A11)
+3. Rotate the temporary Supabase developer password once the app work is finished
