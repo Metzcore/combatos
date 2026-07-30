@@ -723,6 +723,11 @@ input[type="checkbox"] {
 .cartridge-day__title {
   flex: 1;
   min-width: 0;
+  /* A11 hybrid polish: promote the day title to the brightest text on the
+     slab header (was --label like its own summary pill). Weight stays
+     inherited from .cartridge-day__toggle; wrapping behavior unchanged. */
+  color: var(--text);
+  font-size: 0.88rem;
 }
 
 .cartridge-day__toggle {
@@ -860,10 +865,12 @@ input[type="checkbox"] {
 
 /* ── Item internals ── */
 .cartridge-item-name {
-  font-weight: 600;
+  /* A11 hybrid polish: the exercise name is the loudest text in the
+     well (was 1rem/600, barely a step above its own metadata). */
+  font-weight: 700;
   color: var(--text);
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: 1.06rem;
+  line-height: 1.38;
 }
 
 .cartridge-superset-badge {
@@ -874,7 +881,10 @@ input[type="checkbox"] {
 
 .cartridge-item-meta {
   font-size: 0.86rem;
-  color: var(--dim);
+  /* A11 hybrid polish: --dim on the recessed well measures ~4.9:1 --
+     above the 4.5:1 AA floor but with little margin at ~12px; this
+     dim/label mix holds ~7:1 while staying quieter than names. */
+  color: color-mix(in srgb, var(--dim) 45%, var(--label) 55%);
   margin-top: 6px;
   display: flex;
   gap: 4px 12px;
@@ -932,8 +942,14 @@ input[type="checkbox"] {
   min-width: 48px;
   min-height: 48px;
   padding: 0 14px;
-  background: var(--input);
-  border: 1px solid var(--divider);
+  /* A11 hybrid polish: a slightly lifted, softly-lit chip inside the
+     recessed well — token-mix surface, rim reflection, one small
+     static shadow. Self-width ghost-pill contract unchanged. */
+  background: color-mix(in srgb, var(--input) 92%, var(--label) 8%);
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 14%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--label) 12%, transparent),
+    0 2px 6px color-mix(in srgb, var(--bg) 65%, transparent);
   border-radius: var(--radius-sm);
   color: var(--label);
   font-size: 0.78rem;
@@ -952,6 +968,13 @@ input[type="checkbox"] {
   outline-offset: 2px;
 }
 
+/* A11 hybrid polish: pressed feedback — the chip settles into the well.
+   Static state swap; no transition, no animation. */
+.exercise-ref__link:active {
+  background: color-mix(in srgb, var(--input) 88%, var(--bg) 12%);
+  box-shadow: inset 0 1px 4px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
 .exercise-ref__provider {
   flex: 1;
   min-width: 0; /* lets a long provider name ellipsize instead of growing the row */
@@ -961,6 +984,79 @@ input[type="checkbox"] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════
+   A11 hybrid polish — Strata slab + Signal Spine
+   (read-only Plan/Library surfaces only)
+   ══════════════════════════════════════════════════════ */
+/* Raised day slab: the training day card reads as the containing slab
+   above the canvas — restrained top-lit gradient, softened edge, one
+   1px rim reflection, one static ambient shadow. Rest/recovery rows
+   keep the flat quiet card so elevation belongs to training days.
+   Tokens + token-derived color-mix only; no new hex, no animation.
+   .cartridge-day never renders inside Today, so no Today scoping is
+   needed here. */
+.cartridge-day:not(.cartridge-day--rest) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 42%
+  );
+  border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+}
+
+/* Hairline separating the toggle header from the opened body. An inset
+   shadow, not a border, so opening the card never shifts geometry. */
+.cartridge-day.open .cartridge-day__toggle {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
+}
+
+/* Recessed block wells + full-height Signal Spine. Scoped to
+   .library-week (ProgramOverview's week list, shared by Plan and
+   Library preview) because .cartridge-block is ALSO Today's interactive
+   block class — Today keeps its own later .today-active rules and must
+   inherit neither the well nor the rail. The well is deliberately
+   DARKER than the slab (inverting the old lighter-inside relationship)
+   with one restrained inset depth cue. The 3px full-height left rail
+   carries block type + section continuity and replaces the head's short
+   marker inside this scope only; semantic colours follow the existing
+   mapping (mobility --label, strength/core --accent, conditioning
+   --warn, cooldown --primary). The rail is pure signal: Plan's blocks
+   are not collapsible, and nothing here adds cursor, state, or implies
+   interactivity. */
+.library-week .cartridge-block {
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border-color: color-mix(in srgb, var(--divider) 72%, transparent);
+  border-left: 3px solid var(--divider);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+.library-week .cartridge-block--mobility {
+  border-left-color: var(--label);
+}
+
+.library-week .cartridge-block--strength,
+.library-week .cartridge-block--core {
+  border-left-color: var(--accent);
+}
+
+.library-week .cartridge-block--conditioning {
+  border-left-color: var(--warn);
+}
+
+.library-week .cartridge-block--cooldown {
+  border-left-color: var(--primary);
+}
+
+/* The full-height rail supersedes the head's short marker inside the
+   well; the head keeps its per-kind text tint from the base rules. */
+.library-week .cartridge-block__head {
+  border-left: none;
+  padding-left: 0;
 }
 
 /* ── Badges ─────────────────────────────────────── */
@@ -1689,6 +1785,19 @@ input[type="checkbox"] {
 
 .hub-tabs-bar + .app {
   padding-top: 0;
+}
+
+/* Train-only active-tab wash (A11): a soft amber settle behind the
+   selected Today/Plan/Library tab. Scoped to the hub-tabs-bar--train
+   hook in TrainHub.jsx so the shared TopTabs in Checklist (and any
+   other hub) keep their existing styling. Geometry, underline, and
+   48px targets unchanged. */
+.hub-tabs-bar--train .top-tabs__tab.active {
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    color-mix(in srgb, var(--accent) 12%, transparent)
+  );
 }
 
 /* ── Desktop ────────────────────────────────────── */

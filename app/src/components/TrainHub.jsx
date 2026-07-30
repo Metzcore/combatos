@@ -19,7 +19,9 @@ import { HUB_TOP_TABS } from '../utils/navState.js'
 export default function TrainHub({ activeTab, onTabChange }) {
     return (
         <>
-            <div className="hub-tabs-bar">
+            {/* hub-tabs-bar--train: additive presentation hook (A11) scoping
+                Train-specific top-tab polish away from Checklist's shared bar. */}
+            <div className="hub-tabs-bar hub-tabs-bar--train">
                 <TopTabs
                     tabs={HUB_TOP_TABS.train}
                     active={activeTab}
