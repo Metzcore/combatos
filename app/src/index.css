@@ -2998,7 +2998,7 @@ button.cartridge-block__head {
 }
 
 .today-chip {
-  /* A7b corrective pass (finding J5): was 40px — all six activity chips
+  /* A7b corrective pass (finding J5): was 40px — all seven activity chips
      need the same 44px minimum every other tappable control gets. */
   min-height: 44px;
   padding: 8px 14px;
@@ -3255,5 +3255,16 @@ button.cartridge-block__head {
   box-shadow:
     0 3px 12px color-mix(in srgb, var(--bg) 85%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--label) 10%, transparent);
+}
+
+/* Interactive Today blocks: the generic 1500px .card__body cap clips long
+   Strength/Core blocks, hiding the final exercise's Change exercise / Note
+   controls. Today content is dynamically extensible (Add set / Add round),
+   so no finite cap can ever be correct — another arbitrary pixel value
+   would only postpone the same defect. `none` removes the cap here only (the
+   open max-height animation is lost; functional access wins). Plan/Library
+   stay governed by their own rules (.cartridge-day), as does .str-section. */
+.today-active .cartridge-block.open > .card__body {
+  max-height: none;
 }
 

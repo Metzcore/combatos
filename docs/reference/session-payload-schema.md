@@ -218,11 +218,11 @@ exercise, just a fact about the session.
 ### `sessionActivities` — closed set
 
 ```
-warmup · cooldown · bag-workout · cardio · mobility · abs · corrective-exercises · other
+warmup · cooldown · weights · bag-workout · cardio · mobility · abs · corrective-exercises · other
 ```
 
 Stable IDs, not display labels — the UI's "Preparation" checkboxes (Warm-up, Cooldown) and
-"Activities" chips (the remaining six) both write into this **one** array; the split is a UI
+"Activities" chips (the remaining seven) both write into this **one** array; the split is a UI
 grouping, not a payload distinction. Duplicate or unknown entries are validation errors. `[]` is
 valid and means "recorded, nothing selected" — distinct from the key being **absent entirely**,
 which means "this row predates `sessionActivities` and its activity data is unknown" (§8).
@@ -405,6 +405,12 @@ malformed input.
 
 ## Revision history
 
+- **2026-07-30 — `sessionActivities` allowed-value expansion (8 → 9):** `weights` added to the
+  closed set (between `cooldown` and `bag-workout`), rendered as the "Weights" activity chip.
+  This is an additive allowed-value expansion **only**: it does not change the payload structure,
+  adds no field, and does **not** require a `payloadVersion` bump — v2 stays v2. Historical rows
+  (with or without `weights`, including `payloadVersion: 1` rows, §10) remain valid and unchanged;
+  nothing is rewritten or remapped.
 - **v2 (corrective pass):** completeness denominator restricted to strength/core (+ PAP/pair);
   `sessionActivities`/`otherActivity` added; mobility/cooldown/conditioning `performed` shape
   loses `done`/`roundsCompleted`; exact numeric ranges specified; substitution invariants and

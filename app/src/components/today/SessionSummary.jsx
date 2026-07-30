@@ -1,8 +1,8 @@
 /**
  * components/today/SessionSummary.jsx — A7b session-summary step (D11
  * point 2, corrective plan §4). Two preparation checkboxes (Warm-up,
- * Cooldown) + six activity chips + the conditional `otherActivity` field +
- * the session notes field via FocusedNoteEditor. All eight IDs write into
+ * Cooldown) + seven activity chips + the conditional `otherActivity` field +
+ * the session notes field via FocusedNoteEditor. All nine IDs write into
  * ONE `sessionActivities` array — the checkbox/chip split is presentational
  * only, never a payload distinction (schema §4).
  *
@@ -18,6 +18,7 @@ const PREPARATION = [
 ]
 
 const ACTIVITY_CHIPS = [
+    { id: 'weights', label: 'Weights' },
     { id: 'bag-workout', label: 'Bag work' },
     { id: 'cardio', label: 'Cardio' },
     { id: 'mobility', label: 'Mobility' },

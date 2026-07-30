@@ -106,7 +106,7 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       session payload. _Shipped in PR #57, 2026-07-26; 450 tests and production build passed.
       Android acceptance passed every reported scenario; sign-out and active-draft survival
       across a later PWA update were not exercised on-device._
-- [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
+- [~] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
       cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). Payload shape
       is locked (D11, revised corrective pass, `payloadVersion: 2`) — A6.5 is complete, so A7 is
       ungated. Scope: every block kind, item field, and day type used by the three real shipped
@@ -121,6 +121,10 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       (payload-lock docs, this entry), **A7a** (pure payload builder/validation/analytics fields +
       cartridge draft/state integration, no UI change), **A7b** (interactive Today redesign +
       reader compatibility), **A7c** (later, separate: app-wide `FocusedNoteEditor` adoption).
+      _Status 2026-07-30: Stage 0, A7a, and A7b are complete. A7b plus its Android acceptance
+      remediation passed independent review, 787 tests, production build, and developer Android
+      acceptance. The `weights` activity-ID expansion and the unbounded interactive-block clipping
+      fix passed the same review/Android gates. A7c remains separate and pending, so A7 stays open._
 - [x] **A8 · Cartridge Viewer UX/UI pass** — quiet block headers, collapsible days, collapsed About
       disclosure, and tab-contrast fix shipped. _2026-07-22._
 - [x] **A9 · Cartridge availability + activation** — A9a–A9d complete. Assigned-only Library,

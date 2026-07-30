@@ -115,10 +115,10 @@ Recorded in full in `docs/planning/roadmap/OPEN-DECISIONS.md`. Summary:
   same completeness units (not a separate count), and a save-state string drawn **only** from
   `cartridgeDraftSaveStatus` (`Saving…` / `Saved on device ✓` / `Not saved — Retry`) — **no
   remote-sync signal of any kind**, resolving the open question from Phase 0 exactly as ruled.
-- `SessionSummary.jsx` — two preparation checkboxes (Warm-up, Cooldown) + six activity chips + the
+- `SessionSummary.jsx` — two preparation checkboxes (Warm-up, Cooldown) + seven activity chips + the
   conditional `otherActivity` field (single line, bounded via `maxLength={120}` at the input plus
   validator rejection of any over-length or multi-line value on submit — user text is never
-  silently truncated) + the session `notes` field via `FocusedNoteEditor`. All eight IDs write into
+  silently truncated) + the session `notes` field via `FocusedNoteEditor`. All nine IDs write into
   one `sessionActivities` array; the checkbox/chip split is presentational only.
 - `EffortGuideSheet.jsx` — a `BottomSheet` explaining RPE / RIR / %1RM. Explanatory only; no math
   changes.
