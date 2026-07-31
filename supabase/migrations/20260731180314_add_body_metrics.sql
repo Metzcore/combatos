@@ -52,6 +52,23 @@ grant select, insert on table public.body_metrics to authenticated;
 -- Only kg (a correction) and client_id (idempotency key from a re-sync) are
 -- legitimately re-settable by the owner.
 grant update (kg, client_id) on table public.body_metrics to authenticated;
+-- DELETE is granted deliberately, against a first-pass least-privilege instinct
+-- to omit it. Two reasons, and the second is decisive:
+--
+--   1. This is health-adjacent personal data that is SHARED WITH A COACH. A
+--      user who wants a measurement gone must be able to remove it end to end.
+--      Local-only deletion that silently leaves the server copy behind is worse
+--      than no deletion at all -- the user believes it is gone and the coach
+--      still sees it.
+--   2. Upsert cannot repair a WRONG-DATE entry. Logging Tuesday's weight
+--      against Monday leaves a row on a day the user never weighed, and
+--      "correcting" it by overwrite means inventing a number for that day.
+--      Without DELETE that phantom row is permanent and visible to the coach
+--      forever.
+--
+-- Scoped to the owner's own rows by the policy below. A coach can never delete:
+-- the coach policy is SELECT-only and no delete policy references is_coach_of().
+grant delete on table public.body_metrics to authenticated;
 grant all privileges on table public.body_metrics to service_role;
 
 create policy "owner reads own body metrics"
@@ -72,6 +89,12 @@ create policy "owner updates own body metrics"
   to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
+
+create policy "owner deletes own body metrics"
+  on public.body_metrics
+  for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 -- coach_athletes: server-managed coach -> athlete mapping. Deliberately NOT
 -- authorized off profiles.role -- a bare "coach" role would grant every coach

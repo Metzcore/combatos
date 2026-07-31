@@ -78,6 +78,28 @@ values ('<USER_B>', '2026-07-29', 60.000, gen_random_uuid());
 `with check ((select auth.uid()) = user_id)` on the insert policy rejects it).
 
 ```sql
+-- 1d. A can DELETE their own row. This matters because upsert cannot repair a
+-- WRONG-DATE entry: a weight logged against a day the user never weighed can
+-- only be removed, not corrected, and it is visible to their coach until it is.
+insert into public.body_metrics (user_id, measured_on, kg, client_id)
+values ('<USER_A>', '2026-07-28', 99.000, gen_random_uuid());
+
+delete from public.body_metrics
+where user_id = '<USER_A>' and measured_on = '2026-07-28';
+
+select count(*) from public.body_metrics
+where user_id = '<USER_A>' and measured_on = '2026-07-28';
+```
+**Expected:** the delete reports `DELETE 1`, and the count is `0`.
+
+```sql
+-- 1e. A cannot delete someone else's row. RLS filters the row out rather than
+-- raising, so the tell is an affected-row count of ZERO, not an error.
+delete from public.body_metrics where user_id = '<USER_B>';
+```
+**Expected:** `DELETE 0`. Re-run check 2 afterwards to confirm B's row survives.
+
+```sql
 reset role;
 ```
 
