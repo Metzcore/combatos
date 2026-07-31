@@ -34,6 +34,7 @@ import {
     resetCustomIgnitions as resetCustomIgnitionsPure,
     normalizeCustomIgnitions,
 } from '../utils/customIgnitions.js'
+import { AGENT_ENDPOINT_URL_KEY, AGENT_ENDPOINT_TOKEN_KEY } from './backupRedaction.js'
 
 // Re-exported so callers (CartridgeToday.jsx) can catch the typed validation
 // error via `import { CartridgeValidationError } from '../../db/index.jsx'`
@@ -145,7 +146,13 @@ const DEFAULTS = {
     webhookUrl: 'https://script.google.com/macros/s/AKfycbx420QcMFL2zsMYJBPSEp-ZQYHovr-V9lvQvPXcZnibv_iyOmW44IqOCwSAP89It0eG/exec',
     appName: "Fighter's OS",
     appSubtitle: "Combat Performance",
-    dailyIgnitionEnabled: true
+    dailyIgnitionEnabled: true,
+    // W29 PR E — Agent auto-push. Off by default: this feature must be inert
+    // (no timer, no listener, no network) for the large majority of users who
+    // never open the Agent screen. See backupRedaction.js for why the endpoint
+    // URL/token themselves have NO default here (undefined -> "not configured",
+    // never a fabricated empty-string row).
+    agentBackupAutoPush: false
 }
 
 export async function getSetting(key) {
@@ -276,6 +283,12 @@ export function DBProvider({ children }) {
     const [bookmarkedIgnitions, setBookmarkedIgnitions] = useState([])
     const [ignitionHasShown, setIgnitionHasShown] = useState(false)
     const [customIgnitions, setCustomIgnitionsState] = useState([])
+    // W29 PR E — Agent screen config. Empty string ('') means "not
+    // configured", distinct from a future explicit clear — mirrors how the
+    // rest of this provider treats an absent settings row.
+    const [agentEndpointUrl, setAgentEndpointUrlState] = useState('')
+    const [agentEndpointToken, setAgentEndpointTokenState] = useState('')
+    const [agentAutoPush, setAgentAutoPushState] = useState(DEFAULTS.agentBackupAutoPush)
     const [pendingSync, setPending] = useState(0)
     const [sessionCount, setCount] = useState({}) // { 1: n, 2: n, 3: n }
     const [ready, setReady] = useState(false)
@@ -899,6 +912,16 @@ export function DBProvider({ children }) {
             const custom = await getSetting('customIgnitions')
             if (Array.isArray(custom)) setCustomIgnitionsState(normalizeCustomIgnitions(custom))
 
+            // W29 PR E — Agent screen config. Read via the shared constants so
+            // this can never drift from what backupRedaction.js denylists or
+            // what AgentScreen writes.
+            const endpointUrl = await getSetting(AGENT_ENDPOINT_URL_KEY)
+            if (typeof endpointUrl === 'string') setAgentEndpointUrlState(endpointUrl)
+            const endpointToken = await getSetting(AGENT_ENDPOINT_TOKEN_KEY)
+            if (typeof endpointToken === 'string') setAgentEndpointTokenState(endpointToken)
+            const autoPush = await getSetting('agentBackupAutoPush')
+            setAgentAutoPushState(autoPush === true)
+
             const setups = await getSetting('savedRoundsTimers')
             if (Array.isArray(setups)) {
                 setSavedRoundsSetups(setups)
@@ -982,6 +1005,25 @@ export function DBProvider({ children }) {
         setCustomIgnitionsState(next)
         await setSetting('customIgnitions', next)
     }, []);
+
+    // W29 PR E — Agent screen config setters. Validation (isValidEndpoint)
+    // is the caller's (AgentScreen's) job — a rejected value must never reach
+    // here, so these just persist-and-mirror, matching setAppName's shape.
+    const setAgentEndpointUrl = useCallback(async (url) => {
+        await setSetting(AGENT_ENDPOINT_URL_KEY, url)
+        setAgentEndpointUrlState(url)
+    }, [])
+
+    const setAgentEndpointToken = useCallback(async (token) => {
+        await setSetting(AGENT_ENDPOINT_TOKEN_KEY, token)
+        setAgentEndpointTokenState(token)
+    }, [])
+
+    const setAgentAutoPush = useCallback(async (val) => {
+        const next = !!val
+        await setSetting('agentBackupAutoPush', next)
+        setAgentAutoPushState(next)
+    }, [])
 
     const logSession = useCallback(async (sessionData) => {
         // Generate UUID for remote sheet soft-deletes
@@ -1108,6 +1150,9 @@ export function DBProvider({ children }) {
             bookmarkedIgnitions, toggleIgnitionBookmark,
             ignitionHasShown, setIgnitionHasShown,
             customIgnitions, addCustomIgnitions, deleteCustomIgnition, resetCustomIgnitions,
+            agentEndpointUrl, setAgentEndpointUrl,
+            agentEndpointToken, setAgentEndpointToken,
+            agentAutoPush, setAgentAutoPush,
             sessionCount, pendingSync, logSession, logCartridgeSession, resetSession, deleteLastSession,
             refreshCounts, refreshPending,
             storagePersisted,
