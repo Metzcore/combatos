@@ -142,12 +142,15 @@ from history (see the `attempt1/*` branches and `A7-FINAL-IMPLEMENTATION-PLAN.md
    `payloadVersion: 1` becomes a permanently tolerated, read-only, never-written-again historical
    variant (schema doc §10); if that specific row is later confirmed removed, this ruling does not
    change — v2 stays v2.
-2. **`sessionActivities`** (required array, closed 8-value ID set: `warmup`/`cooldown`/
-   `bag-workout`/`cardio`/`mobility`/`abs`/`corrective-exercises`/`other`) is a new required field on
+2. **`sessionActivities`** (required array, closed 9-value ID set: `warmup`/`cooldown`/
+   `weights`/`bag-workout`/`cardio`/`mobility`/`abs`/`corrective-exercises`/`other`) is a new
+   required field on
    every `training`/`custom` cartridge session — `[]` is valid and distinct from the field being
    absent (legacy or pre-this-change rows: unknown, never coerced to "none selected").
    `otherActivity` (trimmed, single-line, ≤120 characters) exists only when `'other'` is selected
-   and non-blank.
+   and non-blank. *(Expanded 2026-07-30: `weights` added as an additive allowed-value expansion —
+   8-value set becomes 9-value; no payload-structure change, no `payloadVersion` bump, historical
+   rows remain valid and unchanged.)*
 3. **Completeness counts only strength/core main sets and a prescribed PAP/pair's own sets.**
    Mobility, cooldown, and conditioning are excluded from the denominator entirely (reversing the
    first attempt, which counted all three). Extra performed sets beyond the prescribed count are

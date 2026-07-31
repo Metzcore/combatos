@@ -21,6 +21,14 @@ const BLOCK_LABELS = {
     rest: '⏱️ Rest Timer'
 }
 
+// Explicit textual state grammar (W15.1): the cue is never colour alone.
+// Derived only from existing provider state — no new state, no new logic.
+const STATE_TEXT = {
+    ready: 'READY',
+    running: 'RUNNING',
+    paused: 'PAUSED'
+}
+
 export default function BasicTimer() {
     const {
         swTime, swRunning, toggleStopwatch, resetStopwatch,
@@ -34,92 +42,96 @@ export default function BasicTimer() {
     // DBProvider; nothing here holds timer or user-typed state.
     const [actionsBlockId, setActionsBlockId] = useState(null)
 
-    // ⋮ affordance inside the colored .section-header band. Padding + negative
-    // margin stretch the tap area to the full band height and card edge
-    // (sweaty-thumb floor) while staying visually flush with the band.
+    // ⋮ affordance in the module head. The class stretches the tap area to
+    // the full head height and module edge (sweaty-thumb floor) while
+    // staying visually flush; behaviour is unchanged from W15.
     const blockMenuButton = (id) => (
         <button
+            className="timer-module__menu"
             aria-label={`Reorder ${BLOCK_LABELS[id]} block`}
             onClick={() => setActionsBlockId(id)}
-            style={{
-                marginLeft: 'auto',
-                marginRight: -14,
-                marginTop: -10,
-                marginBottom: -10,
-                padding: '10px 16px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 0,
-                color: 'inherit',
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                lineHeight: 1
-            }}
         >
             ⋮
         </button>
     )
 
-    const renderBlock = (id, index) => {
-        const marginTop = index > 0 ? 20 : 0
-
+    const renderBlock = (id) => {
         if (id === 'stopwatch') {
+            const swState = swRunning ? 'running' : swTime > 0 ? 'paused' : 'ready'
             return (
-                <div key={id} className={`card ${alertState === 'main' ? 'alert-main' : ''}`} style={{ padding: 20, textAlign: 'center', marginTop }}>
-                    <div className="section-header blue" style={{ margin: '-20px -20px 20px -20px' }}>
-                        {BLOCK_LABELS.stopwatch}
+                <section
+                    key={id}
+                    className="timer-module timer-module--stopwatch"
+                    data-state={swState}
+                    aria-label="Stopwatch"
+                >
+                    <header className="timer-module__head">
+                        <span className="timer-module__title">{BLOCK_LABELS.stopwatch}</span>
+                        <span className="timer-module__state">{STATE_TEXT[swState]}</span>
                         {blockMenuButton(id)}
-                    </div>
-                    <div style={{ fontSize: '3rem', fontFamily: 'Courier New', fontWeight: 800, color: 'var(--blue)', marginBottom: 20 }}>
+                    </header>
+                    <div className="timer-module__time">
                         {formatTime(swTime)}
                     </div>
                     <div className="actions-bar">
-                        <button className="btn-primary" style={{ background: 'rgba(0, 238, 255, 0.1)', color: 'var(--blue)', borderColor: 'var(--blue)' }} onClick={toggleStopwatch}>
+                        <button className="btn-primary timer-btn timer-btn--stopwatch" onClick={toggleStopwatch}>
                             {swRunning ? 'PAUSE' : 'START'}
                         </button>
-                        <button className="btn-secondary" onClick={resetStopwatch}>
+                        <button className="btn-secondary timer-btn" onClick={resetStopwatch}>
                             RESET
                         </button>
                     </div>
-                </div>
+                </section>
             )
         }
 
         // id === 'rest'
+        const cdState = cdRunning ? 'running' : cdTime > 0 ? 'paused' : 'ready'
         return (
-            <div key={id} className="card" style={{ padding: 20, textAlign: 'center', marginTop }}>
-                <div className="section-header amber" style={{ margin: '-20px -20px 20px -20px' }}>
-                    {BLOCK_LABELS.rest}
+            // W15.1 corrective pass (§5 finding 7): the provider's main alarm
+            // fires ONLY on Rest countdown completion, so the one-shot
+            // completion signal belongs on the Rest module — never on the
+            // Stopwatch. alertState itself is still produced in DBProvider;
+            // only its visual target moved.
+            <section
+                key={id}
+                className={`timer-module timer-module--rest${alertState === 'main' ? ' timer-alert-main' : ''}`}
+                data-state={cdState}
+                aria-label="Rest timer"
+            >
+                <header className="timer-module__head">
+                    <span className="timer-module__title">{BLOCK_LABELS.rest}</span>
+                    <span className="timer-module__state">{STATE_TEXT[cdState]}</span>
                     {blockMenuButton(id)}
-                </div>
+                </header>
 
-                <div style={{ fontSize: '4rem', fontFamily: 'Courier New', fontWeight: 800, color: cdTime === 0 ? 'var(--dim)' : 'var(--warn)', marginBottom: 20 }}>
+                <div className="timer-module__time">
                     {formatCountdown(cdTime)}
                 </div>
 
                 {!cdRunning && cdTime === 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-                        <button className="btn-secondary" onClick={() => startCountdown(1)}>60s</button>
-                        <button className="btn-secondary" onClick={() => startCountdown(1.5)}>90s</button>
-                        <button className="btn-secondary" onClick={() => startCountdown(2)}>2m</button>
-                        <button className="btn-secondary" onClick={() => startCountdown(3)}>3m</button>
+                    <div className="timer-presets">
+                        <button className="btn-secondary timer-preset" onClick={() => startCountdown(1)}>60s</button>
+                        <button className="btn-secondary timer-preset" onClick={() => startCountdown(1.5)}>90s</button>
+                        <button className="btn-secondary timer-preset" onClick={() => startCountdown(2)}>2m</button>
+                        <button className="btn-secondary timer-preset" onClick={() => startCountdown(3)}>3m</button>
                     </div>
                 ) : (
-                    <div className="actions-bar" style={{ marginBottom: 20 }}>
-                        <button className="btn-primary" style={{ background: 'rgba(255, 170, 0, 0.1)', color: 'var(--warn)', borderColor: 'var(--warn)' }} onClick={toggleCountdown}>
+                    <div className="actions-bar timer-module__actions">
+                        <button className="btn-primary timer-btn timer-btn--rest" onClick={toggleCountdown}>
                             {cdRunning ? 'PAUSE' : 'RESUME'}
                         </button>
-                        <button className="btn-secondary" onClick={cancelCountdown}>
+                        <button className="btn-secondary timer-btn" onClick={cancelCountdown}>
                             CANCEL
                         </button>
                     </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                    <button className="btn-ghost" onClick={() => addCountdownTime(15)}>+15s</button>
-                    <button className="btn-ghost" onClick={() => addCountdownTime(30)}>+30s</button>
+                <div className="timer-addtime">
+                    <button className="btn-ghost timer-addtime__btn" onClick={() => addCountdownTime(15)}>+15s</button>
+                    <button className="btn-ghost timer-addtime__btn" onClick={() => addCountdownTime(30)}>+30s</button>
                 </div>
-            </div>
+            </section>
         )
     }
 
@@ -132,13 +144,13 @@ export default function BasicTimer() {
         : { id: actionsBlockId, label: BLOCK_LABELS[actionsBlockId] }
 
     return (
-        <main className="content">
+        <main className="content timer-basic">
             {/* W15 — user-controlled block order, persisted in settings
                 (basicTimerBlockOrder). Block id as the React key keeps card
                 identity across reorders. Scope truth-up vs the original W15
                 prompt: post-W20 the Rounds timer is a separate top tab, not a
                 stackable block — only Stopwatch/Rest Timer reorder here. */}
-            {basicTimerBlockOrder.map((id, i) => renderBlock(id, i))}
+            {basicTimerBlockOrder.map((id) => renderBlock(id))}
 
             <BasicTimerBlockActionsSheet
                 block={actionsBlock}

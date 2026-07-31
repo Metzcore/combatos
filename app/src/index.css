@@ -723,6 +723,11 @@ input[type="checkbox"] {
 .cartridge-day__title {
   flex: 1;
   min-width: 0;
+  /* A11 hybrid polish: promote the day title to the brightest text on the
+     slab header (was --label like its own summary pill). Weight stays
+     inherited from .cartridge-day__toggle; wrapping behavior unchanged. */
+  color: var(--text);
+  font-size: 0.88rem;
 }
 
 .cartridge-day__toggle {
@@ -860,10 +865,12 @@ input[type="checkbox"] {
 
 /* ── Item internals ── */
 .cartridge-item-name {
-  font-weight: 600;
+  /* A11 hybrid polish: the exercise name is the loudest text in the
+     well (was 1rem/600, barely a step above its own metadata). */
+  font-weight: 700;
   color: var(--text);
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: 1.06rem;
+  line-height: 1.38;
 }
 
 .cartridge-superset-badge {
@@ -874,7 +881,10 @@ input[type="checkbox"] {
 
 .cartridge-item-meta {
   font-size: 0.86rem;
-  color: var(--dim);
+  /* A11 hybrid polish: --dim on the recessed well measures ~4.9:1 --
+     above the 4.5:1 AA floor but with little margin at ~12px; this
+     dim/label mix holds ~7:1 while staying quieter than names. */
+  color: color-mix(in srgb, var(--dim) 45%, var(--label) 55%);
   margin-top: 6px;
   display: flex;
   gap: 4px 12px;
@@ -910,6 +920,143 @@ input[type="checkbox"] {
 
 .cartridge-perround li {
   margin-bottom: 2px;
+}
+
+/* ── Exercise reference link (A11) — per-item "WATCH DEMO" external demo
+   control. Own row at the end of the item stack (below the cue, or below
+   meta when no cue exists); self-width ghost pill plus a subordinate, non-
+   interactive provider caption consuming the rest of the row. Existing
+   tokens only; no motion, no new colours. */
+.exercise-ref {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exercise-ref__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  /* A11 hybrid polish: a slightly lifted, softly-lit chip inside the
+     recessed well — token-mix surface, rim reflection, one small
+     static shadow. Self-width ghost-pill contract unchanged. */
+  background: color-mix(in srgb, var(--input) 92%, var(--label) 8%);
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 14%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--label) 12%, transparent),
+    0 2px 6px color-mix(in srgb, var(--bg) 65%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.exercise-ref__glyph {
+  color: var(--accent);
+}
+
+.exercise-ref__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A11 hybrid polish: pressed feedback — the chip settles into the well.
+   Static state swap; no transition, no animation. */
+.exercise-ref__link:active {
+  background: color-mix(in srgb, var(--input) 88%, var(--bg) 12%);
+  box-shadow: inset 0 1px 4px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.exercise-ref__provider {
+  flex: 1;
+  min-width: 0; /* lets a long provider name ellipsize instead of growing the row */
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════
+   A11 hybrid polish — Strata slab + Signal Spine
+   (read-only Plan/Library surfaces only)
+   ══════════════════════════════════════════════════════ */
+/* Raised day slab: the training day card reads as the containing slab
+   above the canvas — restrained top-lit gradient, softened edge, one
+   1px rim reflection, one static ambient shadow. Rest/recovery rows
+   keep the flat quiet card so elevation belongs to training days.
+   Tokens + token-derived color-mix only; no new hex, no animation.
+   .cartridge-day never renders inside Today, so no Today scoping is
+   needed here. */
+.cartridge-day:not(.cartridge-day--rest) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 42%
+  );
+  border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+}
+
+/* Hairline separating the toggle header from the opened body. An inset
+   shadow, not a border, so opening the card never shifts geometry. */
+.cartridge-day.open .cartridge-day__toggle {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
+}
+
+/* Recessed block wells + full-height Signal Spine. Scoped to
+   .library-week (ProgramOverview's week list, shared by Plan and
+   Library preview) because .cartridge-block is ALSO Today's interactive
+   block class — Today keeps its own later .today-active rules and must
+   inherit neither the well nor the rail. The well is deliberately
+   DARKER than the slab (inverting the old lighter-inside relationship)
+   with one restrained inset depth cue. The 3px full-height left rail
+   carries block type + section continuity and replaces the head's short
+   marker inside this scope only; semantic colours follow the existing
+   mapping (mobility --label, strength/core --accent, conditioning
+   --warn, cooldown --primary). The rail is pure signal: Plan's blocks
+   are not collapsible, and nothing here adds cursor, state, or implies
+   interactivity. */
+.library-week .cartridge-block {
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border-color: color-mix(in srgb, var(--divider) 72%, transparent);
+  border-left: 3px solid var(--divider);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+.library-week .cartridge-block--mobility {
+  border-left-color: var(--label);
+}
+
+.library-week .cartridge-block--strength,
+.library-week .cartridge-block--core {
+  border-left-color: var(--accent);
+}
+
+.library-week .cartridge-block--conditioning {
+  border-left-color: var(--warn);
+}
+
+.library-week .cartridge-block--cooldown {
+  border-left-color: var(--primary);
+}
+
+/* The full-height rail supersedes the head's short marker inside the
+   well; the head keeps its per-kind text tint from the base rules. */
+.library-week .cartridge-block__head {
+  border-left: none;
+  padding-left: 0;
 }
 
 /* ── Badges ─────────────────────────────────────── */
@@ -1640,6 +1787,19 @@ input[type="checkbox"] {
   padding-top: 0;
 }
 
+/* Train-only active-tab wash (A11): a soft amber settle behind the
+   selected Today/Plan/Library tab. Scoped to the hub-tabs-bar--train
+   hook in TrainHub.jsx so the shared TopTabs in Checklist (and any
+   other hub) keep their existing styling. Geometry, underline, and
+   48px targets unchanged. */
+.hub-tabs-bar--train .top-tabs__tab.active {
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    color-mix(in srgb, var(--accent) 12%, transparent)
+  );
+}
+
 /* ── Desktop ────────────────────────────────────── */
 @media (max-width: 340px) {
   .selector-row {
@@ -1684,25 +1844,548 @@ input[type="checkbox"] {
     font-size: 1.5rem;
   }
 }
-/* -- Timer Alerts --------------------------------- */
-.alert-main {
-  animation: pulse-alert-main 0.8s ease-out;
+/* ══════════════════════════════════════════════════════
+   W15.1 — Timer hub: Instrument Strata
+
+   The Timer hub's Basic and Custom Rounds modes are two views of one
+   timing instrument. Both use the accepted Strata recipe (raised token-mix
+   slab, 1px rim reflection, one static ambient shadow) with the Signal
+   Spine translated into a full-height 3px left rail carrying module or
+   phase identity. Semantic accents follow the existing mapping: Stopwatch
+   --accent (measure), Rest --primary (recovery, same as Rounds rest and
+   cooldown), Rounds phases keep their engine semantics (work --alert,
+   rest --primary, prep --dim, done --warn). Tokens + color-mix only; no
+   new hex, no looping animation, no new assets.
+
+   The old global .alert-main / .alert-interim selectors are REPLACED by
+   the scoped .timer-alert-* below: a repo-wide search proved the only
+   consumers were BasicTimer.jsx and RoundsTimer.jsx, both updated in the
+   same pass, so no non-Timer surface can be affected.
+   ══════════════════════════════════════════════════════ */
+
+/* Calmer hub header: the shared .page-header's emerald rule + glow reads
+   as a legacy alarm band on an instrument surface. Scoped override only —
+   other hubs keep the shared header exactly as-is. */
+.timer-hub .page-header {
+  border-bottom-color: var(--divider);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--bg) 70%, transparent);
 }
 
-@keyframes pulse-alert-main {
-  0% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
-  10% { box-shadow: 0 0 30px rgba(0, 255, 102, 0.8); border-color: var(--primary); }
-  100% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
+/* Basic tab stack spacing (the shared .content gap is 12px). */
+.timer-basic,
+.timer-rounds {
+  gap: 20px;
 }
 
-.alert-interim {
-  animation: pulse-alert-interim 0.4s ease-out;
+/* ── Instrument module slab ─────────────────────────── */
+.timer-module {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 46%
+  );
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  border-left: 3px solid var(--divider);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  padding: 14px 16px 16px;
+  text-align: center;
 }
 
-@keyframes pulse-alert-interim {
-  0% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
-  10% { box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); border-color: var(--warn); }
-  100% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
+.timer-module--stopwatch {
+  border-left-color: var(--accent);
+}
+
+.timer-module--rest {
+  border-left-color: var(--primary);
+}
+
+.timer-module--config {
+  border-left-color: var(--accent);
+}
+
+.timer-module--saved {
+  border-left-color: var(--warn);
+}
+
+/* Module head: quiet label + explicit textual state pill + the W15 ⋮
+   reorder affordance. State is TEXT first; the pill tint only reinforces
+   it (running --primary / paused --warn / ready --dim). */
+.timer-module__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.timer-module__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.timer-module__state {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.timer-module[data-state="running"] .timer-module__state {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--divider));
+}
+
+.timer-module[data-state="paused"] .timer-module__state {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--divider));
+}
+
+/* ⋮ reorder button: stretches to the full head height and module edge so
+   the tap target stays generous (sweaty-thumb floor) while visually flush.
+   Same behavior as the W15 inline-styled version. */
+.timer-module__menu {
+  flex-shrink: 0;
+  margin: -14px -16px -14px 0;
+  padding: 10px 16px;
+  min-width: 48px;
+  min-height: 48px;
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--dim);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Dominant time display: monospace HUD numerals, clamped so large values
+   never clip at narrow Android widths, never wrapping. */
+.timer-module__time {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  margin-bottom: 16px;
+}
+
+.timer-module--stopwatch .timer-module__time {
+  font-size: clamp(2.4rem, 13vw, 3rem);
+  color: var(--accent);
+}
+
+.timer-module--rest .timer-module__time {
+  font-size: clamp(2.8rem, 16vw, 4rem);
+  color: var(--primary);
+}
+
+.timer-module--rest[data-state="ready"] .timer-module__time {
+  color: var(--dim);
+}
+
+/* Rest preset grid: the low-friction action path — four equal, thumb-sized
+   targets, values unchanged (60s / 90s / 2m / 3m). */
+.timer-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.timer-preset {
+  min-height: 48px;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--divider));
+  background: color-mix(in srgb, var(--primary) 6%, var(--panel));
+}
+
+.timer-module__actions {
+  margin-bottom: 14px;
+}
+
+/* All primary timer controls keep a 48px+ target. */
+.timer-btn {
+  min-height: 48px;
+}
+
+.timer-btn--stopwatch {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 12%, transparent) inset;
+}
+
+.timer-btn--rest {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 12%, transparent) inset;
+}
+
+/* Add-time controls (+15s / +30s): frequent mid-set actions, so they get
+   the same 48px target floor as the presets. */
+.timer-addtime {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.timer-addtime__btn {
+  min-height: 48px;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+}
+
+/* ── Custom Rounds: build → verify → start → repeat ── */
+
+/* Prescription field grid. Field order, labels, input types, values, and
+   parsing are unchanged; this only groups and labels them legibly. */
+.rounds-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.rounds-field--wide {
+  grid-column: 1 / -1;
+}
+
+.rounds-field label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+
+.rounds-field input {
+  width: 100%;
+  padding: 12px 10px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+}
+
+/* Verify step: the derived prescription preview — one recessed, scannable
+   line restating the config before Start. Display-only; no new metric. */
+.rounds-preview {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--label);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+/* Start Workout: the obvious primary action — same token-mix emerald
+   execution treatment as Today's Finish bar, scoped to this button. */
+.timer-btn--start {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.05rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 24%, var(--panel)) 0%,
+    color-mix(in srgb, var(--primary) 13%, var(--bg)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--primary) 65%, var(--divider));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+/* Saved setups: recognizable one-tap routines. The whole left side loads;
+   only ✕ deletes. Long names wrap deliberately instead of overlapping. */
+.rounds-save {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.rounds-setups {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rounds-setup {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.rounds-setup__load {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.rounds-setup__name {
+  display: block;
+  color: var(--accent);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.rounds-setup__summary {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.rounds-setup__delete {
+  align-self: center;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  color: var(--alert);
+}
+
+.rounds-empty {
+  padding: 10px 0;
+  color: var(--dim);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ── Custom Rounds: active execution surface ────────── */
+
+/* Phase identity via a SCOPED custom property (layout/signal property, not
+   a new design token — same convention as --today-actions-bar-height).
+   Semantics preserved from the pre-W15.1 inline styles. */
+.rounds-active {
+  --phase: var(--warn);
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-color: color-mix(in srgb, var(--phase) 55%, var(--divider));
+  border-left-color: var(--phase);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 84%, var(--phase) 9%) 0%,
+    color-mix(in srgb, var(--panel) 94%, var(--phase) 4%) 46%
+  );
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+
+.rounds-active--work {
+  --phase: var(--alert);
+}
+
+.rounds-active--rest {
+  --phase: var(--primary);
+}
+
+.rounds-active--prep {
+  --phase: var(--dim);
+}
+
+.rounds-active--done {
+  --phase: var(--warn);
+}
+
+.rounds-active__summary {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: var(--dim);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.rounds-active__phase {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--phase);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--phase) 55%, transparent);
+  margin-bottom: 8px;
+  transition: color 0.4s ease;
+}
+
+.rounds-active__round {
+  font-size: 0.95rem;
+  color: var(--dim);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.rounds-active__paused {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin: -8px 0 16px;
+}
+
+.rounds-active__clock {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(3.2rem, 21vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--phase);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--phase) 40%, transparent);
+  margin-bottom: 12px;
+  transition: color 0.4s ease;
+}
+
+.rounds-active__interim {
+  min-height: 22px;
+  font-size: 0.85rem;
+  color: var(--warn);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.rounds-active__actions {
+  margin-top: 26px;
+}
+
+.rounds-active__actions .timer-btn:only-child {
+  grid-column: 1 / -1;
+}
+
+.rounds-active__toggle {
+  background: color-mix(in srgb, var(--phase) 10%, transparent);
+  color: var(--phase);
+  border-color: var(--phase);
+  box-shadow: none;
+  transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+/* ── One-shot Timer completion signals ────────────────
+   The class exists only during the provider's existing alertState window
+   (800ms main / 400ms interim — both unchanged). Motion is a single
+   non-looping rim/light rise-and-settle; after the window the module
+   returns to its static strata state. .timer-alert-main is applied ONLY
+   to the surface that actually completed (Rest module, or the active
+   Rounds surface) — never to the Stopwatch. */
+.timer-alert-main {
+  animation: timer-pulse-main 0.8s ease-out 1;
+}
+
+@keyframes timer-pulse-main {
+  0% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+  12% {
+    border-color: var(--primary);
+    box-shadow:
+      0 0 24px color-mix(in srgb, var(--primary) 50%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+}
+
+.timer-alert-interim {
+  animation: timer-pulse-interim 0.4s ease-out 1;
+}
+
+@keyframes timer-pulse-interim {
+  0% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+  15% {
+    border-color: var(--warn);
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--warn) 40%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--warn) 35%, transparent);
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+}
+
+/* Reduced motion: no pulse — a truthful STATIC rim signal for the same
+   alert window (the class is only present while alertState is active). */
+@media (prefers-reduced-motion: reduce) {
+  .timer-alert-main,
+  .timer-alert-interim {
+    animation: none;
+  }
+
+  .timer-alert-main {
+    border-color: var(--primary);
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--primary) 35%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+
+  .timer-alert-interim {
+    border-color: var(--warn);
+    box-shadow:
+      0 0 12px color-mix(in srgb, var(--warn) 30%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--warn) 28%, transparent);
+  }
+}
+
+/* Timer-scoped keyboard focus: the global reset leaves buttons to the
+   browser default; give every Timer control a clear token-colored ring. */
+.timer-hub button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -2506,16 +3189,21 @@ button.cartridge-block__head {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 2px;
+  padding: 10px 2px 12px;
   /* A7b corrective pass (finding F): genuinely sticky while workout content
      scrolls beneath it. top respects the same safe-top layout every other
      fixed/sticky bar uses (.page-header, .focused-note-overlay). z-index is
      well above ordinary content (auto/0) but far below .bottom-nav (1000)
-     and .focused-note-overlay (200) — it never fights either shared layer. */
+     and .focused-note-overlay (200) — it never fights either shared layer.
+     A11 Today polish: a hairline divider + soft drop separates the sticky
+     instrument header from content scrolling beneath it (static, bounded). */
   position: sticky;
   top: var(--safe-top);
   z-index: 40;
   background: var(--bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--divider) 70%, transparent);
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--bg) 75%, transparent);
+  margin-bottom: 4px;
 }
 
 .today-header__row {
@@ -2525,14 +3213,30 @@ button.cartridge-block__head {
   gap: 8px;
 }
 
+/* A7b Android acceptance remediation (plan §3.1): the phase context as a
+   compact left-aligned eyebrow ABOVE the day title — no pill, so even the
+   longest real label ("Phase 1 — Foundation (4 weeks)") reads as one quiet
+   line of context and never competes with the title. */
+.today-header__phase {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
 .today-header__day {
-  font-size: 1.1rem;
+  /* A11 Today polish: the day title is the loudest element on the screen —
+     same promotion the A11 Plan pass gave .cartridge-day__title. */
+  font-size: 1.28rem;
   font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
   color: var(--text);
 }
 
 .today-header__row--meta {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--dim);
 }
 
@@ -2541,12 +3245,66 @@ button.cartridge-block__head {
   color: var(--accent);
 }
 
+/* A11 Today polish: thin canonical progress rail under the meta row. The
+   fill width is derived in TodayHeader.jsx from the SAME done/units the
+   "N/M sets" text reports (itemCompleteness aggregate) — a second reading
+   of one number, never a new metric. Amber in progress, primary only when
+   the canonical count is genuinely complete (done >= units). */
+.today-header__rail {
+  height: 3px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--input) 80%, var(--bg) 20%);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--bg) 80%, transparent);
+  overflow: hidden;
+}
+
+.today-header__rail-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 85%, var(--warn) 15%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.today-header__rail--complete .today-header__rail-fill {
+  background: var(--primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
 .today-header__save-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* A11 Today polish: decorative state dot beside the (already truthful)
+   save label — reinforcement, never the sole carrier of state. */
+.today-header__save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--dim);
+}
+
+.today-header__save-dot--idle {
+  /* idle WITH a label present is the proven-saved state (see TodayHeader) */
+  background: var(--primary);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.today-header__save-dot--saving {
+  background: var(--accent);
+}
+
+.today-header__save-dot--error {
+  background: var(--warn);
+}
+
+.today-header__save-status--saving {
+  color: color-mix(in srgb, var(--accent) 85%, var(--dim));
 }
 
 .today-header__save-status--error {
@@ -2570,12 +3328,18 @@ button.cartridge-block__head {
 }
 
 .today-day-focus {
-  text-align: center;
-  margin: 8px 0;
-  font-size: 1.05rem;
+  /* A11 Today polish: the day's focus reads as a quiet guidance strip —
+     left-aligned, accent-ticked, subordinate to the header, clearly
+     guidance rather than editable data. */
+  margin: 8px 0 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text);
-  letter-spacing: 0.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--label) 80%, var(--dim));
+  border-left: 3px solid color-mix(in srgb, var(--accent) 60%, var(--divider));
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .today-suggestion {
@@ -2617,9 +3381,29 @@ button.cartridge-block__head {
   border-bottom: none;
 }
 
+/* Header row wrapper (A11 Today) — lets the compact video affordance sit
+   beside the exercise name without making the whole name/card clickable.
+   The name keeps its own styling/flow; the row only arbitrates the two. */
+.today-item__header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.today-item__header-row .today-item__name {
+  flex: 1;
+  min-width: 0;
+}
+
 .today-item__name {
   font-weight: 700;
   color: var(--text);
+  /* A11 Today polish: the exercise name is the loudest text inside the
+     block — mirrors the A11 Plan promotion of .cartridge-item-name so the
+     two surfaces share one type hierarchy. */
+  font-size: 1.04rem;
+  line-height: 1.38;
 }
 
 .today-item__superset-badge {
@@ -2627,18 +3411,69 @@ button.cartridge-block__head {
   color: var(--dim);
 }
 
+/* ── Today exercise reference affordance (A11) — compact per-item "DEMO"
+   external video link, subordinate to the exercise name. Shares the
+   accent-glyph language of .exercise-ref (Plan/Library) but stays a plain
+   inline control with no chip background so it reads as restrained in the
+   denser Today list, while still keeping a real 48×48 CSS-pixel touch
+   target via padding rather than a visually larger box. */
+.today-exercise-ref {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 6px;
+  color: color-mix(in srgb, var(--accent) 80%, var(--dim));
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+}
+
+.today-exercise-ref:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.today-exercise-ref:active {
+  color: var(--accent);
+}
+
+.today-exercise-ref__glyph {
+  color: var(--accent);
+}
+
+.today-exercise-ref__glyph--ext {
+  font-size: 0.6rem;
+  color: color-mix(in srgb, var(--accent) 70%, var(--dim));
+}
+
 .today-item__meta {
-  font-size: 0.78rem;
-  color: var(--dim);
-  margin-top: 2px;
+  font-size: 0.8rem;
+  /* A11 Today polish: same dim/label mix the A11 Plan pass measured at
+     ~7:1 on recessed wells — quiet but comfortably above the AA floor. */
+  color: color-mix(in srgb, var(--dim) 45%, var(--label) 55%);
+  margin-top: 3px;
+  line-height: 1.45;
 }
 
 .today-item__cue {
-  font-size: 0.8rem;
-  color: var(--dim);
+  font-size: 0.82rem;
+  /* A11 Today polish: cues read as coaching guidance (italic, label
+     tint, divider tick) — visually distinct from editable performed
+     data, matching .cartridge-item-cue's accepted Plan treatment. */
+  color: var(--label);
+  font-style: italic;
   border-left: 2px solid var(--divider);
-  padding-left: 8px;
-  margin-top: 6px;
+  padding-left: 10px;
+  margin-top: 7px;
+  line-height: 1.5;
 }
 
 .today-item__perround {
@@ -2662,7 +3497,12 @@ button.cartridge-block__head {
 }
 
 /* Large one-thumb controls — corrects the first attempt's 0.75rem text
-   links (Phase 0 review finding: tiny tap targets). */
+   links (Phase 0 review finding: tiny tap targets).
+   A7b Android acceptance remediation (plan §3.4): the BASE button is now the
+   QUIETER secondary utility control (Change exercise, Use last values, the
+   effort-guide trigger) — recessed, low-contrast border, softened amber; the
+   deliberate amber execution action (Add set / Add round) gets the --amber
+   modifier below so the hierarchy reads at a glance. */
 .today-item__actions {
   display: flex;
   gap: 10px;
@@ -2672,15 +3512,75 @@ button.cartridge-block__head {
 .today-item__action-btn {
   min-height: 44px;
   padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
   border-radius: var(--radius-sm);
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 75%, var(--dim));
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 .today-item__action-btn:active {
+  border-color: var(--accent);
+}
+
+/* A11 Today polish: full-width quiet variant for standalone utility
+   triggers in the page flow (the effort-guide trigger) — same recessed
+   utility tier as the base button, centred, one thumb row. */
+.today-item__action-btn--wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.today-item__action-btn--amber {
+  background: color-mix(in srgb, var(--accent) 13%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--divider));
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 22%, transparent),
+    0 1px 4px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.today-item__action-btn--amber:active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
+  border-color: var(--accent);
+}
+
+/* The frequent Add set control keeps a full 44px thumb target while its
+   visible capsule is inset and separated from the preceding set card. */
+.today-item__action-btn--compact {
+  display: block;
+  margin-top: 6px;
+  padding: 5px 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.today-item__action-btn--compact .today-item__action-btn-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--accent) 13%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--divider));
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 22%, transparent),
+    0 1px 4px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.today-item__action-btn--compact:active {
+  background: transparent;
+  border-color: transparent;
+}
+
+.today-item__action-btn--compact:active .today-item__action-btn-label {
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
   border-color: var(--accent);
 }
 
@@ -2743,10 +3643,15 @@ button.cartridge-block__head {
 /* ── Superset grouping ── */
 .superset-group {
   margin-top: 10px;
-  padding: 10px;
-  border: 1px solid var(--divider);
+  padding: 10px 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--divider));
+  border-left: 3px solid color-mix(in srgb, var(--accent) 70%, var(--divider));
   border-radius: var(--radius-sm);
+  /* A11 Today polish: the group reads as one recessed instrument well with
+     an amber spine — the same Signal-Spine idea as the block rails, one
+     tier down. */
   background: color-mix(in srgb, var(--accent) 4%, transparent);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 65%, transparent);
 }
 
 .superset-group__head {
@@ -2781,10 +3686,12 @@ button.cartridge-block__head {
 
 .superset-group__round-label {
   font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dim);
+  /* A11 Today polish: round markers join the amber member/rail language
+     instead of reading as unrelated dim text. */
+  color: color-mix(in srgb, var(--accent) 70%, var(--dim));
   margin-bottom: 4px;
 }
 
@@ -2793,8 +3700,20 @@ button.cartridge-block__head {
 }
 
 .today-item__superset-badge--member {
-  font-weight: 700;
+  /* A11 Today polish: the A1/A2 member label reads as a small instrument
+     chip beside the exercise name instead of trailing prose — glanceable
+     when round rows interleave members. */
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  vertical-align: 2px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--divider));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .today-set-unit__member {
@@ -2806,13 +3725,22 @@ button.cartridge-block__head {
 }
 
 /* ── Set units — one bounded visual block per set, load+reps then a
-   CONDITIONAL effort row (never both RPE and RIR by default). ── */
+   CONDITIONAL effort row (never both RPE and RIR by default).
+   A7b Android acceptance remediation (plan §3.4): surface depth instead of
+   outlining — each unit is a subtly RAISED dark surface (lifted token-mix
+   background, soft outer shadow, faint top inner highlight) and its numeric
+   inputs are RECESSED wells inside it (darker --panel floor, restrained
+   inner depth). All values derive from existing tokens via color-mix(); no
+   new hex, no animation. ── */
 .today-set-unit {
   margin-top: 8px;
   padding: 8px;
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
   border-radius: var(--radius-sm);
-  background: var(--input);
+  background: color-mix(in srgb, var(--input) 92%, var(--label) 8%);
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--bg) 85%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 12%, transparent);
 }
 
 .today-set-unit--pair {
@@ -2822,9 +3750,11 @@ button.cartridge-block__head {
 .today-set-unit__head {
   font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--dim);
+  /* A11 Today polish: a half-step brighter than --dim so the SET n label
+     stays legible on the raised unit well without competing with inputs. */
+  color: color-mix(in srgb, var(--dim) 55%, var(--label) 45%);
   margin-bottom: 4px;
 }
 
@@ -2851,18 +3781,54 @@ button.cartridge-block__head {
 
 .today-set-unit input {
   min-height: 44px;
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 65%, transparent);
   border-radius: var(--radius-sm);
   background: var(--panel);
+  box-shadow:
+    inset 0 2px 5px color-mix(in srgb, var(--bg) 90%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--label) 8%, transparent);
   color: var(--text);
   padding: 8px 10px;
   font-size: 0.9rem;
+}
+
+/* A7b Android acceptance remediation (plan §3.2): the extra-set Remove
+   action. Rendered by StrengthSetRow ONLY on extra units; visually compact
+   but the padded hit area still meets the 44px thumb-target minimum. */
+.today-set-unit__remove {
+  display: block;
+  margin: 6px 0 0 auto;
+  min-height: 44px;
+  padding: 4px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.today-set-unit__remove:active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* ── Session summary (D11 point 2) ── */
 .today-session-summary {
   padding: 14px;
   margin-top: 14px;
+}
+
+/* A11 Today polish: eyebrow title so the card reads as the session's
+   closing section in the page hierarchy. */
+.today-session-summary__title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--label);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
 }
 
 .today-session-summary__section-label {
@@ -2874,7 +3840,8 @@ button.cartridge-block__head {
   margin-top: 12px;
 }
 
-.today-session-summary__section-label:first-child {
+.today-session-summary__section-label:first-child,
+.today-session-summary__title + .today-session-summary__section-label {
   margin-top: 0;
 }
 
@@ -2901,7 +3868,7 @@ button.cartridge-block__head {
 }
 
 .today-chip {
-  /* A7b corrective pass (finding J5): was 40px — all six activity chips
+  /* A7b corrective pass (finding J5): was 40px — all seven activity chips
      need the same 44px minimum every other tappable control gets. */
   min-height: 44px;
   padding: 8px 14px;
@@ -2917,6 +3884,9 @@ button.cartridge-block__head {
   border-color: var(--accent);
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* A11 Today polish: the active chip gets the same rim-light the other
+     amber execution controls carry, so "selected" reads tactile. */
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .today-session-summary__other-input {
@@ -2930,17 +3900,51 @@ button.cartridge-block__head {
   padding: 8px 10px;
 }
 
-/* ── FocusedNoteEditor — compact preview + full-screen editor ── */
+/* ── FocusedNoteEditor — compact preview + full-screen editor ──
+   A7b Android acceptance remediation (plan §3.3): the preview must read as
+   unmistakably TAPPABLE — leading edit icon, label + "Add a note"/first-line
+   body, trailing chevron — while staying subordinate to the workout
+   completion controls around it. */
 .focused-note--preview {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   margin-top: 10px;
   padding: 10px 12px;
   min-height: 44px;
   background: var(--input);
-  border: 1px solid var(--divider);
+  border: 1px solid color-mix(in srgb, var(--divider) 85%, transparent);
   border-radius: var(--radius-sm);
+}
+
+.focused-note--preview:active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--input));
+}
+
+.focused-note--preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.focused-note__icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.focused-note__body {
+  flex: 1;
+  min-width: 0; /* lets the preview line ellipsize instead of stretching the row */
+}
+
+.focused-note__chevron {
+  flex-shrink: 0;
+  color: var(--dim);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .focused-note__label {
@@ -2960,6 +3964,10 @@ button.cartridge-block__head {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.focused-note__preview-text--empty {
+  color: var(--dim);
 }
 
 .focused-note-overlay {
@@ -3051,6 +4059,112 @@ button.cartridge-block__head {
   letter-spacing: 0.04em;
 }
 
+/* ── A7b Android acceptance remediation (plan §3.4) — Training-mode block
+   cards. Scoped under .today-active (CartridgeToday's active-workout <main>)
+   because .cartridge-block is SHARED with ProgramOverview's read-only
+   renderer in Plan/Library — this raised treatment must never leak there.
+   Subtly lifted token-mix surface, softened border, soft outer shadow, and
+   one static top inner highlight; no animation, no new hex.
+
+   A11 Today polish (Execution Strata): the accepted Plan/Library Signal
+   Spine is translated into an execution surface. EVERY block carries the
+   full-height per-kind rail (same semantic mapping as .library-week:
+   mobility --label, strength/core --accent, conditioning --warn, cooldown
+   --primary). A CLOSED block sits one tier down — recessed, darker than the
+   canvas — so the OPEN block reads as the raised active stratum the user is
+   working in right now: spatial "you are here" without any new state or
+   metric. ── */
+.today-active .cartridge-block {
+  border-color: color-mix(in srgb, var(--divider) 65%, transparent);
+  border-left: 3px solid var(--divider);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.today-active .cartridge-block--mobility {
+  border-left-color: var(--label);
+}
+
+.today-active .cartridge-block--strength,
+.today-active .cartridge-block--core {
+  border-left-color: var(--accent);
+}
+
+.today-active .cartridge-block--conditioning {
+  border-left-color: var(--warn);
+}
+
+.today-active .cartridge-block--cooldown {
+  border-left-color: var(--primary);
+}
+
+/* The full-height rail supersedes the head's short marker inside Today,
+   exactly as in .library-week; the head keeps its per-kind text tint. */
+.today-active .cartridge-block__head {
+  border-left: none;
+  padding-left: 0;
+}
+
+/* The open (active) block: the raised strata slab — top-lit token-mix
+   gradient, softened edge, rim reflection, one static ambient shadow.
+   Closed blocks stay recessed so only one stratum reads as active. */
+.today-active .cartridge-block.open {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 46%
+  );
+  border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+}
+
+/* Hairline separating the toggle header from the opened body — an inset
+   shadow, not a border, so opening never shifts geometry (same technique
+   as .cartridge-day.open .cartridge-day__toggle). */
+.today-active .cartridge-block.open .cartridge-block__head {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
+}
+
+/* A11 Today polish: factual last-performance recall as a recessed history
+   chip — left-aligned (it is data to scan, not a banner), visually quieter
+   than the live inputs below it. Scoped to Today: .history-badge is shared
+   with the legacy HUD and must stay untouched there. */
+.today-active .history-badge {
+  text-align: left;
+  font-size: 0.68rem;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--divider) 65%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  color: color-mix(in srgb, var(--dim) 55%, var(--label) 45%);
+  line-height: 1.45;
+}
+
+/* A11 Today polish: the shared CompletenessBar reads as one calm summary
+   instrument inside Today. Markup and thresholds are the shared
+   component's own (CompletenessBar.jsx is untouched); this only re-frames
+   its container and label, scoped so the HUD's usage is unaffected. */
+.today-active .completeness-block {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--divider) 75%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--panel) 70%, var(--bg) 30%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--label) 8%, transparent),
+    0 2px 8px color-mix(in srgb, var(--bg) 75%, transparent);
+}
+
+.today-active .completeness-block .pct-label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
 /* ── Fixed Finish/overflow bar — additive; the shared .actions-bar HUD.jsx
    still uses is untouched.
    A7b corrective pass (finding J1, BLOCKER): the previous z-index (60) sat
@@ -3082,10 +4196,26 @@ button.cartridge-block__head {
   padding: 0 16px;
   background: var(--bg);
   border-top: 1px solid var(--divider);
+  /* A11 Today polish: one static, bounded lift shadow integrates the fixed
+     Finish bar with the page instead of floating it flat on the canvas. */
+  box-shadow: 0 -8px 16px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .today-safe-actions .btn-primary {
   width: 100%;
+  /* A7b Android acceptance remediation (plan §3.4): the strongest emerald
+     execution state on the screen — a token-derived emerald gradient with
+     restrained edge illumination and a single static inner top reflection.
+     Scoped to this bar, so .btn-primary elsewhere is untouched. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 24%, var(--panel)) 0%,
+    color-mix(in srgb, var(--primary) 13%, var(--bg)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--primary) 65%, var(--divider));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--primary) 16%, transparent);
 }
 
 .today-safe-actions-spacer {
@@ -3093,5 +4223,16 @@ button.cartridge-block__head {
      it sits above — derived from the bar's own custom property so spacer
      and bar cannot drift apart. */
   height: calc(var(--today-actions-bar-height) + 85px + var(--safe-bottom));
+}
+
+/* Interactive Today blocks: the generic 1500px .card__body cap clips long
+   Strength/Core blocks, hiding the final exercise's Change exercise / Note
+   controls. Today content is dynamically extensible (Add set / Add round),
+   so no finite cap can ever be correct — another arbitrary pixel value
+   would only postpone the same defect. `none` removes the cap here only (the
+   open max-height animation is lost; functional access wins). Plan/Library
+   stay governed by their own rules (.cartridge-day), as does .str-section. */
+.today-active .cartridge-block.open > .card__body {
+  max-height: none;
 }
 

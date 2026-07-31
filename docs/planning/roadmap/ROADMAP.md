@@ -34,7 +34,8 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 - [ ] W12 · **IMPL**, then **REVIEW** · Reusable exercise picker: save custom core/accessory/cooldown exercises once, pick from dropdown after (new Dexie store — schema version bump, handle with care). → `prompts/W12-exercise-picker.md`
 - [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md` ⚠️ _The legacy mobility-video portion is now a candidate for absorption into A11’s cartridge-era Exercise Reference layer. The injury/profile toggle remains separate, and W13 must be re-scoped before execution._
 - [ ] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
-- [ ] W15 · **IMPL** · Timers page: drag-and-drop reordering of stopwatch/rest-timer blocks, order persisted in settings. → `prompts/W15-timer-reorder.md`
+- [x] W15 · **IMPL** · Timers page: user-controlled reordering of stopwatch/rest-timer blocks through explicit Move up/down actions, with order persisted in settings. → `prompts/W15-timer-reorder.md` _Shipped in commit `efcbe91` (`feat: reorderable timer blocks`), 2026-07-20; explicit controls were chosen over drag-and-drop for reliable touch use._
+- [x] W15.1 · **IMPL**, then **REVIEW** · Timer behavioral UX/UI pass: make Basic and Custom Rounds feel like one premium, action-oriented timing instrument; fix the Rest completion visual signal targeting the Stopwatch card; preserve the timer engine, audio/vibration, wake lock, saved setups, and W15 persistence. Ethical cue→action→truthful-feedback design only—no fabricated rewards or new tracking. → `prompts/W15.1-TIMER-BEHAVIORAL-UX-UI-EXPERIMENT-KIMI.md` _Shipped locally in `fc63b5d` (`feat(timer): add Instrument Strata experience`), 2026-07-31; developer visually accepted, 933 tests and production build passed._
 - [x] W16 · **IMPL**, then **REVIEW** · Day-7 cycle extension (re-scoped per D2 ruling): keep sequential day counting, extend the cycle 6→7 with Day 7 as an optional/custom gym day (cardio/mobility/free-form notes — `FightGymDay.jsx` already supports these session types). Diagnostic-first. → `prompts/W16-next-day-semantics.md` (rewritten 2026-07-10) _Shipped in PR #18 (Sonnet; reviewed by Fable), 2026-07-17._
 - [x] W17 · **IMPL**, then **REVIEW** · ⛔ gated on **D1** · Delete semantics rework (only if D1 = soft delete): webhook.gs v3 with status column + local tombstone. The one item where the "do not touch webhooks" guardrail is deliberately lifted. → `prompts/W17-soft-delete.md` _Shipped in PR #22 (Sonnet; reviewed by Fable), 2026-07-17 — final design: Status column only (col 66/BN), NO local tombstone (local hard delete ratified); Apps Script v3 redeployed + verified on-device._
 
@@ -106,7 +107,7 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       session payload. _Shipped in PR #57, 2026-07-26; 450 tests and production build passed.
       Android acceptance passed every reported scenario; sign-out and active-draft survival
       across a later PWA update were not exercised on-device._
-- [ ] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
+- [x] **A7 · Interactive (logging) renderer** — the half of A6 that WRITES a session from a
       cartridge; inline per-session exercise substitution (decision 2026-07-21 #2). Payload shape
       is locked (D11, revised corrective pass, `payloadVersion: 2`) — A6.5 is complete, so A7 is
       ungated. Scope: every block kind, item field, and day type used by the three real shipped
@@ -120,7 +121,16 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       Sequenced as four stages, each stopping for review before the next begins: **Stage 0**
       (payload-lock docs, this entry), **A7a** (pure payload builder/validation/analytics fields +
       cartridge draft/state integration, no UI change), **A7b** (interactive Today redesign +
-      reader compatibility), **A7c** (later, separate: app-wide `FocusedNoteEditor` adoption).
+      reader compatibility), **A7c** (later, separate: evaluate app-wide `FocusedNoteEditor`
+      adoption without forcing reuse).
+      _Status 2026-07-30: Stage 0, A7a, and A7b are complete. A7b plus its Android acceptance
+      remediation passed independent review, 787 tests, production build, and developer Android
+      acceptance. The `weights` activity-ID expansion and the unbounded interactive-block clipping
+      fix passed the same review/Android gates. The A7c diagnostic found no appropriate
+      Checklist/Notes adoption surface: Notes already has a persistence-owning full-screen editor,
+      while the Checklist task note and daily template are fields inside explicit-save sheets where
+      `FocusedNoteEditor` would create incompatible nested-modal and save semantics. The developer
+      approved the no-adoption ruling; A7c therefore closes with no app change and A7 is complete._
 - [x] **A8 · Cartridge Viewer UX/UI pass** — quiet block headers, collapsible days, collapsed About
       disclosure, and tab-contrast fix shipped. _2026-07-22._
 - [x] **A9 · Cartridge availability + activation** — A9a–A9d complete. Assigned-only Library,
@@ -145,12 +155,28 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       `sessionActivities` makes sessions analytics-ready for a future W26 without any new table.
       Legacy sessions are completely unchanged; no migration or rewrite of any existing row, local
       or remote.
-- [ ] **A11 · candidate · Exercise Reference layer** — design a stable canonical exercise identity
-      and curated external-resource catalogue that can support explicit “Watch demo” actions in Plan
-      and later Today. File-backed/offline-readable is the starting hypothesis, not yet a ruling.
-      Diagnostic must cover cartridge schema/authoring/validator impact, link validation, touch
-      targets, external-browser return, offline behaviour, link maintenance and future Supabase
-      migration. No new main-nav button.
+- [~] **A11 · Exercise Reference layer** — design a stable canonical exercise identity and curated
+      external-resource catalogue supporting explicit “Watch demo” actions in Plan and later Today.
+      _Diagnostic and architecture approved 2026-07-30:_ keep cartridge `item.id` as its existing
+      prescription-slot identity; add optional canonical `exerciseId` as additive schema-v3 metadata,
+      resolved against a separate bundled catalogue. File-backed v1; no Dexie/Supabase or payload
+      change; manual identity/link curation only; PAP/pair references deferred; no name/fuzzy
+      matching. Sequence: **A11a** contract/catalogue/validation foundation
+      (`prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`), then a small curated set + Plan adoption and
+      Android acceptance, then Today separately if Plan proves the pattern. _Plan phase accepted
+      locally 2026-07-30:_ A11a foundation; seven-entry catalogue + ten cartridge annotations
+      (`0db2f54`); fail-safe direct-open Plan/Library links and focused tests (`ad8a8cc`); and the
+      developer-accepted hybrid Plan/TRAIN visual polish (`f51f94f`). _Today phase accepted locally
+      2026-07-30:_ one shared fail-safe primary-video resolver; compact 48px direct-open DEMO links
+      across all Today item renderers and superset headers; prescribed links hidden for free-text
+      substitutions; 26 focused component/integration cases; and developer localhost acceptance
+      (`f104028`). _Today visual phase accepted 2026-07-31:_ the frontend-only “Execution Strata”
+      pass translates Plan/Library's layered material and semantic spines into the execution
+      surface, using the existing canonical `done/units` count for its header progress rail and no
+      invented gamification (`c77ea94`). Independent final evidence: 45 test files / 900 tests pass,
+      the production PWA build succeeds, and the developer accepted the complete Today experience
+      after localhost testing. Plan/Library and Today adoption are proven; A11 remains in progress
+      only for the separately curated warm-up routine reference. No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do

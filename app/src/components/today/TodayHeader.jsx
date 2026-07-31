@@ -29,14 +29,25 @@ export default function TodayHeader({ day, itemStateById, saveLabel, saveStatusK
 
     return (
         <div className="today-header">
-            <div className="today-header__row">
-                <div className="today-header__day">{day?.label || 'Today'}</div>
-                {phaseLabel && <span className="badge badge-dim">{phaseLabel}</span>}
-            </div>
+            {/* Android acceptance remediation plan §3.1: phase context renders
+                EXACTLY ONCE, as a compact left-aligned eyebrow directly above
+                the day title — never a filled pill (a long label forced the
+                old .badge.badge-dim pill to wrap and compete with the title),
+                and never duplicated elsewhere. The label text itself is the
+                factual phaseBlock.label, rendered verbatim. */}
+            {phaseLabel && <div className="today-header__phase">{phaseLabel}</div>}
+            <div className="today-header__day">{day?.label || 'Today'}</div>
             <div className="today-header__row today-header__row--meta">
                 {units > 0 && <span className="today-header__progress">{done}/{units} sets</span>}
                 {saveLabel && (
                     <span className={`today-header__save-status today-header__save-status--${saveStatusKind}`}>
+                        {/* A11 Today polish: decorative status dot — the
+                            saveLabel text beside it already carries the full
+                            meaning, so state is never colour-only. 'idle'
+                            with a label present IS the proven-saved state
+                            (mapSaveStatusToLabel only returns a label for
+                            idle once a persisted row is proven). */}
+                        <span className={`today-header__save-dot today-header__save-dot--${saveStatusKind}`} aria-hidden="true" />
                         {saveLabel}
                         {saveStatusKind === 'error' && onRetry && (
                             <button type="button" className="today-header__retry" onClick={onRetry}>Retry</button>
@@ -44,6 +55,19 @@ export default function TodayHeader({ day, itemStateById, saveLabel, saveStatusK
                     </span>
                 )}
             </div>
+            {/* A11 Today polish: thin progress rail derived from the SAME
+                canonical done/units shown as text above (never a separate
+                count or formula) — pure presentation of the existing
+                itemCompleteness aggregate, hidden from screen readers because
+                the "N/M sets" text already states it. */}
+            {units > 0 && (
+                <div className={`today-header__rail${done >= units ? ' today-header__rail--complete' : ''}`} aria-hidden="true">
+                    <div
+                        className="today-header__rail-fill"
+                        style={{ width: `${Math.min(100, Math.round((done / units) * 100))}%` }}
+                    />
+                </div>
+            )}
         </div>
     )
 }

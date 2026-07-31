@@ -30,7 +30,7 @@ export const SESSION_KIND = 'cartridge'
 export const DAY_TYPES = ['training', 'rest', 'recovery', 'custom']
 
 export const SESSION_ACTIVITIES = [
-    'warmup', 'cooldown', 'bag-workout', 'cardio', 'mobility', 'abs', 'corrective-exercises', 'other',
+    'warmup', 'cooldown', 'weights', 'bag-workout', 'cardio', 'mobility', 'abs', 'corrective-exercises', 'other',
 ]
 const SESSION_ACTIVITIES_SET = new Set(SESSION_ACTIVITIES)
 

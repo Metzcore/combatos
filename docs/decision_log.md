@@ -522,3 +522,67 @@ on-device sign-out testing; active-draft survival across a later PWA update.
 
 **To do next session:** complete the W26-dependent payload architecture required to unlock A7.
 Rotate the Supabase developer password after the app work is finished.
+
+---
+
+## 2026-07-30 · A11 canonical exercise identity and catalogue architecture
+
+**Context:** Claude's read-only A11 diagnostic mapped identity across all three real cartridges;
+Codex independently verified the slot-ID collisions, validator behavior, payload boundary, and
+offline model. The developer approved the amended architecture before implementation.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Keep cartridge `item.id` / logged `itemId` as prescription-slot identity; add optional canonical `exerciseId` | Real item IDs collide across cartridges and history recall already scopes/double-checks them; repurposing would misidentify exercises |
+| 2 | Store curated exercise resources in a separate source-controlled catalogue, canonical at `catalogue/exercise-catalogue.json` with an app-bundled mirror | Read-only product content must work offline and does not justify Dexie or Supabase v1 |
+| 3 | `exerciseId` is additive schema-v3 metadata; no cartridge schema-version or session-payload change | Old cartridges remain valid and reference metadata never belongs in the locked workout log |
+| 4 | Assignment is manual-only; no normalized-name or fuzzy identity matching | Similar names can be materially different movements, and substitutions are unconstrained free text |
+| 5 | Authored IDs must pass a deterministic catalogue cross-reference audit while runtime lookup still fails safe | Typos must fail before shipping without turning malformed optional metadata into an app crash |
+| 6 | PAP/pair references, real-link curation, Plan UI, and Today UI are outside A11a | Foundation first; Plan proves the interaction before the denser mid-workout Today surface |
+| 7 | No external media caching/download, Dexie table, Supabase migration, or new navigation | External video may require network, but the installed workout app and bundled metadata remain offline-capable |
+
+**Next:** implement and independently review A11a from
+`docs/planning/roadmap/prompts/A11A-EXERCISE-REFERENCE-FOUNDATION.md`; then curate a deliberately
+small reference set before Plan adoption.
+
+---
+
+## 2026-07-31 · Today “Execution Strata” visual baseline accepted
+
+**Context:** After the A11 reference layer was proven in Plan/Library and then Today, Kimi K3
+implemented a strictly frontend-only Today experiment under a protected file/behavior contract.
+Codex independently reviewed the diff and verification, and the developer accepted the result
+after localhost use.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | “Execution Strata” is the accepted active-Today visual baseline: closed blocks recede, the open block is the raised working stratum, and full-height semantic spines preserve block identity | The execution surface now shares the successful Plan/Library material language while making “where am I working?” immediately legible |
+| 2 | Workout motivation must come from truthful existing progress and lower cognitive friction, not invented scores or reward mechanics | The header rail mirrors the canonical `done/units` value; no new completion semantics, XP, streaks, readiness, or stored gamification state are justified |
+| 3 | Cross-surface visual coherence does not mean identical layouts: Plan/Library stay read-only browsing surfaces; Today remains the denser one-thumb execution surface | Shared typography, materials, and semantic accents create continuity without importing Plan geometry into mid-workout data entry |
+| 4 | Future model-led visual passes remain one-surface, diagnostic-first, frontend-bounded tasks with protected data/persistence contracts | The Kimi experiment produced a strong result because creative latitude was broad inside presentation and zero outside it |
+
+**Not done / deferred:** the curated warm-up reference remains the only incomplete A11 slice; A12
+Academy / Exercise Guides remains gated on real A11 usage; broader Playbook and Log redesign work
+keeps its separate roadmap/research scope.
+
+---
+
+## 2026-07-31 · W15.1 Timer “Instrument Strata” visual baseline accepted
+
+**Context:** Kimi K3 implemented a protected frontend-only Timer experiment covering Basic Timer
+and Custom Rounds. Codex inspected the implementation, reran verification, and committed the
+developer-accepted application and focused tests as `fc63b5d`.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | “Instrument Strata” is the accepted Timer visual baseline: timing modules use clear textual states, dominant clocks, restrained material depth, and phase/module signal rails | It brings Timer into the accepted app language while retaining its distinct function as a glanceable timing instrument |
+| 2 | Timer behavior design follows stable cue → low-friction action → immediate truthful feedback | Clear presets, saved routines, phase labels, and real timer feedback can support repeated use without manipulative rewards or fabricated metrics |
+| 3 | Rest completion visually signals the Rest module, never Stopwatch | The main alarm state is produced by Rest countdown completion; the previous Stopwatch flash was semantically false |
+| 4 | Timer engine, audio, vibration, wake lock, persistence, and saved-setup ownership remain protected from visual passes | Broad presentational freedom produced a strong result without risking the hard-won timing and offline behavior |
+
+**Not done / deferred:** no new presets, timing calculations, saved-setup behavior, notifications,
+analytics, gamification, persistent completion trace, or wider app-header redesign. The full
+physical-device checklist was not independently claimed during closeout.
+
+**To do next session:** choose the next roadmap item in a fresh session; treat W15.1 as complete
+unless real training use reveals a concrete regression or behavioral-friction follow-up.

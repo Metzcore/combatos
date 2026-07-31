@@ -7,6 +7,9 @@
 > **v3 change:** keeps the v2 block-composable model and adds the structured Library metadata that
 > lets the app explain a program clearly: summary, outcomes, tags and equipment requirements.
 >
+> **v4 change:** instructs authoring models never to invent `exerciseId` values or external URLs —
+> the field is omitted unless a later human-curation pass supplies it.
+>
 > **Inputs the operator provides alongside this prompt:**
 > 1. The person's **filled intake** (per [`INTAKE-SCHEMA.md`](INTAKE-SCHEMA.md)).
 > 2. The **cartridge spec** ([`PROGRAM-CARTRIDGE-SPEC.md`](../planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md)) — the output contract.
@@ -138,6 +141,9 @@ signal for switching. Do not try to cram a whole periodised year into one cartri
 - Do NOT model state-conditional content (e.g. an injury-flare alternate routine) as cartridge
   data — that needs a tracked app state that doesn't exist yet (roadmap item W13). Author the
   standard content only.
+- Do NOT invent `exerciseId` values or external URLs (demonstration videos, reference links).
+  `exerciseId` is canonical exercise identity assigned only by a later human-curation pass against
+  the exercise catalogue — omit the field entirely unless that pass supplies it.
 - Do NOT write or modify app code, deployment config, or databases. The cartridge is data; a
   developer assigns it to the person's account separately.
 - When genuinely unsure, prefer the simpler proven option and leave a flagged note.
@@ -145,6 +151,9 @@ signal for switching. Do not try to cram a whole periodised year into one cartri
 --------------------------------------------------------------------------------
 
 ## Changelog
+- **v4 (2026-07-30):** adds a hard boundary against inventing `exerciseId` values or external
+  URLs — canonical exercise identity is human-curated against the exercise catalogue, so authored
+  cartridges omit the field until that curation pass supplies it.
 - **v3 (2026-07-22):** adds the v3 Library metadata contract and ethical, benefit-led copy rules;
   removes the unsupported instruction to record authoring-prompt provenance in cartridge JSON.
 - **v2 (2026-07-22):** rewritten for the block-composable cartridge model (v2 spec). Adds doctrine

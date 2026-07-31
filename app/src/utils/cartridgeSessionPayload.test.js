@@ -201,11 +201,14 @@ describe('validateCartridgeSessionPayload — sessionActivities', () => {
         const errors = validateCartridgeSessionPayload(validTrainingPayload({ sessionActivities: ['warmup', 'warmup'] }))
         expect(errors.some(e => e.includes('duplicate id "warmup"'))).toBe(true)
     })
-    it('SESSION_ACTIVITIES is the exact closed 8-value set', () => {
+    it('SESSION_ACTIVITIES is the exact closed 9-value set', () => {
         expect([...SESSION_ACTIVITIES].sort()).toEqual(
-            ['abs', 'bag-workout', 'cardio', 'cooldown', 'corrective-exercises', 'mobility', 'other', 'warmup'].sort()
+            ['abs', 'bag-workout', 'cardio', 'cooldown', 'corrective-exercises', 'mobility', 'other', 'warmup', 'weights'].sort()
         )
-        expect(SESSION_ACTIVITIES).toHaveLength(8)
+        expect(SESSION_ACTIVITIES).toHaveLength(9)
+    })
+    it("accepts 'weights' as a valid activity id", () => {
+        expect(validateCartridgeSessionPayload(validTrainingPayload({ sessionActivities: ['weights'] }))).toEqual([])
     })
 })
 
@@ -499,6 +502,50 @@ describe('buildCartridgeSessionPayload', () => {
         expect(validateCartridgeSessionPayload(payload)).toEqual([])
         expect(payload.payloadVersion).toBe(2)
         expect(payload.completeness).toBeLessThan(100) // 1 of 4 prescribed main sets filled
+    })
+
+    it("preserves 'weights' in sessionActivities verbatim", () => {
+        const payload = buildCartridgeSessionPayload({
+            sessionId: 'uuid-build-1b', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning',
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            sessionActivities: ['weights', 'warmup'],
+            blocks: [
+                {
+                    kind: 'strength', label: 'Strength',
+                    items: [{
+                        itemId: 'd1-str-1',
+                        cartridgeItem: { name: 'Back Squat', target: 'Quads', sets: 4, reps: '4', prescription: { rpe: 8 } },
+                        performedInput: { sets: [{ kg: '100', reps: '4' }] },
+                    }],
+                },
+            ],
+        })
+        expect(payload.sessionActivities).toEqual(['weights', 'warmup'])
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+    })
+
+    it("selecting 'weights' has zero effect on completeness", () => {
+        const baseInput = {
+            sessionId: 'uuid-build-1c', date: '2026-08-02', completedAt: '2026-08-02T18:00:00.000Z',
+            sessionCategory: 'strength-conditioning',
+            cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+            dayTemplateKey: 'day:1', dayTemplateLabel: 'Day 1', dayType: 'training', phaseId: null,
+            blocks: [
+                {
+                    kind: 'strength', label: 'Strength',
+                    items: [{
+                        itemId: 'd1-str-1',
+                        cartridgeItem: { name: 'Back Squat', target: 'Quads', sets: 4, reps: '4', prescription: { rpe: 8 } },
+                        performedInput: { sets: [{ kg: '100', reps: '4' }] },
+                    }],
+                },
+            ],
+        }
+        const without = buildCartridgeSessionPayload({ ...baseInput, sessionActivities: [] })
+        const withWeights = buildCartridgeSessionPayload({ ...baseInput, sessionActivities: ['weights'] })
+        expect(withWeights.completeness).toBe(without.completeness)
     })
 
     it('omits completeness when total units is zero (mobility-only training day)', () => {

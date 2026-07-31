@@ -29,8 +29,9 @@ any of it becomes permanent.
 2. **A7a — pure data, validation, analytics fields, draft persistence.** No Today UI change. Stop
    for independent review.
 3. **A7b — Today UI redesign.** Stop for independent review and Android acceptance.
-4. **A7c — separate, later.** App-wide adoption of `FocusedNoteEditor` in Checklist/Notes, only
-   after A7b is merged and phone-approved.
+4. **A7c — separate, later.** Evaluate app-wide adoption of `FocusedNoteEditor` in
+   Checklist/Notes after A7b is merged and phone-approved; do not force reuse where surface,
+   persistence, or modal semantics do not fit.
 5. **W26 — later, unrelated to A7.** Not implemented now; only its research brief gains one
    recorded limitation (see §7).
 
@@ -95,7 +96,7 @@ Recorded in full in `docs/planning/roadmap/OPEN-DECISIONS.md`. Summary:
 
 ## 4. Component/state architecture for the redesigned Today (A7b target — not built in Stage 0)
 
-**New shared component** (used in Today now; A7c adopts it elsewhere later):
+**New shared component** (used in Today now; A7c later evaluates whether it fits elsewhere):
 
 - `app/src/components/FocusedNoteEditor.jsx` — **controlled** component: `value`/`onChange` from
   the parent's existing cartridge state (`cartridgeNotes`/`itemNotes[itemId]`), which is already
@@ -115,10 +116,10 @@ Recorded in full in `docs/planning/roadmap/OPEN-DECISIONS.md`. Summary:
   same completeness units (not a separate count), and a save-state string drawn **only** from
   `cartridgeDraftSaveStatus` (`Saving…` / `Saved on device ✓` / `Not saved — Retry`) — **no
   remote-sync signal of any kind**, resolving the open question from Phase 0 exactly as ruled.
-- `SessionSummary.jsx` — two preparation checkboxes (Warm-up, Cooldown) + six activity chips + the
+- `SessionSummary.jsx` — two preparation checkboxes (Warm-up, Cooldown) + seven activity chips + the
   conditional `otherActivity` field (single line, bounded via `maxLength={120}` at the input plus
   validator rejection of any over-length or multi-line value on submit — user text is never
-  silently truncated) + the session `notes` field via `FocusedNoteEditor`. All eight IDs write into
+  silently truncated) + the session `notes` field via `FocusedNoteEditor`. All nine IDs write into
   one `sessionActivities` array; the checkbox/chip split is presentational only.
 - `EffortGuideSheet.jsx` — a `BottomSheet` explaining RPE / RIR / %1RM. Explanatory only; no math
   changes.
@@ -261,8 +262,15 @@ authentication, no live sync drain — per the remote-safety rule above, without
 
 ### A7c — separate, later
 
-Adopt `FocusedNoteEditor` in Checklist/Notes' existing note surfaces, only after A7b is merged and
-phone-approved. Not scoped now.
+Evaluate `FocusedNoteEditor` against Checklist/Notes' existing note surfaces only after A7b is
+merged and phone-approved. Adoption is conditional on compatible state ownership, persistence,
+save, modal, focus, and Android back behavior.
+
+_Resolution 2026-07-30: the diagnostic found no appropriate adoption surface. Notes already uses
+a full-screen editor that owns its autosave and flush lifecycle. The Checklist task note and daily
+template are explicit-save fields inside `BottomSheet`; inserting `FocusedNoteEditor` would nest
+modal boundaries and give its presentation-only Done action incompatible save semantics. The
+developer approved no adoption and no replacement component. A7c closes with no app change._
 
 ## 6. Android portrait acceptance (A7b, on-device, cannot be closed from here)
 

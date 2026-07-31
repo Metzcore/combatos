@@ -220,6 +220,29 @@ describe('validateCartridge — item ids', () => {
     })
 })
 
+describe('validateCartridge — optional exerciseId (A11a)', () => {
+    it('accepts items without an exerciseId (absent is valid)', () => {
+        expect(validateCartridge(validCartridge())).toEqual([])
+    })
+
+    it('accepts a valid lowercase-kebab exerciseId on any training item kind', () => {
+        const c = validCartridge()
+        c.days[0].blocks[0].items[0].exerciseId = 'barbell-back-squat'
+        c.days[0].blocks[1].items[0].exerciseId = 'plank'
+        expect(validateCartridge(c)).toEqual([])
+    })
+
+    it.each(['Back Squat', 'back_squat', 'backSquat', 'back--squat', '', 7])(
+        'flags invalid exerciseId %j',
+        (exerciseId) => {
+            const c = validCartridge()
+            c.days[0].blocks[0].items[0].exerciseId = exerciseId
+            expect(validateCartridge(c).some((e) => e.includes('exerciseId must be a lowercase-kebab string'))).toBe(true)
+        }
+    )
+})
+
+
 describe('validateCartridge — kind-specific item shape', () => {
     it('requires dose on mobility/cooldown items', () => {
         const c = validCartridge()

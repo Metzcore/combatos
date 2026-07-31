@@ -37,9 +37,12 @@
 import { useState } from 'react'
 import { formatPrescription } from '../../utils/cartridgeFormat.js'
 import { resolveUseLastValues } from '../../utils/lastPerformance.js'
+import { hasMeaningfulSetValue } from '../../utils/extraSetState.js'
 import ChangeExerciseSheet, { ChangedExerciseNote } from './ChangeExerciseSheet.jsx'
 import PowerPairItem from './PowerPairItem.jsx'
+import BottomSheet from '../BottomSheet.jsx'
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
+import TodayExerciseReferenceLink from './TodayExerciseReferenceLink.jsx'
 
 function formatLastSet(set) {
     const parts = []
@@ -95,11 +98,14 @@ export function StrengthItemHeader({ item, view, memberLabel, onUseLastValues, s
     const { displayName, rx, lastPerformance, useLastSets } = view
     return (
         <>
-            <div className="today-item__name">
-                {displayName}
-                {memberLabel
-                    ? <span className="today-item__superset-badge today-item__superset-badge--member"> · {memberLabel}</span>
-                    : (item.superset && <span className="today-item__superset-badge"> · Superset {item.superset}</span>)}
+            <div className="today-item__header-row">
+                <div className="today-item__name">
+                    {displayName}
+                    {memberLabel
+                        ? <span className="today-item__superset-badge today-item__superset-badge--member">{memberLabel}</span>
+                        : (item.superset && <span className="today-item__superset-badge"> · Superset {item.superset}</span>)}
+                </div>
+                <TodayExerciseReferenceLink exerciseId={item.exerciseId} substitutedName={substitutedName} />
             </div>
             {item.target && <div className="today-item__meta">Target: {item.target}</div>}
             <div className="today-item__meta">Sets: {item.sets} × {item.reps}{rx ? ` · ${rx}` : ''}</div>
@@ -126,46 +132,90 @@ export function StrengthItemHeader({ item, view, memberLabel, onUseLastValues, s
 /** One bounded "SET n" visual unit — load+reps, then a conditional effort
  *  row. `memberLabel`, when provided (superset round rendering), prefixes
  *  the set head so a row is unambiguous even when interleaved with another
- *  member's rows in the same round block. */
-export function StrengthSetRow({ item, displayName, entry, index, prescribedSets, effortKind, onSetChange, memberLabel }) {
+ *  member's rows in the same round block.
+ *
+ *  Extra-set removal (Android acceptance remediation plan §3.2): a Remove
+ *  action appears ONLY on extra units (index >= prescribedSets) — a
+ *  prescribed set never displays it, and the CartridgeToday mutator refuses
+ *  such an index again on its own. A blank extra removes immediately; a
+ *  populated one (numeric 0 counts as populated) first asks through the
+ *  shared BottomSheet with explicit Cancel/Remove. The sheet's open/closed
+ *  state is local presentation state owned here, exactly as the plan
+ *  allows. */
+export function StrengthSetRow({ item, displayName, entry, index, prescribedSets, effortKind, onSetChange, memberLabel, onRemoveSet }) {
     const isExtra = index >= prescribedSets
+    const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
+
+    const handleRemove = () => {
+        if (!onRemoveSet) return
+        if (hasMeaningfulSetValue(entry)) setConfirmRemoveOpen(true)
+        else onRemoveSet()
+    }
+
+    const confirmRemove = () => {
+        setConfirmRemoveOpen(false)
+        if (onRemoveSet) onRemoveSet()
+    }
+
     return (
-        <div className="today-set-unit">
-            <div className="today-set-unit__head">
-                {memberLabel && <span className="today-set-unit__member">{memberLabel} · </span>}
-                SET {index + 1}{isExtra && <span className="today-set-unit__extra-tag"> extra</span>}
-            </div>
-            <div className="today-set-unit__row">
-                <input
-                    type="number" inputMode="decimal" placeholder="kg" min="0" step="0.5"
-                    value={entry.kg ?? ''} onChange={(e) => onSetChange(index, 'kg', e.target.value)}
-                    aria-label={`${displayName} set ${index + 1} weight in kg`}
-                />
-                <input
-                    type="number" inputMode="numeric" placeholder="reps" min="0" step="1"
-                    value={entry.reps ?? ''} onChange={(e) => onSetChange(index, 'reps', e.target.value)}
-                    aria-label={`${displayName} set ${index + 1} reps`}
-                />
-            </div>
-            {effortKind === 'rpe' && (
-                <div className="today-set-unit__row today-set-unit__row--effort">
+        <>
+            <div className="today-set-unit">
+                <div className="today-set-unit__head">
+                    {memberLabel && <span className="today-set-unit__member">{memberLabel} · </span>}
+                    SET {index + 1}{isExtra && <span className="today-set-unit__extra-tag"> extra</span>}
+                </div>
+                <div className="today-set-unit__row">
                     <input
-                        type="number" inputMode="decimal" placeholder="RPE" min="0" max="10" step="0.5"
-                        value={entry.rpe ?? ''} onChange={(e) => onSetChange(index, 'rpe', e.target.value)}
-                        aria-label={`${displayName} set ${index + 1} RPE`}
+                        type="number" inputMode="decimal" placeholder="kg" min="0" step="0.5"
+                        value={entry.kg ?? ''} onChange={(e) => onSetChange(index, 'kg', e.target.value)}
+                        aria-label={`${displayName} set ${index + 1} weight in kg`}
+                    />
+                    <input
+                        type="number" inputMode="numeric" placeholder="reps" min="0" step="1"
+                        value={entry.reps ?? ''} onChange={(e) => onSetChange(index, 'reps', e.target.value)}
+                        aria-label={`${displayName} set ${index + 1} reps`}
                     />
                 </div>
-            )}
-            {effortKind === 'rir' && (
-                <div className="today-set-unit__row today-set-unit__row--effort">
-                    <input
-                        type="number" inputMode="numeric" placeholder="RIR" min="0" step="1"
-                        value={entry.rir ?? ''} onChange={(e) => onSetChange(index, 'rir', e.target.value)}
-                        aria-label={`${displayName} set ${index + 1} RIR`}
-                    />
-                </div>
-            )}
-        </div>
+                {effortKind === 'rpe' && (
+                    <div className="today-set-unit__row today-set-unit__row--effort">
+                        <input
+                            type="number" inputMode="decimal" placeholder="RPE" min="0" max="10" step="0.5"
+                            value={entry.rpe ?? ''} onChange={(e) => onSetChange(index, 'rpe', e.target.value)}
+                            aria-label={`${displayName} set ${index + 1} RPE`}
+                        />
+                    </div>
+                )}
+                {effortKind === 'rir' && (
+                    <div className="today-set-unit__row today-set-unit__row--effort">
+                        <input
+                            type="number" inputMode="numeric" placeholder="RIR" min="0" step="1"
+                            value={entry.rir ?? ''} onChange={(e) => onSetChange(index, 'rir', e.target.value)}
+                            aria-label={`${displayName} set ${index + 1} RIR`}
+                        />
+                    </div>
+                )}
+                {isExtra && onRemoveSet && (
+                    <button type="button" className="today-set-unit__remove" onClick={handleRemove}>
+                        Remove
+                    </button>
+                )}
+            </div>
+            <BottomSheet
+                open={confirmRemoveOpen}
+                onClose={() => setConfirmRemoveOpen(false)}
+                title="Remove this extra set?"
+            >
+                <p className="sheet__copy">
+                    The values entered for {displayName} set {index + 1} will be discarded.
+                </p>
+                <button type="button" className="btn-secondary" onClick={() => setConfirmRemoveOpen(false)}>
+                    Cancel
+                </button>
+                <button type="button" className="sheet__action destructive" onClick={confirmRemove}>
+                    Remove
+                </button>
+            </BottomSheet>
+        </>
     )
 }
 
@@ -178,7 +228,13 @@ export function StrengthItemFooter({ item, view, onAddSet, onPairSetChange, onSu
 
     return (
         <>
-            <button type="button" className="today-item__action-btn" onClick={onAddSet}>+ Add set</button>
+            <button
+                type="button"
+                className="today-item__action-btn today-item__action-btn--amber today-item__action-btn--compact"
+                onClick={onAddSet}
+            >
+                <span className="today-item__action-btn-label">+ Add set</span>
+            </button>
 
             {hasPair && Array.from({ length: pairSets }, (_, i) => {
                 const entry = pairPerformed[i] || {}
@@ -216,7 +272,7 @@ export function StrengthItemFooter({ item, view, onAddSet, onPairSetChange, onSu
 
 export default function PerformedStrengthItem({
     item, performed, substitutedName, lastPerformance,
-    onSetChange, onPairSetChange, onAddSet, onUseLastValues,
+    onSetChange, onPairSetChange, onAddSet, onRemoveSet, onUseLastValues,
     onSubstitute, note, onNoteChange,
 }) {
     const view = buildStrengthItemView(item, performed, substitutedName, lastPerformance)
@@ -235,6 +291,7 @@ export default function PerformedStrengthItem({
                     prescribedSets={view.prescribedSets}
                     effortKind={view.effortKind}
                     onSetChange={onSetChange}
+                    onRemoveSet={onRemoveSet ? () => onRemoveSet(i, view.prescribedSets) : undefined}
                 />
             ))}
 

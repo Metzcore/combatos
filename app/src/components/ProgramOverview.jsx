@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatCartridgeTag } from '../utils/cartridgeLibrary.js'
+import ExerciseReferenceLink from './ExerciseReferenceLink.jsx'
 import {
     blockKindLabel,
     blockKindColor,
@@ -22,6 +23,7 @@ function MobilityItem({ item }) {
                 {item.note && <span><strong>Note:</strong> {item.note}</span>}
             </div>
             {item.cue && <div className="cartridge-item-cue">💡 {item.cue}</div>}
+            <ExerciseReferenceLink exerciseId={item.exerciseId} />
         </div>
     )
 }
@@ -43,6 +45,7 @@ function StrengthItem({ item }) {
             </div>
             {pair && <div className="cartridge-pap">⚡ PAP: {pair}</div>}
             {item.cue && <div className="cartridge-item-cue">💡 {item.cue}</div>}
+            <ExerciseReferenceLink exerciseId={item.exerciseId} />
         </div>
     )
 }
@@ -61,6 +64,7 @@ function ConditioningItem({ item }) {
                 </ul>
             )}
             {item.cue && <div className="cartridge-item-cue">💡 {item.cue}</div>}
+            <ExerciseReferenceLink exerciseId={item.exerciseId} />
         </div>
     )
 }

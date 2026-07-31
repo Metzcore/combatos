@@ -16,6 +16,7 @@ import { coerceNumericField } from '../../utils/cartridgeSessionPayload.js'
 import { buildTrainingOrCustomLogInput, buildRestOrRecoveryLogInput } from '../../utils/cartridgeLogInput.js'
 import { describeCartridgeValidationError } from '../../utils/cartridgeValidationMessages.js'
 import { liveCartridgeCompleteness, itemCompleteness } from '../../utils/cartridgeCompleteness.js'
+import { removeExtraSetAtIndex } from '../../utils/extraSetState.js'
 import { fixedCategoryForDayType } from '../../utils/sessionCategory.js'
 import { suggestNextDayTemplate, listSelectableDays, defaultCategoryFor } from '../../utils/cartridgeDaySelection.js'
 import { findLastPerformance } from '../../utils/lastPerformance.js'
@@ -339,6 +340,25 @@ export default function CartridgeToday() {
         bumpImmediate()
     }, [setItemStateById, bumpImmediate])
 
+    // ── extra-set removal (Android acceptance remediation plan §3.2/§4.2) ──
+    // The inverse of onAddSet. Writes ONLY the targeted item's existing sets
+    // array, through the same setItemStateById path — no new state, no
+    // payload/completeness change (completeness stays capped at prescribed
+    // sets either way). The pure helper owns the safety invariant: a
+    // prescribed/out-of-range index is refused here even if a caller passes
+    // one, and a refused removal never ticks the draft.
+    const onRemoveSet = useCallback((itemId, setIndex, prescribedSets) => {
+        const current = itemStateById[itemId] || {}
+        if (!removeExtraSetAtIndex(current.sets, prescribedSets, setIndex).removed) return
+        setItemStateById((prev) => {
+            const entry = prev[itemId] || {}
+            const result = removeExtraSetAtIndex(entry.sets, prescribedSets, setIndex)
+            if (!result.removed) return prev
+            return { ...prev, [itemId]: { ...entry, sets: result.sets } }
+        })
+        bumpImmediate()
+    }, [itemStateById, setItemStateById, bumpImmediate])
+
     const onAddRound = useCallback((itemIds) => {
         setItemStateById((prev) => {
             const next = { ...prev }
@@ -548,7 +568,11 @@ export default function CartridgeToday() {
 
     return (
         <div className="app">
-            <main className="content">
+            {/* today-active scopes the A7b Training-mode surface pass
+                (index.css) to THIS active-workout view only — Plan/Library's
+                read-only .cartridge-block renderer shares the class names and
+                must stay visually untouched. */}
+            <main className="content today-active">
                 <TodayHeader
                     day={day}
                     itemStateById={itemStateById}
@@ -558,10 +582,10 @@ export default function CartridgeToday() {
                     phaseLabel={phaseBlock?.label}
                 />
 
-                {day.focus && <div className="today-day-focus">🔥 {day.focus}</div>}
+                {day.focus && <div className="today-day-focus">{day.focus}</div>}
 
                 {dayType === 'training' && (
-                    <button type="button" className="today-item__action-btn" onClick={() => setEffortGuideOpen(true)}>
+                    <button type="button" className="today-item__action-btn today-item__action-btn--wide" onClick={() => setEffortGuideOpen(true)}>
                         What do RPE / RIR / %1RM mean?
                     </button>
                 )}
@@ -577,6 +601,7 @@ export default function CartridgeToday() {
                         onSetField={onSetField}
                         onPairSetField={onPairSetField}
                         onAddSet={onAddSet}
+                        onRemoveSet={onRemoveSet}
                         onAddRound={onAddRound}
                         onUseLastValues={onUseLastValues}
                         onSubstitute={onSubstitute}

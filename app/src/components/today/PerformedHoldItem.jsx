@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import ChangeExerciseSheet, { ChangedExerciseNote } from './ChangeExerciseSheet.jsx'
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
+import TodayExerciseReferenceLink from './TodayExerciseReferenceLink.jsx'
 
 export default function PerformedHoldItem({ item, substitutedName, onSubstitute, note, onNoteChange }) {
     const [subOpen, setSubOpen] = useState(false)
@@ -16,7 +17,10 @@ export default function PerformedHoldItem({ item, substitutedName, onSubstitute,
 
     return (
         <div className="today-item">
-            <div className="today-item__name">{displayName}</div>
+            <div className="today-item__header-row">
+                <div className="today-item__name">{displayName}</div>
+                <TodayExerciseReferenceLink exerciseId={item.exerciseId} substitutedName={substitutedName} />
+            </div>
             {item.dose && <div className="today-item__meta">⏱ {item.dose}</div>}
             {item.cue && <div className="today-item__cue">💬 {item.cue}</div>}
             <ChangedExerciseNote performedName={substitutedName} prescribedName={item.name} />

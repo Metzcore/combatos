@@ -16,7 +16,7 @@ import PerformedConditioningItem from './PerformedConditioningItem.jsx'
 export default function TodayBlock({
     block, open, onToggle,
     itemStateById, substitutions, itemNotes, getLastPerformance,
-    onSetField, onPairSetField, onAddSet, onAddRound, onUseLastValues,
+    onSetField, onPairSetField, onAddSet, onRemoveSet, onAddRound, onUseLastValues,
     onSubstitute, onItemNote,
 }) {
     const renderItem = (item) => {
@@ -41,6 +41,7 @@ export default function TodayBlock({
                     onSetChange={(setIndex, field, value) => onSetField(item.id, setIndex, field, value)}
                     onPairSetChange={(setIndex, field, value) => onPairSetField(item.id, setIndex, field, value)}
                     onAddSet={() => onAddSet(item.id)}
+                    onRemoveSet={(setIndex, prescribedSets) => onRemoveSet(item.id, setIndex, prescribedSets)}
                     onUseLastValues={(sets) => onUseLastValues(item.id, sets)}
                     onSubstitute={(name) => onSubstitute(item.id, name)}
                     note={note} onNoteChange={(value) => onItemNote(item.id, value)}
@@ -75,6 +76,7 @@ export default function TodayBlock({
                             itemStateById={itemStateById} substitutions={substitutions} itemNotes={itemNotes}
                             getLastPerformance={getLastPerformance}
                             onSetField={onSetField} onPairSetField={onPairSetField} onAddSet={onAddSet}
+                            onRemoveSet={onRemoveSet}
                             onUseLastValues={onUseLastValues} onSubstitute={onSubstitute} onItemNote={onItemNote}
                         />
                     ) : (

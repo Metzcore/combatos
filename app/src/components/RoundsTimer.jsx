@@ -8,6 +8,23 @@ function formatTime(ms) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
+// W15.1 — pure display helper: a compact textual prescription preview derived
+// ONLY from the existing config values. It never mutates config; empty-string
+// intermediate input states ('' while the user is clearing a field) render as
+// 0 rather than NaN. No total-duration metric is computed (prompt §8).
+function formatPrescription(config) {
+    const asSecs = (v) => (typeof v === 'number' ? v : 0)
+    const mmss = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
+    const parts = [
+        `${asSecs(config.rounds)} rounds`,
+        `${mmss(asSecs(config.round))} work`,
+        `${mmss(asSecs(config.rest))} rest`,
+        `${mmss(asSecs(config.prep))} prep`
+    ]
+    if (asSecs(config.interim) > 0) parts.push(`bell /${asSecs(config.interim)}s`)
+    return parts.join(' · ')
+}
+
 export default function RoundsTimer() {
     const { roundsTimer, savedRoundsSetups, saveRoundsSetup, deleteRoundsSetup, alertState } = useDB()
     const { config, setConfig, status, phase, currentRound, timeRemaining, nextInterimTarget, start, pause, reset, loadSetup } = roundsTimer
@@ -49,96 +66,95 @@ export default function RoundsTimer() {
 
     if (status === 'idle') {
         return (
-            <main className="content">
-                <div className="card" style={{ padding: 20 }}>
-                    <div className="section-header blue" style={{ margin: '-20px -20px 20px -20px' }}>
-                        ⚙️ Configure Rounds
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Prep (sec)</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.prep} onChange={e => updateConfig('prep', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+            <main className="content timer-rounds">
+                <section className="timer-module timer-module--config" aria-label="Configure rounds">
+                    <header className="timer-module__head">
+                        <span className="timer-module__title">⚙️ Configure Rounds</span>
+                        <span className="timer-module__state">READY</span>
+                    </header>
+
+                    <div className="rounds-fields">
+                        <div className="rounds-field">
+                            <label htmlFor="rounds-prep">Prep (sec)</label>
+                            <input id="rounds-prep" type="number" onFocus={e => e.target.select()} value={config.prep} onChange={e => updateConfig('prep', e.target.value)} />
                         </div>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Rounds</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.rounds} onChange={e => updateConfig('rounds', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                        <div className="rounds-field">
+                            <label htmlFor="rounds-count">Rounds</label>
+                            <input id="rounds-count" type="number" onFocus={e => e.target.select()} value={config.rounds} onChange={e => updateConfig('rounds', e.target.value)} />
                         </div>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Round (min)</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : Math.floor(config.round / 60)} onChange={e => updateRoundMin(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                        <div className="rounds-field">
+                            <label htmlFor="rounds-round-min">Round (min)</label>
+                            <input id="rounds-round-min" type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : Math.floor(config.round / 60)} onChange={e => updateRoundMin(e.target.value)} />
                         </div>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Round (sec)</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : config.round % 60} onChange={e => updateRoundSec(e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                        <div className="rounds-field">
+                            <label htmlFor="rounds-round-sec">Round (sec)</label>
+                            <input id="rounds-round-sec" type="number" onFocus={e => e.target.select()} value={config.round === '' ? '' : config.round % 60} onChange={e => updateRoundSec(e.target.value)} />
                         </div>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Rest (sec)</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.rest} onChange={e => updateConfig('rest', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                        <div className="rounds-field">
+                            <label htmlFor="rounds-rest">Rest (sec)</label>
+                            <input id="rounds-rest" type="number" onFocus={e => e.target.select()} value={config.rest} onChange={e => updateConfig('rest', e.target.value)} />
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--dim)', display: 'block', marginBottom: 5 }}>Interim Bell Interval (sec, 0 to disable)</label>
-                            <input type="number" onFocus={e => e.target.select()} value={config.interim} onChange={e => updateConfig('interim', e.target.value)} style={{ width: '100%', padding: 10, background: 'var(--bg)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 4 }} />
+                        <div className="rounds-field rounds-field--wide">
+                            <label htmlFor="rounds-interim">Interim Bell Interval (sec, 0 to disable)</label>
+                            <input id="rounds-interim" type="number" onFocus={e => e.target.select()} value={config.interim} onChange={e => updateConfig('interim', e.target.value)} />
                         </div>
                     </div>
 
-                    <button className="btn-primary" onClick={start} style={{ width: '100%', padding: 15, fontSize: '1.1rem' }}>
+                    {/* Verify step: the prescription restated as one scannable
+                        line before committing to Start. Display-only. */}
+                    <p className="rounds-preview">{formatPrescription(config)}</p>
+
+                    <button className="btn-primary timer-btn timer-btn--start" onClick={start}>
                         START WORKOUT
                     </button>
-                </div>
+                </section>
 
-                <div className="card" style={{ padding: 20, marginTop: 20 }}>
-                    <div className="section-header amber" style={{ margin: '-20px -20px 20px -20px' }}>
-                        💾 Saved Setups
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                        <input 
-                            type="text" 
-                            placeholder="Setup Name..." 
+                <section className="timer-module timer-module--saved" aria-label="Saved setups">
+                    <header className="timer-module__head">
+                        <span className="timer-module__title">💾 Saved Setups</span>
+                        <span className="timer-module__state">
+                            {savedRoundsSetups.length > 0 ? `${savedRoundsSetups.length} SAVED` : 'EMPTY'}
+                        </span>
+                    </header>
+                    <div className="rounds-save">
+                        <input
+                            type="text"
+                            placeholder="Setup Name..."
                             value={setupName}
                             onChange={e => setSetupName(e.target.value)}
-                            style={{ width: '100%', padding: '12px 10px', fontSize: '1rem', color: '#ffffff', opacity: 1, WebkitTextFillColor: '#ffffff', caretColor: '#ffffff' }} 
+                            style={{ width: '100%', padding: '12px 10px', fontSize: '1rem', color: '#ffffff', opacity: 1, WebkitTextFillColor: '#ffffff', caretColor: '#ffffff' }}
                         />
-                        <button className="btn-secondary" onClick={handleSave} style={{ width: '100%' }}>SAVE</button>
+                        <button className="btn-secondary timer-btn" onClick={handleSave}>SAVE</button>
                     </div>
 
                     {savedRoundsSetups.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <ul className="rounds-setups">
                             {savedRoundsSetups.map(setup => (
-                                <div key={setup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px 15px', borderRadius: 8 }}>
-                                    <button onClick={() => loadSetup(setup)} style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, margin: 0 }}>
-                                        <strong style={{ color: 'var(--blue)' }}>{setup.name}</strong>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--dim)', marginTop: 4 }}>
+                                <li key={setup.id} className="rounds-setup">
+                                    <button className="rounds-setup__load" onClick={() => loadSetup(setup)}>
+                                        <strong className="rounds-setup__name">{setup.name}</strong>
+                                        <span className="rounds-setup__summary">
                                             {setup.rounds}x {Math.floor(setup.round / 60)}:{String(setup.round % 60).padStart(2, '0')} (Rest: {setup.rest}s)
-                                        </div>
+                                        </span>
                                     </button>
-                                    <button className="btn-ghost" onClick={() => deleteRoundsSetup(setup.id)} style={{ padding: '5px 10px', color: 'var(--alert)' }}>
+                                    <button className="btn-ghost rounds-setup__delete" onClick={() => deleteRoundsSetup(setup.id)} aria-label={`Delete saved setup ${setup.name}`}>
                                         ✕
                                     </button>
-                                </div>
+                                </li>
                             ))}
-                        </div>
+                        </ul>
                     ) : (
-                        <div style={{ color: 'var(--dim)', fontSize: '0.9rem', textAlign: 'center' }}>No saved setups yet.</div>
+                        <div className="rounds-empty">No saved setups yet.</div>
                     )}
-                </div>
+                </section>
             </main>
         )
     }
 
     // Active View
-    const phaseColor =
-        phase === 'work'  ? 'var(--alert)' :    // Red-orange = push hard
-        phase === 'rest'  ? 'var(--primary)' :  // Green = recover
-        phase === 'prep'  ? 'var(--dim)' :      // Grey = get ready
-        'var(--warn)';                           // Amber = done
-
-    const phaseBg =
-        phase === 'work'  ? 'rgba(255,17,0,0.08)' :
-        phase === 'rest'  ? 'rgba(0,255,102,0.08)' :
-        phase === 'prep'  ? 'rgba(255,255,255,0.03)' :
-        'rgba(232,160,32,0.08)';
-
+    // Phase identity is carried by the rounds-active--<phase> modifier
+    // (scoped --phase custom property) PLUS the explicit textual phase label
+    // below — never colour alone. Phase engine semantics are unchanged.
     const phaseLabel =
         phase === 'work'  ? 'WORK' :
         phase === 'rest'  ? 'REST' :
@@ -149,97 +165,67 @@ export default function RoundsTimer() {
     const timeToNextInterim = nextInterimTarget > 0 ? Math.ceil(timeRemaining / 1000) - nextInterimTarget : 0;
 
     return (
-        <main className="content">
-            <div
-                className={`card ${alertState === 'main' ? 'alert-main' : alertState === 'interim' ? 'alert-interim' : ''}`}
-                style={{
-                    padding: 20,
-                    textAlign: 'center',
-                    minHeight: '50vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    background: phaseBg,
-                    border: `1px solid ${phaseColor}`,
-                    transition: 'background 0.5s ease, border-color 0.5s ease'
-                }}
+        <main className="content timer-rounds">
+            <section
+                className={`timer-module rounds-active rounds-active--${phase}${alertState === 'main' ? ' timer-alert-main' : alertState === 'interim' ? ' timer-alert-interim' : ''}`}
+                aria-label="Rounds session"
             >
                 {/* Config summary bar */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dim)', marginBottom: 20, padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
-                    <div>{config.rounds} rounds</div>
-                    <div>Work {roundMin}:{roundSec}</div>
-                    <div>Rest {config.rest}s</div>
-                    {config.interim > 0 && <div>Bell /{config.interim}s</div>}
+                <div className="rounds-active__summary">
+                    <span>{config.rounds} rounds</span>
+                    <span>Work {roundMin}:{roundSec}</span>
+                    <span>Rest {config.rest}s</span>
+                    {config.interim > 0 && <span>Bell /{config.interim}s</span>}
                 </div>
 
-                {/* Phase Banner */}
-                <div style={{
-                    fontSize: '1.8rem',
-                    fontWeight: '900',
-                    letterSpacing: '0.15em',
-                    color: phaseColor,
-                    textShadow: `0 0 20px ${phaseColor}`,
-                    marginBottom: 8,
-                    transition: 'color 0.4s ease'
-                }}>
-                    {phaseLabel}
+                {/* Phase + round state: announced politely on change only.
+                    The clock below is deliberately OUTSIDE this live region so
+                    screen readers never hear every tick. */}
+                <div className="rounds-active__status" aria-live="polite">
+                    <div className="rounds-active__phase">
+                        {phaseLabel}
+                    </div>
+                    <div className="rounds-active__round">
+                        ROUND {currentRound} OF {config.rounds}
+                    </div>
+                    {status === 'paused' && (
+                        <div className="rounds-active__paused">PAUSED</div>
+                    )}
                 </div>
 
-                {/* Round counter */}
-                <div style={{ fontSize: '1rem', color: 'var(--dim)', marginBottom: 16, fontWeight: 'bold', letterSpacing: '0.1em' }}>
-                    ROUND {currentRound} OF {config.rounds}
-                </div>
-
-                {/* Big clock */}
-                <div style={{
-                    fontSize: '5.5rem',
-                    fontFamily: 'Courier New',
-                    fontWeight: 800,
-                    color: phaseColor,
-                    marginBottom: 12,
-                    lineHeight: 1,
-                    textShadow: `0 0 30px ${phaseColor}66`,
-                    transition: 'color 0.4s ease'
-                }}>
+                {/* Dominant clock */}
+                <div className="rounds-active__clock">
                     {formatTime(timeRemaining)}
                 </div>
 
                 {/* Interim bell countdown */}
-                <div style={{ fontSize: '0.85rem', color: 'var(--warn)', height: 22, fontWeight: '600', letterSpacing: '0.05em' }}>
+                <div className="rounds-active__interim">
                     {phase === 'work' && config.interim > 0 && nextInterimTarget > 0
                         ? `⚡ BELL IN ${timeToNextInterim}s`
                         : ''}
                 </div>
 
                 {/* Action buttons */}
-                <div className="actions-bar" style={{ marginTop: 30 }}>
+                <div className="actions-bar rounds-active__actions">
                     {status === 'done' ? (
-                        <button className="btn-primary" onClick={reset} style={{ width: '100%', padding: 15 }}>
+                        <button className="btn-primary timer-btn" onClick={reset}>
                             FINISH
                         </button>
                     ) : (
                         <>
                             <button
-                                className="btn-primary"
-                                style={{
-                                    background: `${phaseColor}1A`,
-                                    color: phaseColor,
-                                    borderColor: phaseColor,
-                                    flex: 1,
-                                    padding: 15,
-                                    transition: 'background 0.4s ease, color 0.4s ease, border-color 0.4s ease'
-                                }}
+                                className="btn-primary timer-btn rounds-active__toggle"
                                 onClick={status === 'running' ? pause : start}
                             >
                                 {status === 'running' ? 'PAUSE' : 'RESUME'}
                             </button>
-                            <button className="btn-secondary" onClick={reset} style={{ flex: 1, padding: 15 }}>
+                            <button className="btn-secondary timer-btn" onClick={reset}>
                                 RESET
                             </button>
                         </>
                     )}
                 </div>
-            </div>
+            </section>
         </main>
     )
 }

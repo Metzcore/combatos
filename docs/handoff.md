@@ -1,18 +1,17 @@
 ## Current state (one line)
-A6.5 durable active-workout drafts are merged through PR #57 and deployed on `origin/main` at
-`1687451`. The final suite passes 450/450 tests and the production build is clean. Android
-acceptance passed every reported scenario, including Reset; sign-out and active-draft survival
-across a later PWA update were not exercised on-device.
+Branch `codex/kimi-trial-1` contains the developer-accepted W15.1 Timer “Instrument Strata”
+application commit `fc63b5d` plus its separate roadmap/continuity closeout. Independent evidence:
+47 test files / 933 tests pass, the production PWA build succeeds, and `git diff --check` is clean.
 
 ## Pending
 
-- [ ] **Complete the relevant W26 decision work and lock the permanent cartridge-session
-      payload:** resolve prescribed/performed/substituted representation and per-session versus
-      per-set shape.
-- [ ] **A7 — interactive cartridge renderer:** start only after the payload lock; A6.5 is complete.
-- [ ] **Future independent diagnostic:** Exercise Reference layer (A11), followed later by
-      Academy / Exercise Guides IA (A12).
-- [ ] **Still outside the current train-renderer sequence:** D9 remains open; optional later
-      device checks can cover sign-out and active-draft survival across a PWA update.
-- [ ] **After the app work is finished, rotate the developer Supabase password-login user's
-      password:** replace the temporary placeholder with something long and random.
+- [ ] **Preserve unrelated local state:** do not include `.gitignore`, the intentional
+      `app/.env.example` deletion, `.claude/`, rebuild-planning documents, or `.env.local`.
+- [ ] **Choose the next roadmap item in a fresh session:** W15.1 is complete; do not silently
+      expand its frontend scope into another hub.
+- [ ] **A11 closeout remains optional:** decide whether to curate an approved reference for the
+      generic “Your own 10-min warm-up routine.”
+- [ ] **Real-use follow-up:** use the accepted Timer experience during training and record any
+      behavioral or device friction before proposing another Timer feature.
+- [ ] **Branch integration and security follow-up:** push/review/merge `codex/kimi-trial-1` when
+      ready, then rotate the temporary Supabase developer password after app work is finished.

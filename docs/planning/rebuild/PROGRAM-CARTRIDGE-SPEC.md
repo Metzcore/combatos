@@ -208,6 +208,30 @@ in the separate author rationale, never in the runtime cartridge. The Library st
 `summary` + `outcomes` for the first impression. Account assignment, active state and ownership
 belong in Supabase, never in the cartridge JSON.
 
+## Exercise references (optional `exerciseId`)
+
+Any training item may carry an optional `exerciseId` — the **canonical exercise identity**, stable
+across cartridges when a human has deliberately ruled two items to represent the same exercise
+(e.g. a squat appearing in two different phase cartridges). It is distinct from the
+prescription-slot identity `item.id` (and the logged `itemId`), which is unique only within one
+cartridge and keeps its existing job untouched.
+
+- **Additive schema-v3 metadata.** `exerciseId` is optional on every training item kind; its
+  presence does not change `schemaVersion` (still exactly `3`).
+- **Never logged.** `exerciseId` is cartridge-side reference data; it is never added to a logged
+  session payload.
+- **Never derived.** It is assigned deliberately by human curation — never computed from
+  `item.id`, item position, or the normalized display name, and never fuzzy-matched.
+- **Syntax:** when present, a non-empty lowercase-kebab string (same convention as `tags`).
+- **Catalogue relationship.** Each `exerciseId` resolves to exactly one entry in the canonical
+  exercise catalogue (`catalogue/exercise-catalogue.json`, mirrored app-side at
+  `app/src/data/exerciseCatalogue.json`), which carries the curated external-resource references
+  (e.g. a demonstration video) for that exercise. The catalogue is separate source-controlled
+  product content with its own validator (`app/src/utils/validateExerciseCatalogue.js`); a
+  deterministic integrity test asserts every authored `exerciseId` resolves, and runtime
+  resolution is fail-safe (absent or unknown ID → `null`). Until the human curation pass happens,
+  authoring models omit `exerciseId` entirely.
+
 ## Day types
 
 - `training` — has `blocks[]`; the app renders and logs a full session.
@@ -239,6 +263,9 @@ this list and the code ever drift.
    - `conditioning`: requires a numeric `rounds`; `perRound` (if present) must be an array.
 11. `superset` labels, where used, group ≥2 items.
 12. Any `features` referenced are known flags (currently `hipScoreRouting`, `bagWork`).
+13. `exerciseId`, where present on a training item, is a non-empty lowercase-kebab string (see
+   "Exercise references"; catalogue resolution is a separate integrity check, not part of
+   `validateCartridge()`).
 
 ## Instructions for the authoring LLM
 

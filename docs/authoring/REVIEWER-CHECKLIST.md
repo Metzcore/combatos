@@ -11,6 +11,8 @@
 >   still be a bad program.
 >
 > Version 3 (2026-07-22) — adds renderer-ready Library metadata to the block-composable model.
+> Update (2026-07-30, A11a) — adds the optional-`exerciseId` syntax check, the catalogue-resolution
+> integrity check (Part A), and the exercise-identity semantic check (Part B).
 
 ---
 
@@ -39,9 +41,17 @@ valid. It enforces:
       `conditioning` needs numeric `rounds` (`perRound` must be an array if present).
 - [ ] `superset` labels, where used, group ≥2 items.
 - [ ] Any `features` referenced are known flags (currently `hipScoreRouting`, `bagWork`).
+- [ ] `exerciseId`, where present on a training item, is a non-empty lowercase-kebab string.
+- [ ] Every authored `exerciseId` resolves to exactly one entry in the canonical exercise
+      catalogue (`catalogue/exercise-catalogue.json`). Enforced by the deterministic integrity
+      test in `app/src/utils/exerciseCatalogueIntegrity.test.js` — an unknown authored ID must
+      not silently ship.
 
 **Regression guard:** every authored cartridge in `cartridges/` is asserted clean in
-`app/src/utils/validateCartridge.test.js` — a new cartridge should be added to that guard.
+`app/src/utils/validateCartridge.test.js` — a new cartridge should be added to that guard. The
+catalogue itself is validated by `app/src/utils/validateExerciseCatalogue.js`, and the
+canonical/app-bundled mirror equality plus cartridge-to-catalogue reference integrity by
+`app/src/utils/exerciseCatalogueIntegrity.test.js`.
 
 ---
 
@@ -87,6 +97,11 @@ Each is a question to answer, not a box to blindly tick. Flag anything that isn'
       "stop when speed drops"), not by effort-to-failure?
 - [ ] **Pull bias for strikers / anterior-dominant athletes** — is the push:pull ratio sane?
 - [ ] **Cues coach** — does each item's cue carry a sentence of *why*, not just technique?
+- [ ] **Exercise identity matches the exercise** — if an item carries an `exerciseId`, does the
+      catalogue entry it resolves to actually describe the same movement the item prescribes?
+      The deterministic checks prove the ID resolves; only a human can rule that the assigned
+      identity is semantically correct. (A11a ships no assigned IDs; this applies once the
+      human-curation pass begins.)
 - [ ] **Phase awareness** — is this a sensible single phase, and is the next phase (and the signal
       to switch) named?
 - [ ] **Dislikes honoured** — are the person's stated refusals actually absent from the program?
