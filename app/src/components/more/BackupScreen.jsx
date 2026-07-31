@@ -12,15 +12,10 @@
  * screen is manual export only.
  */
 import { useState, useEffect } from 'react'
-import { useDB, db, getSetting } from '../../db/index.jsx'
-import { exportFullBackup } from '../../db/backup.js'
+import { useDB, getSetting } from '../../db/index.jsx'
+import { runFullBackup, LAST_BACKUP_KEY } from '../../db/backup.js'
 import { shareOrDownloadJson } from '../../utils/checklistShare.js'
 import { localDateStr } from '../../utils/checklistDate.js'
-
-// W23.5 — settings-store key for the last DELIVERED full backup. Read and
-// written only here (DBProvider never touches it) — same single-consumer
-// discipline as checklistResetTime in db/checklist.js.
-const LAST_BACKUP_KEY = 'lastFullBackupAt'
 
 /** "never" / "today" / "1 day ago" / "N days ago" from an ISO timestamp. */
 function formatLastBackup(iso) {
@@ -48,15 +43,15 @@ export default function BackupScreen() {
     }, [])
 
     const handleBackup = async () => {
-        const data = await exportFullBackup()
         const filename = `combatos-backup-${localDateStr()}.json`
-        const result = await shareOrDownloadJson(data, filename, 'CombatOS Full Backup')
-        // Only a TRUE delivery updates the timestamp — a completed share
-        // sheet or a plain download counts; user-cancel does not.
+        // The export + delivered-vs-cancelled bookkeeping now lives in
+        // db/backup.js so an automated caller records delivery identically;
+        // this screen supplies only the delivery mechanism and the UI feedback.
+        const result = await runFullBackup({
+            deliver: data => shareOrDownloadJson(data, filename, 'CombatOS Full Backup')
+        })
         if (result !== 'cancelled') {
-            const ts = new Date().toISOString()
-            await db.settings.put({ key: LAST_BACKUP_KEY, value: ts })
-            setLastBackupAt(ts)
+            setLastBackupAt(new Date().toISOString())
             // The share sheet is its own confirmation; only the silent
             // download fallback gets an alert (reviewer ruling, 2026-07-12).
             if (result === 'downloaded') alert(`Backup downloaded: ${filename}`)
