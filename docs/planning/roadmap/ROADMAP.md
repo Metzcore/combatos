@@ -155,7 +155,7 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       `sessionActivities` makes sessions analytics-ready for a future W26 without any new table.
       Legacy sessions are completely unchanged; no migration or rewrite of any existing row, local
       or remote.
-- [~] **A11 · Exercise Reference layer** — design a stable canonical exercise identity and curated
+- [x] **A11 · Exercise Reference layer** — design a stable canonical exercise identity and curated
       external-resource catalogue supporting explicit “Watch demo” actions in Plan and later Today.
       _Diagnostic and architecture approved 2026-07-30:_ keep cartridge `item.id` as its existing
       prescription-slot identity; add optional canonical `exerciseId` as additive schema-v3 metadata,
@@ -175,8 +175,9 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       surface, using the existing canonical `done/units` count for its header progress rail and no
       invented gamification (`c77ea94`). Independent final evidence: 45 test files / 900 tests pass,
       the production PWA build succeeds, and the developer accepted the complete Today experience
-      after localhost testing. Plan/Library and Today adoption are proven; A11 remains in progress
-      only for the separately curated warm-up routine reference. No new main-nav button.
+      after localhost testing. Plan/Library and Today adoption are proven. The developer deliberately
+      skipped the optional generic warm-up reference because no approved URL exists; A11 is complete
+      at its accepted scope. No new main-nav button.
 - [ ] **A12 · ARCH candidate · Academy / Exercise Guides IA** — grouped reference content using the
       existing layered-navigation paradigm, potentially with internal categories/tabs. Gated on A11
       and real catalogue usage. Diagnostic/proposal first; preserve the five-button main nav and do

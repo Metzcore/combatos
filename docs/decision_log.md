@@ -586,3 +586,19 @@ physical-device checklist was not independently claimed during closeout.
 
 **To do next session:** choose the next roadmap item in a fresh session; treat W15.1 as complete
 unless real training use reveals a concrete regression or behavioral-friction follow-up.
+
+---
+
+## 2026-07-31 · Track integration and sustainable repository layout
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Combat OS uses one permanent repository folder, switching between `main` and short-lived task branches | A branch does not require a permanent folder; temporary worktrees are only for genuinely concurrent work |
+| 2 | The onboarding site remains a separate repository at `CombatOS-Onboarding` | It has independent code, deployment, dependencies, and release lifecycle |
+| 3 | The optional generic warm-up reference is skipped; A11 is complete at its accepted scope | No approved URL exists, and the missing optional reference does not impair the exercise-reference system |
+| 4 | The draft onboarding migration remains unapplied and outside `main` pending a dedicated security/privacy review | The questionnaire may collect health-related information and its submission/state-transition boundary is not yet sufficiently constrained |
+
+**Not done / deferred:** onboarding auth, persistence, migration application, notification workflow,
+hosting decision, production deployment, and the next Combat OS roadmap item.
+
+**Next:** begin a fresh sunshine session from clean `main` and choose one scoped roadmap item.
