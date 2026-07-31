@@ -52,3 +52,31 @@ export function addDays(dateStr, days) {
     if (!parts) return null
     return epochMsToStr(toEpochMs(parts) + days * DAY_MS)
 }
+
+/**
+ * True for a well-formed, real `YYYY-MM-DD` calendar date.
+ *
+ * A named wrapper over the `parseDateParts(x) !== null` idiom that callers
+ * across weeklyStats/logOverview/Calendar already open-code. Reads as intent
+ * at the call site, where a bare null-check reads as an implementation detail.
+ */
+export function isValidDateStr(dateStr) {
+    return parseDateParts(dateStr) !== null
+}
+
+/**
+ * Whole calendar days from `fromStr` to `toStr` (negative if `toStr` is
+ * earlier). Returns null if either date is invalid.
+ *
+ * CALENDAR days, not elapsed 24-hour periods: both endpoints are anchored to
+ * UTC midnight before subtracting, so the result never drifts with the
+ * runtime's timezone or a DST boundary in between. This is the difference
+ * between "logged 8 days ago" being right for everyone and being off by one
+ * for anyone west of UTC — the same class of bug the W26 History list carried.
+ */
+export function daysBetween(fromStr, toStr) {
+    const from = parseDateParts(fromStr)
+    const to = parseDateParts(toStr)
+    if (!from || !to) return null
+    return Math.round((toEpochMs(to) - toEpochMs(from)) / DAY_MS)
+}

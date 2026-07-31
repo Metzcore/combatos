@@ -104,6 +104,39 @@ db.version(4).stores({
     workoutDrafts: '[ownerUserId+slot], ownerUserId, updatedAt'
 })
 
+// W30 — body-weight store. ADDITIVE ONLY, same discipline as v2/v3/v4: every
+// prior table is restated VERBATIM. Dexie treats each version declaration as
+// the COMPLETE schema, so omitting or mistyping a line here is read as a
+// requested deletion/alteration of that store on real installed data. That is
+// the single largest hazard in this change — not the new table.
+//
+// No .upgrade() callback: the new store starts empty and no existing row needs
+// transforming.
+//
+// KEY CHOICE — [ownerUserId+date], not date alone. A date-only primary key
+// would elegantly enforce one measurement per day, but it also asserts the
+// whole device database has exactly one owner, which is not true: the Dexie DB
+// is single-named and account switching is possible. v4 chose a compound owner
+// key for workoutDrafts for precisely this reason, and body weight needs at
+// least that protection — a pending row must never be uploaded under whoever
+// happens to be signed in at drain time. `date` is the user's LOCAL calendar
+// date string from localDateStr(), never a UTC-derived one.
+//
+// bodyWeight is owner-scoped and SYNCED (unlike checklist/notes/drafts): rows
+// drain to Supabase `body_metrics` via sync/bodyWeightSync.js.
+db.version(5).stores({
+    sessions: '++id, date, day, phase, hipScore',
+    syncQueue: '++id, sessionId, attempts',
+    settings: 'key',
+    checklistGroups: 'id, order',
+    checklistTasks: 'id, groupId, [groupId+order], deletedAt',
+    checklistCompletions: '[taskId+date], taskId',
+    noteGroups: 'id, order',
+    notes: 'id, groupId, deletedAt, *tags',
+    workoutDrafts: '[ownerUserId+slot], ownerUserId, updatedAt',
+    bodyWeight: '[ownerUserId+date], ownerUserId, date, syncState, updatedAt'
+})
+
 export { db }
 
 // ─── Default settings ─────────────────────────────────────────────────────────
