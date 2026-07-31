@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-07-31 · Roadmap truth-up + W12/A12 ruled out
+
+**Context:** Sunshine verification against the repo (not the continuity files) found two roadmap
+checkboxes had gone stale since the last close, and the developer ruled out two open candidates
+during the same session while picking the next item to work.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | W27 (phase logging integrity) corrected from `[ ]`/"PR open" to `[x]` | `a327d68` (PR #37) is a confirmed ancestor of current `main` — it already shipped; the roadmap just wasn't updated after merge |
+| 2 | W14 (phase lock/unlock signaling) corrected from `[ ]` to `[x]` | W27's implementation absorbed W14's entire scope verbatim (confirmed via an explicit "W14" comment left in `HUD.jsx`); no separate work exists to do |
+| 3 | W12 (reusable exercise picker) **ruled out** | Free-text notes are sufficient for weights days and avoid new Dexie schema cost; for fight days the right approach is cartridge-dependent, a consideration not previously raised — worth revisiting once a second fight-day cartridge exists to compare against, not before |
+| 4 | A12 (Academy / Exercise Guides IA) **ruled out** | A11's Plan-tab demo buttons + direct-open URL system already solve the underlying "find the reference for this exercise" problem; a dedicated guides surface would be redundant |
+
+**Not done / deferred:** The W12 fight-day/cartridge-dependent question is not a ruling, only a flag
+— no `OPEN-DECISIONS.md` entry was added since there's nothing to decide until a second fight-day
+cartridge exists to compare against.
+
+**Next:** Logs/Stats tab review — the developer has flagged that `WeeklyStats.jsx` (the Log tab's
+Stats view, W9) shows deprecated fields referring to a pre-cartridge-rebuild Train tab structure
+that no longer exists. Diagnostic first, in a fresh session.
+
+---
+
 ## 2026-07-24 · Cross-provider AI workflow codified + doc-state truth-up
 
 **Context:** A cross-provider review (GPT-5.6 Sol High auditing a Claude A6.5 diagnostic)
