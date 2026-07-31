@@ -55,18 +55,6 @@ function relativeFromNow(iso) {
     return `${days} days ago`
 }
 
-const fieldStyle = {
-    background: 'var(--input)',
-    color: 'var(--text)',
-    border: '1px solid var(--divider)',
-    borderRadius: 6,
-    fontSize: '0.9rem',
-    padding: '8px 10px',
-    width: '100%',
-    outline: 'none',
-    boxSizing: 'border-box',
-}
-
 export default function AgentScreen() {
     const {
         agentEndpointUrl, setAgentEndpointUrl,
@@ -140,14 +128,14 @@ export default function AgentScreen() {
         <>
             <div className="card">
                 <div className="section-header blue">🔌 Agent</div>
-                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--dim)', margin: 0, lineHeight: 1.4 }}>
+                <div className="more-body">
+                    <p className="more-note">
                         Point the app at your own backup destination so a copy of your data is sent
                         there automatically. Nothing is sent anywhere until you configure an endpoint.
                     </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label htmlFor="agent-endpoint-url" style={{ fontSize: '0.8rem', color: 'var(--label)' }}>
+                    <div className="more-group">
+                        <label htmlFor="agent-endpoint-url" className="more-field-label">
                             Endpoint URL
                         </label>
                         <input
@@ -160,19 +148,18 @@ export default function AgentScreen() {
                             placeholder="https://your-endpoint.example.com/webhook"
                             value={urlDraft}
                             onChange={e => { setUrlDraft(e.target.value); setUrlError('') }}
-                            style={{ ...fieldStyle, borderColor: urlError ? 'var(--alert)' : 'var(--divider)' }}
+                            className={urlError ? 'more-field more-field--error' : 'more-field'}
                         />
                         {urlError && (
-                            <p style={{ fontSize: '0.78rem', color: 'var(--alert)', margin: 0 }}>{urlError}</p>
+                            <p className="more-error">{urlError}</p>
                         )}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn-primary" style={{ width: 'auto' }} onClick={handleSaveUrl}>
+                        <div className="more-actions">
+                            <button className="btn-primary" onClick={handleSaveUrl}>
                                 Save endpoint
                             </button>
                             {configured && (
                                 <button
                                     className="sheet__action destructive"
-                                    style={{ width: 'auto' }}
                                     onClick={handleClearUrl}
                                 >
                                     Clear
@@ -181,8 +168,8 @@ export default function AgentScreen() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label htmlFor="agent-endpoint-token" style={{ fontSize: '0.8rem', color: 'var(--label)' }}>
+                    <div className="more-group">
+                        <label htmlFor="agent-endpoint-token" className="more-field-label">
                             Token (optional — sent as a bearer token)
                         </label>
                         <input
@@ -192,19 +179,19 @@ export default function AgentScreen() {
                             placeholder={agentEndpointToken ? 'Token is set — enter a new one to replace it' : 'No token set'}
                             value={tokenDraft}
                             onChange={e => setTokenDraft(e.target.value)}
-                            style={fieldStyle}
+                            className="more-field"
                         />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <button className="btn-primary" style={{ width: 'auto' }} onClick={handleSaveToken}>
+                        <div className="more-actions">
+                            <button className="btn-primary" onClick={handleSaveToken}>
                                 Save token
                             </button>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--dim)' }}>
+                            <span className="more-hint">
                                 {agentEndpointToken ? 'Token: set' : 'Token: not set'}
                             </span>
                         </div>
                     </div>
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.85rem' }}>
+                    <label className="more-check">
                         <input
                             type="checkbox"
                             checked={agentAutoPush}
@@ -213,17 +200,18 @@ export default function AgentScreen() {
                         Auto-push on app open / focus / reconnect (at most once per day)
                     </label>
 
-                    <div>
-                        <button
-                            className="btn-primary"
-                            style={{ width: 'auto' }}
-                            onClick={handleSendNow}
-                            disabled={!configured || sending}
-                        >
-                            {sending ? 'Sending…' : 'Send now'}
-                        </button>
+                    <div className="more-group">
+                        <div className="more-actions">
+                            <button
+                                className="btn-primary"
+                                onClick={handleSendNow}
+                                disabled={!configured || sending}
+                            >
+                                {sending ? 'Sending…' : 'Send now'}
+                            </button>
+                        </div>
                         {sendMessage && (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--dim)', marginTop: 8 }}>{sendMessage}</p>
+                            <p className="more-hint">{sendMessage}</p>
                         )}
                     </div>
                 </div>
@@ -231,25 +219,25 @@ export default function AgentScreen() {
 
             <div className="card">
                 <div className="section-header blue">Status</div>
-                <div style={{ padding: 14 }}>
+                <div className="more-body">
                     {!configured ? (
                         <>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--dim)', margin: 0, lineHeight: 1.4 }}>
+                            <p className="more-note">
                                 Not configured on this device.
                             </p>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--dim)', marginTop: 8, marginBottom: 0, lineHeight: 1.4 }}>
+                            <p className="more-note">
                                 This is where you can point the app at your own backup destination. Nothing
                                 is sent anywhere until you set it up above.
                             </p>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.85rem' }}>
-                            <div style={{ color: 'var(--primary)' }}>Configured</div>
-                            <div style={{ color: 'var(--dim)' }}>
+                        <div className="more-status">
+                            <div className="more-status__ok">Configured</div>
+                            <div className="more-status__line">
                                 Last successful push: {relativeFromNow(lastOk) || 'never'}
                             </div>
                             {lastError && (
-                                <div style={{ color: 'var(--warn)' }}>
+                                <div className="more-status__warn">
                                     Last error: {errorMessage(lastError)}
                                 </div>
                             )}

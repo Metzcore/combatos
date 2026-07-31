@@ -4242,20 +4242,75 @@ button.cartridge-block__head {
 
 
 /* ══════════════════════════════════════════════════════
-   W29 — More hub: menu rows and detail header
+   W29 — More hub: menu slab, detail header, shared screen material
 
    The More hub is a navigation LIST, not a tab bar: six destinations do not
    fit a 360px TopTabs row, and a catch-all hub accumulates more over time.
    Rows follow the TRW reference (icon · label · chevron) recorded in
-   archive/Snippets-for-review/trw-app-more-tab.jpeg.
+   archive/Snippets-for-review/trw-app-more-tab.jpeg — the paradigm, not the
+   styling.
 
-   Deliberately structural only — spacing, hit targets and affordance. The
-   material treatment (Strata slab, spine, motion) is a later visual pass and
-   should replace these values rather than build on them.
+   Material: the accepted Strata recipe. The menu is ONE raised slab — the
+   same token-mix gradient, rim reflection and single static ambient shadow
+   as the A11 day slab and the W15.1 timer module; rows are separated by
+   inset hairlines that never shift geometry, and a press dips the row INTO
+   the slab (the recessed reading closed blocks use elsewhere) rather than
+   scaling it. Icons sit in small recessed wells so they read as instrument
+   glyphs. Screen cards reuse the same slab, and the legacy solid-colour
+   section bands become quiet tinted labels, the .timer-module__title
+   reading.
+
+   SCOPE: every rule in this block hangs under .more-hub, which only
+   MoreHub.jsx renders — no other hub, sheet or shared component can
+   inherit any of it. Tokens + color-mix only; no new hex, no assets.
    ══════════════════════════════════════════════════════ */
+
+/* Calmer hub header: the shared .page-header's emerald rule + glow reads as
+   a legacy alarm band on a quiet utility hub — the same scoped override the
+   Timer hub shipped in W15.1. Other hubs keep the shared header as-is. */
+.more-hub .page-header {
+  border-bottom-color: var(--divider);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+/* Card rhythm inside the hub (the shared .content gap is 12px). */
+.more-hub .content {
+  gap: 20px;
+}
+
+/* Drill-down transition: a short fade+rise on entering the menu or a
+   detail. Transform/opacity only — no layout shift, no paint beyond the
+   entering frame. Reduced-motion gets the same screens statically. */
+.more-hub__main {
+  animation: more-enter 160ms ease-out;
+}
+
+@keyframes more-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-hub__main {
+    animation: none;
+  }
+}
+
+/* ── Menu slab ───────────────────────────────────────── */
 .more-menu {
   display: flex;
   flex-direction: column;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 46%
+  );
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  overflow: hidden; /* clips row press states to the slab radius */
 }
 
 .more-menu__row {
@@ -4266,34 +4321,52 @@ button.cartridge-block__head {
   /* 56px min keeps every row a comfortable one-thumb target on a phone. */
   min-height: 56px;
   padding: 12px 14px;
-  background: var(--panel);
+  background: transparent;
   border: none;
-  border-bottom: 1px solid var(--divider);
+  border-radius: 0;
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.more-menu__row:first-child {
-  border-top-left-radius: var(--radius-md);
-  border-top-right-radius: var(--radius-md);
+/* Hairlines as inset shadows, not borders, so separating a row never
+   shifts its geometry — the same technique the open-block headers use. */
+.more-menu__row:not(:last-child),
+.more-menu__row:active:not(:last-child) {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
 }
 
-.more-menu__row:last-child {
-  border-bottom: none;
-  border-bottom-left-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
-}
-
+/* A press recesses the row into the slab (opacity/transform from the
+   global button:active reset are wrong for a full-bleed list row). */
 .more-menu__row:active {
-  background: var(--input);
+  transform: none;
+  opacity: 1;
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+  box-shadow:
+    inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent),
+    inset 0 2px 8px color-mix(in srgb, var(--bg) 60%, transparent);
 }
 
+.more-menu__row:last-child:active {
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+/* Icon well: a small recessed tile so the emoji reads as an instrument
+   glyph set into the slab, not a floating sticker. */
 .more-menu__icon {
-  font-size: 1.25rem;
-  line-height: 1;
   flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--bg) 60%, transparent);
 }
 
 .more-menu__text {
@@ -4327,36 +4400,47 @@ button.cartridge-block__head {
   display: flex;
   align-items: center;
   gap: 10px;
+  text-align: left;
 }
 
+/* Back: a quiet recessed chip, not a bare glyph — the glyph stays small
+   while the tap area keeps the 44px floor. */
 .more-detail__back {
   flex: 0 0 auto;
-  /* 44px is the minimum comfortable touch target; the glyph alone is not. */
   min-width: 44px;
   min-height: 44px;
-  background: none;
-  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--panel) 70%, var(--bg) 30%);
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 14%);
+  border-radius: var(--radius-md);
   color: var(--primary);
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
 }
 
 .more-detail__back:active {
-  opacity: 0.6;
+  transform: none;
+  opacity: 1;
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--bg) 60%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════
    W30 — Weight check-in due rail
-
-   Sits in flow immediately above the bottom nav, reserving its own space
-   rather than overlaying, so it can never cover a mid-workout control.
 
    Tone is a REQUIREMENT here, not a preference. No alarm colour, no red, no
    failure iconography, no overdue count. Body weight in a combat sport sits
    close to weight cutting; a prompt that nags or scores is genuinely harmful,
    so this states a fact and offers an action. --accent (measure) rather than
    --warn or --alert, deliberately.
+
+   Material: the quiet end of the Strata recipe — a restrained raised slab
+   (token-mix gradient, rim reflection, one static lift shadow, like Today's
+   Finish bar) with the 3px accent Signal-Spine rail. It must read as
+   information sitting above the nav, never as an alarm band.
    ══════════════════════════════════════════════════════ */
 .weight-due-rail {
   /* MUST be fixed, not in flow. .bottom-nav is `position: fixed`, so an
@@ -4377,11 +4461,18 @@ button.cartridge-block__head {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  background: var(--panel);
-  border-top: 1px solid var(--divider);
-  /* A 3px accent rail borrows the established Strata signal-spine idiom
-     without importing its full material treatment. */
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 88%, var(--label) 12%) 0%,
+    var(--panel) 55%
+  );
+  border-top: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  /* 3px accent rail (the established signal-spine idiom) + rim reflection +
+     one static lift shadow integrating the bar with the page. */
+  box-shadow:
+    inset 3px 0 0 var(--accent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 12%, transparent),
+    0 -8px 16px color-mix(in srgb, var(--bg) 70%, transparent);
 }
 
 .weight-due-rail__text {
@@ -4424,4 +4515,381 @@ button.cartridge-block__head {
 .weight-due-rail__primary:active,
 .weight-due-rail__dismiss:active {
   opacity: 0.7;
+}
+
+/* ══════════════════════════════════════════════════════
+   W29 — More hub detail screens: shared screen material
+
+   Every rule hangs under .more-hub (see the W29 banner above). The shared
+   .card / .section-header / .btn-* classes keep their legacy look in every
+   other hub; inside More the cards become the same raised slab as the menu
+   and the solid colour bands become quiet tinted labels.
+   ══════════════════════════════════════════════════════ */
+
+/* Screen card: the same raised slab as the menu — one material for the
+   whole hub. */
+.more-hub .card {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 42%
+  );
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+}
+
+/* Section headers: quiet tinted labels with a hairline, replacing the
+   legacy solid bands (the .timer-module__title reading). The colour
+   vocabulary is the app's own: blue → --blue, green → --primary,
+   amber → --warn, and the Danger Zone's red → --alert, the existing
+   destructive/error token. */
+.more-hub .section-header {
+  background: none;
+  color: var(--label);
+  padding: 14px 16px 12px;
+  font-size: 0.78rem;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--divider) 88%, transparent);
+}
+
+.more-hub .section-header.blue {
+  color: var(--blue);
+}
+
+.more-hub .section-header.green {
+  color: var(--primary);
+}
+
+.more-hub .section-header.amber {
+  color: var(--warn);
+}
+
+.more-hub .section-header.red {
+  color: var(--alert);
+}
+
+/* Shared body rhythm — replaces the per-screen inline padding stacks. */
+.more-hub .more-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Form field label (quiet, sentence case — not an eyebrow). */
+.more-hub .more-field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+/* Eyebrow label for sub-groups (e.g. "Recent check-ins"). */
+.more-hub .more-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Neutral field: the deliberate alternative to the global emerald-HUD
+   input, for free-text entry like URLs and tokens (was AgentScreen's
+   inline fieldStyle). Font is intentionally NOT set — text inputs keep
+   the global monospace, the password field keeps the body font, exactly
+   as before. */
+.more-hub .more-field {
+  background: var(--input);
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.more-hub .more-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.more-hub .more-field--error {
+  border-color: var(--alert);
+}
+
+/* Quiet one-line facts and hints. */
+.more-hub .more-meta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.more-hub .more-hint {
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+.more-hub .more-note {
+  font-size: 0.85rem;
+  color: var(--dim);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.more-hub .more-note--warn {
+  color: var(--warn);
+}
+
+.more-hub .more-empty {
+  font-size: 0.85rem;
+  color: var(--dim);
+  font-style: italic;
+  margin: 0;
+}
+
+.more-hub .more-error {
+  font-size: 0.78rem;
+  color: var(--alert);
+  margin: 0;
+}
+
+/* Label → field → actions vertical group. */
+.more-hub .more-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Read-only status lines (Agent status card). */
+.more-hub .more-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.more-hub .more-status__ok {
+  color: var(--primary);
+}
+
+.more-hub .more-status__line {
+  color: var(--dim);
+}
+
+.more-hub .more-status__warn {
+  color: var(--warn);
+}
+
+/* Key/value rows (About screen). */
+.more-hub .more-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.more-hub .more-row__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.more-hub .more-row__value {
+  font-size: 0.8rem;
+  color: var(--text);
+  text-align: right;
+  min-width: 0;
+}
+
+/* Horizontal button groups — overrides the 100% width of .btn-primary /
+   .sheet__action inside them. */
+.more-hub .more-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-hub .more-actions .btn-primary,
+.more-hub .more-actions .sheet__action {
+  width: auto;
+}
+
+/* Destructive action: token-derived --alert tints (replaces the old inline
+   rgba reds). Behaviour — confirm gate, busy/disabled states — is untouched
+   in the components. */
+.more-hub .btn--danger {
+  background: color-mix(in srgb, var(--alert) 6%, transparent);
+  color: var(--alert);
+  border: 1px solid color-mix(in srgb, var(--alert) 35%, transparent);
+}
+
+/* Recessed wells inside a slab (quotes, weight entries) — darker than the
+   card with one inset depth cue, the same relationship as Plan's block
+   wells. */
+.more-hub .more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.more-hub .quote-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.more-hub .quote-row__text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  font-style: italic;
+  min-width: 0;
+}
+
+/* Quiet icon button with a real 44px touch target — the glyph stays small;
+   the tap area does not (sweaty-thumb floor). Negative margins keep the
+   expanded target from inflating its row. */
+.more-hub .icon-btn {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  margin: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.more-hub .icon-btn:active {
+  transform: none;
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+}
+
+.more-hub .icon-btn--alert {
+  color: var(--alert);
+}
+
+/* Checkbox row. */
+.more-hub .more-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ── W30 — Weight check-in (More › Profile) ─────────────
+   The unit toggle is a segmented control on a recessed track. Toggling is
+   presentation-only and NEVER writes (the ratchet rule, utils/weightValue.js);
+   only Save persists. Entries are wells whose sync line is shown, not
+   hidden. */
+.more-hub .weight-units {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.more-hub .weight-units__btn {
+  flex: 1;
+  min-height: 44px;
+  background: transparent;
+  color: var(--label);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.more-hub .weight-units__btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.more-hub .weight-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.more-hub .weight-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.more-hub .weight-entry__main {
+  min-width: 0;
+}
+
+.more-hub .weight-entry__value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.more-hub .weight-entry__meta {
+  font-size: 0.7rem;
+  color: var(--dim);
+}
+
+/* Profile: the signed-in identity line. */
+.more-hub .profile-email {
+  font-size: 0.95rem;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* ══════════════════════════════════════════════════════
+   W30 — Weight trend (Log › Overview panel d)
+
+   The chart sits in a recessed instrument track — the same well material
+   as the Strata block wells — so it reads as a measuring surface set INTO
+   the page. Honesty rules are load-bearing, not stylistic: gaps are breaks
+   (the polyline is split in the component; nothing bridges them), there is
+   no zero baseline, no grid, no smoothing, and up/down share the one
+   neutral --accent. The latest point carries a small ring only because the
+   header already names it "latest" — emphasis, never verdict.
+
+   Scope: these classes are used only by components/overview/WeightTrend.jsx.
+   ══════════════════════════════════════════════════════ */
+.weight-trend__track {
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 72%, transparent);
+  padding: 10px 8px 6px;
+}
+
+.weight-trend__ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 35%, transparent);
+  stroke-width: 1.5;
 }

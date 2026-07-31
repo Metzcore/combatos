@@ -27,7 +27,7 @@ export default function AboutScreen() {
         <>
             <div className="card">
                 <div className="section-header blue">ℹ️ About</div>
-                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="more-body">
                     <Row label="Data version" value={`v${db.verno}`} />
                     <Row label="Installed" value={installed ? 'Yes — home screen app' : 'No — running in a browser tab'} />
                     <Row
@@ -39,20 +39,20 @@ export default function AboutScreen() {
                 </div>
             </div>
 
-            <div className="card" style={{ marginTop: 20 }}>
+            <div className="card">
                 <div className="section-header green">📖 How this works</div>
-                <div style={{ padding: 14 }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--dim)', lineHeight: 1.5, marginBottom: 12 }}>
+                <div className="more-body">
+                    <p className="more-note">
                         Your workouts are saved on this device first, so the app keeps working with
                         no signal at the gym. When you have a connection they sync to your account.
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--dim)', lineHeight: 1.5, marginBottom: 12 }}>
+                    <p className="more-note">
                         Your checklist and notes stay on this device only. They are never uploaded,
                         which also means a full backup from <strong>Backup &amp; Data</strong> is
                         the only copy of them.
                     </p>
                     {!installed && (
-                        <p style={{ fontSize: '0.85rem', color: 'var(--warn)', lineHeight: 1.5 }}>
+                        <p className="more-note more-note--warn">
                             You are running in a browser tab. Adding the app to your home screen
                             protects its data from being cleared automatically — and until you do,
                             export a backup regularly.
@@ -66,9 +66,9 @@ export default function AboutScreen() {
 
 function Row({ label, value }) {
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)' }}>{label}</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text)', textAlign: 'right' }}>{value}</span>
+        <div className="more-row">
+            <span className="more-row__label">{label}</span>
+            <span className="more-row__value">{value}</span>
         </div>
     )
 }

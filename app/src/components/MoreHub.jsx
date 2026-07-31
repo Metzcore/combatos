@@ -18,8 +18,12 @@
  * catch-all launcher should land you on the list, not back inside whatever you
  * last opened.
  *
- * Styling here is intentionally minimal — the visual pass is a separate,
- * later Kimi task that owns the material treatment of these rows.
+ * Visual language (W29 visual pass): the `more-hub` root class scopes every
+ * More-specific rule in index.css — the menu is one raised Strata slab with
+ * hairline-separated rows and recessed icon wells; detail screens reuse the
+ * same slab. `.more-hub__main` carries the short drill-down enter animation,
+ * keyed on `screen` so it replays on each navigation and degrades to static
+ * under prefers-reduced-motion.
  */
 import { useCallback, useState } from 'react'
 import { MENU_SCREEN, MORE_SCREENS, moreScreenMeta } from '../utils/moreNav.js'
@@ -62,13 +66,13 @@ export default function MoreHub({ initialScreen = MENU_SCREEN }) {
 
     if (showMenu) {
         return (
-            <div className="app">
+            <div className="app more-hub">
                 <header className="page-header">
                     <h1>⋯ More</h1>
                     <div className="subtitle">Settings, data and integrations</div>
                 </header>
 
-                <main className="content">
+                <main key={MENU_SCREEN} className="content more-hub__main">
                     <nav className="more-menu" aria-label="More">
                         {MORE_SCREENS.map(s => (
                             <button
@@ -92,7 +96,7 @@ export default function MoreHub({ initialScreen = MENU_SCREEN }) {
     }
 
     return (
-        <div className="app">
+        <div className="app more-hub">
             <header className="page-header more-detail__header">
                 <button
                     type="button"
@@ -108,7 +112,7 @@ export default function MoreHub({ initialScreen = MENU_SCREEN }) {
                 </div>
             </header>
 
-            <main className="content">
+            <main key={screen} className="content more-hub__main">
                 <Screen />
             </main>
         </div>

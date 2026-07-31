@@ -49,30 +49,22 @@ export default function IgnitionScreen() {
         <>
             <div className="card">
                 <div className="section-header green">🔖 Saved Ignitions</div>
-                <div style={{ padding: 14 }}>
+                <div className="more-body">
                     {bookmarkedIgnitions.length === 0 ? (
-                        <p style={{ fontSize: '0.85rem', color: 'var(--dim)', fontStyle: 'italic' }}>
+                        <p className="more-empty">
                             No ignitions bookmarked yet.
                         </p>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div className="more-list">
                             {bookmarkedIgnitions.map(id => {
                                 const quote = allQuotes.find(q => q.id === id)
                                 if (!quote) return null
                                 return (
-                                    <div key={id} style={{
-                                        background: 'rgba(255,255,255,0.05)',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'flex-start',
-                                        gap: '12px'
-                                    }}>
-                                        <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.4, fontStyle: 'italic' }}>"{quote.text}"</p>
+                                    <div key={id} className="quote-row">
+                                        <p className="quote-row__text">"{quote.text}"</p>
                                         <button
+                                            className="icon-btn icon-btn--alert"
                                             onClick={() => toggleIgnitionBookmark(id)}
-                                            style={{ background: 'none', border: 'none', color: 'var(--alert)', fontSize: '1.2rem', cursor: 'pointer' }}
                                             title="Remove bookmark"
                                         >
                                             ★
@@ -87,14 +79,13 @@ export default function IgnitionScreen() {
 
             <div className="card">
                 <div className="section-header green">✎ Custom Ignitions</div>
-                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                <div className="more-body">
+                    <div className="more-actions">
                         <button className="btn-primary" onClick={() => setImportOpen(true)}>
                             Add quotes
                         </button>
                         <button
                             className="sheet__action destructive"
-                            style={{ width: 'auto' }}
                             onClick={handleReset}
                             disabled={customIgnitions.length === 0}
                         >
@@ -103,25 +94,17 @@ export default function IgnitionScreen() {
                     </div>
 
                     {customIgnitions.length === 0 ? (
-                        <p style={{ fontSize: '0.85rem', color: 'var(--dim)', fontStyle: 'italic', margin: 0 }}>
+                        <p className="more-empty">
                             No custom quotes yet — paste your own to mix into Daily Ignition.
                         </p>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div className="more-list">
                             {customIgnitions.map(q => (
-                                <div key={q.id} style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'flex-start',
-                                    gap: '12px'
-                                }}>
-                                    <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.4, fontStyle: 'italic' }}>"{q.text}"</p>
+                                <div key={q.id} className="quote-row">
+                                    <p className="quote-row__text">"{q.text}"</p>
                                     <button
+                                        className="icon-btn icon-btn--alert"
                                         onClick={() => handleDelete(q.id)}
-                                        style={{ background: 'none', border: 'none', color: 'var(--alert)', fontSize: '1.2rem', cursor: 'pointer' }}
                                         title="Delete quote"
                                     >
                                         ✕

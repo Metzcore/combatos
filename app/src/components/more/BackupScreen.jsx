@@ -78,37 +78,37 @@ export default function BackupScreen() {
         <>
             <div className="card">
                 <div className="section-header amber">💾 Data Backup</div>
-                <div style={{ padding: 14 }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4 }}>
+                <div className="more-body">
+                    <div className="more-meta">
                         {storagePersisted === null
                             ? 'Storage: checking…'
                             : storagePersisted
                                 ? 'Storage: PERSISTENT'
                                 : 'Storage: BEST-EFFORT — export backups regularly'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 12 }}>
+                    <div className="more-meta">
                         Last full backup: {formatLastBackup(lastBackupAt)}
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--dim)', marginBottom: 16, lineHeight: 1.4 }}>
+                    <p className="more-note">
                         Exports everything stored on this device — workouts, settings, checklist and
                         notes — as one JSON file. Your workouts also sync to your account; the
                         checklist and notes live only on this device, so this export is their only
                         backup.
                     </p>
-                    <button className="btn-primary" onClick={handleBackup} style={{ width: '100%' }}>
+                    <button className="btn-primary" onClick={handleBackup}>
                         EXPORT FULL BACKUP
                     </button>
                 </div>
             </div>
 
-            <div className="card" style={{ marginTop: 20 }}>
+            <div className="card">
                 <div className="section-header red">⚠️ Danger Zone</div>
-                <div style={{ padding: 14 }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--dim)', marginBottom: 16, lineHeight: 1.4 }}>
+                <div className="more-body">
+                    <p className="more-note">
                         If you made a mistake on your most recent log, you can remove it here. It is
                         removed from this device and from your synced account.
                     </p>
-                    <button className="btn-secondary" onClick={handleRemoveLastDay} style={{ color: 'var(--alert)', borderColor: 'rgba(255,50,50,0.3)', background: 'rgba(255,0,0,0.05)', width: '100%' }}>
+                    <button className="btn-secondary btn--danger" onClick={handleRemoveLastDay}>
                         Remove Last Logged Day
                     </button>
                 </div>
