@@ -57,19 +57,18 @@ export default function ProfileScreen() {
         <>
         <div className="card">
             <div className="section-header blue">👤 Account</div>
-            <div style={{ padding: 14 }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4 }}>
+            <div className="more-body">
+                <div className="more-meta">
                     {modeLabel}
                 </div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--text)', marginBottom: 16, wordBreak: 'break-all' }}>
+                <div className="profile-email">
                     {user?.email || '—'}
                 </div>
 
                 <button
-                    className="btn-secondary"
+                    className="btn-secondary btn--danger"
                     onClick={handleSignOut}
                     disabled={busy || authMode === 'signed-out'}
-                    style={{ color: 'var(--alert)', borderColor: 'rgba(255,50,50,0.3)', background: 'rgba(255,0,0,0.05)', width: '100%' }}
                 >
                     {busy ? 'Signing out…' : 'Sign Out'}
                 </button>

@@ -59,7 +59,7 @@ export default function WeightTrend({ rows, ownerUserId, unit = 'kg', today = nu
     )
 
     return (
-        <section aria-label="Body weight">
+        <section className="weight-trend" aria-label="Body weight">
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--label)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
                 Body weight
             </div>
@@ -139,30 +139,47 @@ function Series({ trend, unit }) {
                 </span>
             </div>
 
-            <svg
-                viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-                width="100%"
-                height={VIEW_H}
-                role="img"
-                aria-label={`Body weight from ${formatLong(domain.firstDate)} to ${formatLong(domain.lastDate)}`}
-                style={{ display: 'block', overflow: 'visible' }}
-            >
-                {segments.map((seg, i) => (
-                    <polyline
-                        key={i}
-                        points={seg.map(p => `${p.x},${p.y}`).join(' ')}
-                        fill="none"
-                        stroke="var(--accent)"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                ))}
-                {points.map((p, i) => {
-                    const { x, y } = xy(p)
-                    return <circle key={i} cx={x} cy={y} r="2.5" fill="var(--accent)" />
-                })}
-            </svg>
+            {/* The recessed track frames the chart as a measuring surface set
+                into the page — same well material as the Strata block wells.
+                Inside it: broken runs stay broken (nothing bridges a gap),
+                no zero baseline, no grid, no smoothing. */}
+            <div className="weight-trend__track">
+                <svg
+                    viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+                    width="100%"
+                    height={VIEW_H}
+                    role="img"
+                    aria-label={`Body weight from ${formatLong(domain.firstDate)} to ${formatLong(domain.lastDate)}`}
+                    style={{ display: 'block', overflow: 'visible' }}
+                >
+                    {segments.map((seg, i) => (
+                        <polyline
+                            key={i}
+                            points={seg.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="var(--accent)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    ))}
+                    {points.map((p, i) => {
+                        const { x, y } = xy(p)
+                        // The LATEST point carries a small ring — emphasis only,
+                        // matching the "latest ·" label above. Never a verdict:
+                        // up and down share the same neutral accent throughout.
+                        if (i === points.length - 1) {
+                            return (
+                                <g key={i}>
+                                    <circle className="weight-trend__ring" cx={x} cy={y} r="5.5" />
+                                    <circle cx={x} cy={y} r="3" fill="var(--accent)" />
+                                </g>
+                            )
+                        }
+                        return <circle key={i} cx={x} cy={y} r="2.25" fill="var(--accent)" />
+                    })}
+                </svg>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--dim)', marginTop: 2 }}>
                 <span>{formatShort(domain.firstDate)}</span>

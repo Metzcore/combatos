@@ -26,40 +26,37 @@ export default function SettingsScreen() {
     return (
         <div className="card">
             <div className="section-header blue">🎨 Personalization</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14 }}>
+            <div className="more-body">
                 <div>
-                    <label htmlFor="appNameInput" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4, display: 'block' }}>App Name</label>
+                    <label htmlFor="appNameInput" className="more-field-label">App Name</label>
                     <input
                         id="appNameInput"
                         type="text"
                         value={nameInput}
                         onChange={e => setNameInput(e.target.value)}
-                        style={{ width: '100%', padding: '10px' }}
                     />
                 </div>
                 <div>
-                    <label htmlFor="appSubtitleInput" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4, display: 'block' }}>App Subtitle</label>
+                    <label htmlFor="appSubtitleInput" className="more-field-label">App Subtitle</label>
                     <input
                         id="appSubtitleInput"
                         type="text"
                         value={subInput}
                         onChange={e => setSubInput(e.target.value)}
-                        style={{ width: '100%', padding: '10px' }}
                     />
                 </div>
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="more-check">
                     <input
                         type="checkbox"
                         id="ignitionToggle"
                         checked={dailyIgnitionEnabled}
                         onChange={e => setDailyIgnitionEnabled(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                     />
-                    <label htmlFor="ignitionToggle" style={{ fontSize: '0.9rem', color: 'var(--text)', cursor: 'pointer' }}>
+                    <label htmlFor="ignitionToggle">
                         Enable Daily Ignition Splash
                     </label>
                 </div>
-                <button className="btn-primary" onClick={handleSave} style={{ marginTop: 8 }}>SAVE CHANGES</button>
+                <button className="btn-primary" onClick={handleSave}>SAVE CHANGES</button>
             </div>
         </div>
     )

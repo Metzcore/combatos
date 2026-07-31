@@ -119,87 +119,75 @@ export default function WeightCheckIn({ onSaved }) {
     if (!ownerUserId) return null
 
     return (
-        <div className="card" style={{ marginTop: 20 }}>
+        <div className="card">
             <div className="section-header green">⚖️ Weight check-in</div>
-            <div style={{ padding: 14 }}>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div className="more-body">
+                <div className="weight-units">
                     {WEIGHT_UNITS.map(u => (
                         <button
                             key={u}
                             type="button"
+                            className="weight-units__btn"
                             onClick={() => changeUnit(u)}
                             aria-pressed={unit === u}
-                            style={{
-                                flex: 1, minHeight: 40,
-                                background: unit === u ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--panel)',
-                                color: unit === u ? 'var(--accent)' : 'var(--label)',
-                                border: `1px solid ${unit === u ? 'var(--accent)' : 'var(--divider)'}`,
-                                borderRadius: 'var(--radius-md)',
-                                textTransform: 'uppercase', fontSize: '0.8rem',
-                            }}
                         >
                             {u}
                         </button>
                     ))}
                 </div>
 
-                <label htmlFor="weightInput" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--dim)', marginBottom: 4, display: 'block' }}>
-                    {todayRow ? "Today's check-in" : 'Log today'}
-                </label>
-                <input
-                    id="weightInput"
-                    type="text"
-                    inputMode="decimal"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder={unit === 'kg' ? '81.6' : '180.0'}
-                    style={{ width: '100%', padding: '10px' }}
-                />
-                {error && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--alert)', marginTop: 6 }}>{error}</div>
-                )}
+                <div className="more-group">
+                    <label htmlFor="weightInput" className="more-field-label">
+                        {todayRow ? "Today's check-in" : 'Log today'}
+                    </label>
+                    <input
+                        id="weightInput"
+                        type="text"
+                        inputMode="decimal"
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        placeholder={unit === 'kg' ? '81.6' : '180.0'}
+                    />
+                    {error && (
+                        <div className="more-error">{error}</div>
+                    )}
+                </div>
 
                 <button
                     className="btn-primary"
                     onClick={handleSave}
                     disabled={busy}
-                    style={{ width: '100%', marginTop: 10 }}
                 >
                     {busy ? 'Saving…' : todayRow ? 'UPDATE CHECK-IN' : 'SAVE CHECK-IN'}
                 </button>
 
                 {rows.length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--dim)', fontStyle: 'italic', marginTop: 14 }}>
+                    <p className="more-empty">
                         No check-ins yet.
                     </p>
                 ) : (
-                    <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                    <div className="weight-history">
+                        <div className="more-label">
                             Recent check-ins
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div className="more-list">
                             {rows.slice(0, 8).map(row => {
                                 const sync = syncLabel(row)
                                 return (
-                                    <div key={row.date} style={{
-                                        display: 'flex', justifyContent: 'space-between',
-                                        alignItems: 'center', gap: 10,
-                                        background: 'var(--bg)', padding: '10px 12px',
-                                        borderRadius: 'var(--radius-sm)',
-                                    }}>
-                                        <div style={{ minWidth: 0 }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)' }}>
+                                    <div key={row.date} className="weight-entry">
+                                        <div className="weight-entry__main">
+                                            <div className="weight-entry__value">
                                                 {formatWeight(row.kg, unit)}
                                             </div>
-                                            <div style={{ fontSize: '0.7rem', color: 'var(--dim)' }}>
+                                            <div className="weight-entry__meta">
                                                 {formatEntryDate(row.date)} · <span style={{ color: sync.tone }}>{sync.text}</span>
                                             </div>
                                         </div>
                                         <button
                                             type="button"
+                                            className="icon-btn"
                                             onClick={() => handleDelete(row.date)}
                                             aria-label={`Remove check-in for ${formatEntryDate(row.date)}`}
-                                            style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: '1.1rem', cursor: 'pointer', flex: '0 0 auto' }}
                                         >
                                             ✕
                                         </button>
