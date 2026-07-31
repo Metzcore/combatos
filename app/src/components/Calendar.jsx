@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { db } from '../db/index.jsx'
+import { db, getSetting } from '../db/index.jsx'
+import { useAuth } from '../auth/AuthProvider.jsx'
+import { listWeights } from '../db/bodyWeight.js'
+import { WEIGHT_UNITS } from '../utils/weightValue.js'
 import { getDailyFocus } from '../hooks/usePlaybook.js'
 import Overview from './overview/Overview.jsx'
 import TopTabs from './TopTabs.jsx'
@@ -27,19 +30,42 @@ function formatHistoryDate(dateStr) {
 // selection survives hub switches. Everything else in this component is
 // unchanged.
 export default function Calendar({ view, onViewChange }) {
+    const { user } = useAuth()
+    const ownerUserId = user?.id ?? null
     const [sessions, setSessions] = useState([])
+    // W30: Calendar already owns the Dexie read for this hub and passes data
+    // down, so the weight rows load here too. The Overview renderers stay pure
+    // presentation — none of them query Dexie independently.
+    const [weights, setWeights] = useState([])
+    const [weightUnit, setWeightUnit] = useState('kg')
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const loadSessions = async () => {
+        const load = async () => {
             const data = await db.sessions.toArray()
             // Sort by most recent first
             data.sort((a, b) => b.id - a.id)
             setSessions(data)
+
+            if (ownerUserId) {
+                try {
+                    const [rows, unit] = await Promise.all([
+                        listWeights(ownerUserId),
+                        getSetting(`weightUnit:${ownerUserId}`),
+                    ])
+                    setWeights(rows)
+                    if (WEIGHT_UNITS.includes(unit)) setWeightUnit(unit)
+                } catch (err) {
+                    // A weight read failure must not take the whole Log hub
+                    // down — the session history is the primary content here.
+                    console.error('weight history read failed', err)
+                    setWeights([])
+                }
+            }
             setLoading(false)
         }
-        loadSessions()
-    }, [])
+        load()
+    }, [ownerUserId])
 
     return (
         <div className="app">
@@ -61,7 +87,12 @@ export default function Calendar({ view, onViewChange }) {
                 {loading ? (
                     <div className="text-center text-dim mt-8">Loading history...</div>
                 ) : view === 'stats' ? (
-                    <Overview sessions={sessions} />
+                    <Overview
+                        sessions={sessions}
+                        weights={weights}
+                        ownerUserId={ownerUserId}
+                        weightUnit={weightUnit}
+                    />
                 ) : sessions.length === 0 ? (
                     <div className="text-center text-dim mt-8">
                         <div style={{ fontSize: '2rem', marginBottom: 10 }}>📭</div>

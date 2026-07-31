@@ -40,8 +40,16 @@ const SCREENS = {
     about: AboutScreen
 }
 
-export default function MoreHub() {
-    const [screen, setScreen] = useState(MENU_SCREEN)
+/**
+ * `initialScreen` lets another surface open a specific screen — the W30 weight
+ * due-rail's "Log it" jumps straight to Profile rather than dropping the user
+ * on the menu to find it themselves. It seeds `useState` only, so it does NOT
+ * pin the screen: once inside, Back and the menu behave exactly as they do on
+ * a normal entry. A defaulted-away invalid value falls back to the menu via
+ * the same guard that protects any other unknown key.
+ */
+export default function MoreHub({ initialScreen = MENU_SCREEN }) {
+    const [screen, setScreen] = useState(initialScreen)
     const goToMenu = useCallback(() => setScreen(MENU_SCREEN), [])
     const goBack = useMoreBackNavigation(screen, goToMenu)
 

@@ -4,6 +4,7 @@ import { mondayOfWeek } from '../../utils/weeklyStats.js'
 import MonthHeatmap from './MonthHeatmap.jsx'
 import CompletenessTrend from './CompletenessTrend.jsx'
 import ActivityCoverage from './ActivityCoverage.jsx'
+import WeightTrend from './WeightTrend.jsx'
 
 /**
  * Overview — the Log hub's second tab (W26). Pattern recognition across
@@ -25,7 +26,7 @@ const PERIODS = [
     { weeks: 26, label: '26 weeks' },
 ]
 
-export default function Overview({ sessions }) {
+export default function Overview({ sessions, weights = [], ownerUserId = null, weightUnit = 'kg' }) {
     const [weeks, setWeeks] = useState(8)
 
     // Same "today" convention as the write path and the utilities.
@@ -78,6 +79,13 @@ export default function Overview({ sessions }) {
 
             <CompletenessTrend sessions={sessions} weeks={weeks} />
             <ActivityCoverage sessions={sessions} sinceDateStr={sinceDateStr} untilDateStr={todayStr} />
+
+            {/* W30. Deliberately NOT governed by the 8/26-week control above:
+                that control is labelled "Trend & coverage period" and drives
+                exactly the two panels beneath it. Weight is measured on its
+                own irregular cadence, and silently reusing that window would
+                imply all three panels describe the same period. */}
+            <WeightTrend rows={weights} ownerUserId={ownerUserId} unit={weightUnit} />
         </div>
     )
 }

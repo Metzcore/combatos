@@ -38,6 +38,10 @@
      preceding SIBLING in the DOM, not a descendant — a custom property
      declared on .today-safe-actions would not be visible to it. */
   --today-actions-bar-height: 64px;
+  /* W30 — the bottom nav's own height, so a bar anchored above it (the weight
+     due rail) does not hardcode a magic number that silently drifts if the
+     nav's padding changes. 8px top + 8px bottom + ~48px button block. */
+  --bottom-nav-height: 64px;
 }
 
 /* Base reset */
@@ -4340,4 +4344,84 @@ button.cartridge-block__head {
 
 .more-detail__back:active {
   opacity: 0.6;
+}
+
+/* ══════════════════════════════════════════════════════
+   W30 — Weight check-in due rail
+
+   Sits in flow immediately above the bottom nav, reserving its own space
+   rather than overlaying, so it can never cover a mid-workout control.
+
+   Tone is a REQUIREMENT here, not a preference. No alarm colour, no red, no
+   failure iconography, no overdue count. Body weight in a combat sport sits
+   close to weight cutting; a prompt that nags or scores is genuinely harmful,
+   so this states a fact and offers an action. --accent (measure) rather than
+   --warn or --alert, deliberately.
+   ══════════════════════════════════════════════════════ */
+.weight-due-rail {
+  /* MUST be fixed, not in flow. .bottom-nav is `position: fixed`, so an
+     in-flow sibling lands at the END OF THE DOCUMENT — below the viewport,
+     invisible. Caught in browser verification, where the rail was correctly
+     in the DOM and rendering at y=864 in an 812px viewport.
+
+     Anchored just above the nav, and one z-index below it so the nav always
+     wins a hit-test at the boundary. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  z-index: 999;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border-top: 1px solid var(--divider);
+  /* A 3px accent rail borrows the established Strata signal-spine idiom
+     without importing its full material treatment. */
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.weight-due-rail__text {
+  font-size: 0.82rem;
+  color: var(--text);
+  min-width: 0;
+}
+
+.weight-due-rail__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.weight-due-rail__primary,
+.weight-due-rail__dismiss {
+  /* 44px minimum touch target — these sit directly above the nav, where a
+     mis-tap would switch hubs instead. */
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.weight-due-rail__primary {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.weight-due-rail__dismiss {
+  background: none;
+  color: var(--dim);
+  border: 1px solid var(--divider);
+}
+
+.weight-due-rail__primary:active,
+.weight-due-rail__dismiss:active {
+  opacity: 0.7;
 }

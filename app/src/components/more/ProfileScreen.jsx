@@ -16,6 +16,7 @@
  */
 import { useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider.jsx'
+import WeightCheckIn from './WeightCheckIn.jsx'
 
 export default function ProfileScreen() {
     const { user, authMode, signOut } = useAuth()
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
             : 'Signed out'
 
     return (
+        <>
         <div className="card">
             <div className="section-header blue">👤 Account</div>
             <div style={{ padding: 14 }}>
@@ -73,5 +75,8 @@ export default function ProfileScreen() {
                 </button>
             </div>
         </div>
+
+        <WeightCheckIn />
+        </>
     )
 }
