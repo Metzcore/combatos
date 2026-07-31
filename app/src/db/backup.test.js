@@ -12,7 +12,7 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { db } from './index.jsx'
-import { exportFullBackup, BACKUP_FORMAT } from './backup.js'
+import { exportFullBackup, runFullBackup, BACKUP_FORMAT, LAST_BACKUP_KEY } from './backup.js'
 import { buildDraftRow, buildLegacyIdentity, buildLegacyDefinitionSnapshot } from '../utils/workoutDraftState.js'
 
 vi.stubGlobal('navigator', { onLine: true })
@@ -28,11 +28,16 @@ describe('exportFullBackup — combatos-full-backup shape stability', () => {
         const out = await exportFullBackup()
 
         expect(Object.keys(out).sort()).toEqual(
-            ['exportedAt', 'format', 'schemaVersion', 'tables', 'version']
+            ['exportedAt', 'format', 'redactedSettings', 'schemaVersion', 'tables', 'version']
         )
         expect(out.format).toBe(BACKUP_FORMAT)
         expect(out.format).toBe('combatos-full-backup')
-        expect(out.version).toBe(1)
+        // W29: bumped 1 → 2. The promise narrowed from "every table, every
+        // row" to "all recoverable user data, excluding device credentials"
+        // — see db/backupRedaction.js. `redactedSettings` names what was
+        // withheld so a future restore can prompt for reconfiguration.
+        expect(out.version).toBe(2)
+        expect(Array.isArray(out.redactedSettings)).toBe(true)
         expect(typeof out.exportedAt).toBe('string')
         expect(new Date(out.exportedAt).toString()).not.toBe('Invalid Date')
         expect(out.schemaVersion).toBe(db.verno)
@@ -139,5 +144,62 @@ describe('exportFullBackup — combatos-full-backup shape stability', () => {
         await exportFullBackup() // twice, for good measure
         expect(await db.sessions.count()).toBe(1)
         expect(db.verno).toBe(vernoBefore)
+    })
+})
+
+describe('runFullBackup — delivered-vs-cancelled bookkeeping (W29)', () => {
+    it('records the timestamp when delivery succeeds', async () => {
+        const result = await runFullBackup({ deliver: async () => 'downloaded' })
+
+        expect(result).toBe('downloaded')
+        const row = await db.settings.get(LAST_BACKUP_KEY)
+        expect(typeof row.value).toBe('string')
+        expect(new Date(row.value).toString()).not.toBe('Invalid Date')
+    })
+
+    it('records the timestamp for a completed share too', async () => {
+        await runFullBackup({ deliver: async () => 'shared' })
+        expect(await db.settings.get(LAST_BACKUP_KEY)).toBeDefined()
+    })
+
+    it('does NOT record when the user cancels the share sheet', async () => {
+        // The reason this distinction exists (reviewer ruling, 2026-07-12):
+        // someone who opens the share sheet and backs out has not backed up.
+        // Recording it would quietly turn "last backup: 2 days ago" into a lie
+        // — the one number this screen exists to tell the truth about.
+        const result = await runFullBackup({ deliver: async () => 'cancelled' })
+
+        expect(result).toBe('cancelled')
+        expect(await db.settings.get(LAST_BACKUP_KEY)).toBeUndefined()
+    })
+
+    it('leaves a previous timestamp untouched when a later attempt is cancelled', async () => {
+        await runFullBackup({ deliver: async () => 'downloaded' })
+        const first = (await db.settings.get(LAST_BACKUP_KEY)).value
+
+        await runFullBackup({ deliver: async () => 'cancelled' })
+
+        expect((await db.settings.get(LAST_BACKUP_KEY)).value).toBe(first)
+    })
+
+    it('hands the deliverer the real backup document', async () => {
+        let seen = null
+        await runFullBackup({ deliver: async data => { seen = data; return 'downloaded' } })
+
+        expect(seen.format).toBe(BACKUP_FORMAT)
+        expect(seen.version).toBe(2)
+        expect(seen.tables).toBeDefined()
+    })
+
+    it('rejects a missing deliverer rather than silently exporting nowhere', async () => {
+        await expect(runFullBackup({})).rejects.toThrow(TypeError)
+        expect(await db.settings.get(LAST_BACKUP_KEY)).toBeUndefined()
+    })
+
+    it('propagates a delivery failure without recording a success', async () => {
+        await expect(
+            runFullBackup({ deliver: async () => { throw new Error('share failed') } })
+        ).rejects.toThrow('share failed')
+        expect(await db.settings.get(LAST_BACKUP_KEY)).toBeUndefined()
     })
 })
