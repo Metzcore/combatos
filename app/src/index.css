@@ -1844,25 +1844,548 @@ input[type="checkbox"] {
     font-size: 1.5rem;
   }
 }
-/* -- Timer Alerts --------------------------------- */
-.alert-main {
-  animation: pulse-alert-main 0.8s ease-out;
+/* ══════════════════════════════════════════════════════
+   W15.1 — Timer hub: Instrument Strata
+
+   The Timer hub's Basic and Custom Rounds modes are two views of one
+   timing instrument. Both use the accepted Strata recipe (raised token-mix
+   slab, 1px rim reflection, one static ambient shadow) with the Signal
+   Spine translated into a full-height 3px left rail carrying module or
+   phase identity. Semantic accents follow the existing mapping: Stopwatch
+   --accent (measure), Rest --primary (recovery, same as Rounds rest and
+   cooldown), Rounds phases keep their engine semantics (work --alert,
+   rest --primary, prep --dim, done --warn). Tokens + color-mix only; no
+   new hex, no looping animation, no new assets.
+
+   The old global .alert-main / .alert-interim selectors are REPLACED by
+   the scoped .timer-alert-* below: a repo-wide search proved the only
+   consumers were BasicTimer.jsx and RoundsTimer.jsx, both updated in the
+   same pass, so no non-Timer surface can be affected.
+   ══════════════════════════════════════════════════════ */
+
+/* Calmer hub header: the shared .page-header's emerald rule + glow reads
+   as a legacy alarm band on an instrument surface. Scoped override only —
+   other hubs keep the shared header exactly as-is. */
+.timer-hub .page-header {
+  border-bottom-color: var(--divider);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--bg) 70%, transparent);
 }
 
-@keyframes pulse-alert-main {
-  0% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
-  10% { box-shadow: 0 0 30px rgba(0, 255, 102, 0.8); border-color: var(--primary); }
-  100% { box-shadow: 0 0 0 rgba(0, 255, 102, 0); border-color: var(--divider); }
+/* Basic tab stack spacing (the shared .content gap is 12px). */
+.timer-basic,
+.timer-rounds {
+  gap: 20px;
 }
 
-.alert-interim {
-  animation: pulse-alert-interim 0.4s ease-out;
+/* ── Instrument module slab ─────────────────────────── */
+.timer-module {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 86%, var(--label) 14%) 0%,
+    var(--panel) 46%
+  );
+  border: 1px solid color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+  border-left: 3px solid var(--divider);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  padding: 14px 16px 16px;
+  text-align: center;
 }
 
-@keyframes pulse-alert-interim {
-  0% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
-  10% { box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); border-color: var(--warn); }
-  100% { box-shadow: 0 0 0 rgba(255, 170, 0, 0); border-color: var(--divider); }
+.timer-module--stopwatch {
+  border-left-color: var(--accent);
+}
+
+.timer-module--rest {
+  border-left-color: var(--primary);
+}
+
+.timer-module--config {
+  border-left-color: var(--accent);
+}
+
+.timer-module--saved {
+  border-left-color: var(--warn);
+}
+
+/* Module head: quiet label + explicit textual state pill + the W15 ⋮
+   reorder affordance. State is TEXT first; the pill tint only reinforces
+   it (running --primary / paused --warn / ready --dim). */
+.timer-module__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.timer-module__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.timer-module__state {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.timer-module[data-state="running"] .timer-module__state {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--divider));
+}
+
+.timer-module[data-state="paused"] .timer-module__state {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--divider));
+}
+
+/* ⋮ reorder button: stretches to the full head height and module edge so
+   the tap target stays generous (sweaty-thumb floor) while visually flush.
+   Same behavior as the W15 inline-styled version. */
+.timer-module__menu {
+  flex-shrink: 0;
+  margin: -14px -16px -14px 0;
+  padding: 10px 16px;
+  min-width: 48px;
+  min-height: 48px;
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--dim);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Dominant time display: monospace HUD numerals, clamped so large values
+   never clip at narrow Android widths, never wrapping. */
+.timer-module__time {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  margin-bottom: 16px;
+}
+
+.timer-module--stopwatch .timer-module__time {
+  font-size: clamp(2.4rem, 13vw, 3rem);
+  color: var(--accent);
+}
+
+.timer-module--rest .timer-module__time {
+  font-size: clamp(2.8rem, 16vw, 4rem);
+  color: var(--primary);
+}
+
+.timer-module--rest[data-state="ready"] .timer-module__time {
+  color: var(--dim);
+}
+
+/* Rest preset grid: the low-friction action path — four equal, thumb-sized
+   targets, values unchanged (60s / 90s / 2m / 3m). */
+.timer-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.timer-preset {
+  min-height: 48px;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--divider));
+  background: color-mix(in srgb, var(--primary) 6%, var(--panel));
+}
+
+.timer-module__actions {
+  margin-bottom: 14px;
+}
+
+/* All primary timer controls keep a 48px+ target. */
+.timer-btn {
+  min-height: 48px;
+}
+
+.timer-btn--stopwatch {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 12%, transparent) inset;
+}
+
+.timer-btn--rest {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 12%, transparent) inset;
+}
+
+/* Add-time controls (+15s / +30s): frequent mid-set actions, so they get
+   the same 48px target floor as the presets. */
+.timer-addtime {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.timer-addtime__btn {
+  min-height: 48px;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+}
+
+/* ── Custom Rounds: build → verify → start → repeat ── */
+
+/* Prescription field grid. Field order, labels, input types, values, and
+   parsing are unchanged; this only groups and labels them legibly. */
+.rounds-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.rounds-field--wide {
+  grid-column: 1 / -1;
+}
+
+.rounds-field label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+
+.rounds-field input {
+  width: 100%;
+  padding: 12px 10px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+}
+
+/* Verify step: the derived prescription preview — one recessed, scannable
+   line restating the config before Start. Display-only; no new metric. */
+.rounds-preview {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--label);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+/* Start Workout: the obvious primary action — same token-mix emerald
+   execution treatment as Today's Finish bar, scoped to this button. */
+.timer-btn--start {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.05rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 24%, var(--panel)) 0%,
+    color-mix(in srgb, var(--primary) 13%, var(--bg)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--primary) 65%, var(--divider));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+/* Saved setups: recognizable one-tap routines. The whole left side loads;
+   only ✕ deletes. Long names wrap deliberately instead of overlapping. */
+.rounds-save {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.rounds-setups {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rounds-setup {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  border: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.rounds-setup__load {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.rounds-setup__name {
+  display: block;
+  color: var(--accent);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.rounds-setup__summary {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.rounds-setup__delete {
+  align-self: center;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  color: var(--alert);
+}
+
+.rounds-empty {
+  padding: 10px 0;
+  color: var(--dim);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ── Custom Rounds: active execution surface ────────── */
+
+/* Phase identity via a SCOPED custom property (layout/signal property, not
+   a new design token — same convention as --today-actions-bar-height).
+   Semantics preserved from the pre-W15.1 inline styles. */
+.rounds-active {
+  --phase: var(--warn);
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-color: color-mix(in srgb, var(--phase) 55%, var(--divider));
+  border-left-color: var(--phase);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 84%, var(--phase) 9%) 0%,
+    color-mix(in srgb, var(--panel) 94%, var(--phase) 4%) 46%
+  );
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+
+.rounds-active--work {
+  --phase: var(--alert);
+}
+
+.rounds-active--rest {
+  --phase: var(--primary);
+}
+
+.rounds-active--prep {
+  --phase: var(--dim);
+}
+
+.rounds-active--done {
+  --phase: var(--warn);
+}
+
+.rounds-active__summary {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: var(--dim);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.rounds-active__phase {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--phase);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--phase) 55%, transparent);
+  margin-bottom: 8px;
+  transition: color 0.4s ease;
+}
+
+.rounds-active__round {
+  font-size: 0.95rem;
+  color: var(--dim);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.rounds-active__paused {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin: -8px 0 16px;
+}
+
+.rounds-active__clock {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(3.2rem, 21vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--phase);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--phase) 40%, transparent);
+  margin-bottom: 12px;
+  transition: color 0.4s ease;
+}
+
+.rounds-active__interim {
+  min-height: 22px;
+  font-size: 0.85rem;
+  color: var(--warn);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.rounds-active__actions {
+  margin-top: 26px;
+}
+
+.rounds-active__actions .timer-btn:only-child {
+  grid-column: 1 / -1;
+}
+
+.rounds-active__toggle {
+  background: color-mix(in srgb, var(--phase) 10%, transparent);
+  color: var(--phase);
+  border-color: var(--phase);
+  box-shadow: none;
+  transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+/* ── One-shot Timer completion signals ────────────────
+   The class exists only during the provider's existing alertState window
+   (800ms main / 400ms interim — both unchanged). Motion is a single
+   non-looping rim/light rise-and-settle; after the window the module
+   returns to its static strata state. .timer-alert-main is applied ONLY
+   to the surface that actually completed (Rest module, or the active
+   Rounds surface) — never to the Stopwatch. */
+.timer-alert-main {
+  animation: timer-pulse-main 0.8s ease-out 1;
+}
+
+@keyframes timer-pulse-main {
+  0% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+  12% {
+    border-color: var(--primary);
+    box-shadow:
+      0 0 24px color-mix(in srgb, var(--primary) 50%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+}
+
+.timer-alert-interim {
+  animation: timer-pulse-interim 0.4s ease-out 1;
+}
+
+@keyframes timer-pulse-interim {
+  0% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+  15% {
+    border-color: var(--warn);
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--warn) 40%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--warn) 35%, transparent);
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--divider) 78%, var(--label) 22%);
+    box-shadow:
+      0 8px 20px color-mix(in srgb, var(--bg) 80%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--label) 14%, transparent);
+  }
+}
+
+/* Reduced motion: no pulse — a truthful STATIC rim signal for the same
+   alert window (the class is only present while alertState is active). */
+@media (prefers-reduced-motion: reduce) {
+  .timer-alert-main,
+  .timer-alert-interim {
+    animation: none;
+  }
+
+  .timer-alert-main {
+    border-color: var(--primary);
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--primary) 35%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+
+  .timer-alert-interim {
+    border-color: var(--warn);
+    box-shadow:
+      0 0 12px color-mix(in srgb, var(--warn) 30%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--warn) 28%, transparent);
+  }
+}
+
+/* Timer-scoped keyboard focus: the global reset leaves buttons to the
+   browser default; give every Timer control a clear token-colored ring. */
+.timer-hub button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════════════════

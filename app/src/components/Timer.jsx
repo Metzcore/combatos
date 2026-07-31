@@ -8,7 +8,10 @@ import { HUB_TOP_TABS } from '../utils/navState.js'
 // and are untouched by this — only which one is DISPLAYED is controlled here.
 export default function Timer({ activeMode, onModeChange }) {
     return (
-        <div className="app" style={{ transition: 'background-color 1s ease-out' }}>
+        // W15.1: .timer-hub scopes the calmer instrument-header override in
+        // index.css to this hub only — shared .page-header is untouched
+        // elsewhere. Mode ownership/tab behavior unchanged.
+        <div className="app timer-hub" style={{ transition: 'background-color 1s ease-out' }}>
             <header className="page-header" style={{ paddingBottom: 10 }}>
                 <h1>⏱️ Timer</h1>
                 <div className="subtitle">Stopwatch & Rounds</div>
