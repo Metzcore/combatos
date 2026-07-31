@@ -13,3 +13,9 @@ mcps/
 
 # Personal data exports — never commit backups
 combatos-backup-*.json
+
+# Review screenshots — working material, not repo history. Anything that
+# becomes BINDING design evidence for a worker prompt should be committed
+# explicitly with `git add -f` (as trw-app-more-tab.jpeg was for W29), so the
+# prompt can point at a stable path.
+archive/Snippets-for-review/

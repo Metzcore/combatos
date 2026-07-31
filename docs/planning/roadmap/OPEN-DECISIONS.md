@@ -21,6 +21,7 @@ _Quick reference for current decision status. Each section's **RULED:** / **Not 
 | D11 | A7 permanent cartridge-session payload lock | **Ruled (revised, corrective pass)** — versioned `blocks[]` payload with `sessionActivities`, strength/core-only completeness |
 | D12 | A7 multi-phase cartridge execution | **OPEN — not yet ruled** |
 | D13 | Checklist/Notes owner-scoping for a unified/cross-device Log view | **OPEN — not yet ruled** |
+| D14 | Component-test infrastructure (jsdom + React testing library) | **OPEN — not yet ruled** |
 
 ## D1 — Delete Last Logged Day: hard vs. soft delete
 **Current state (shipped, by default not by decision):** hard delete on both ends — local Dexie record removed, `webhook.gs` removes the Sheet row entirely (`deleteRow`, with a code comment justifying it as avoiding formatting-inheritance bugs). The commit message and webhook header both *say* soft/strikethrough, which is wrong.
@@ -246,3 +247,36 @@ documented as such; (c) defer the decision entirely until W26 actually needs to 
 was surfaced while designing A7's analytics-readiness plan, not because A7 needs it answered.
 **Not ruled — do not default silently.** See
 `docs/planning/roadmap/prompts/W26-log-hub-research.md` for where this must be picked back up.
+
+## D14 — Component-test infrastructure (OPEN — not yet ruled)
+**Context (2026-07-31, surfaced during W29):** the suite runs `environment: 'node'` with no DOM and
+no React testing library (`app/vitest.config.js`; devDependencies carry `fake-indexeddb` but nothing
+that can render a component). 975 tests cover pure logic, Dexie and utilities extremely well —
+and cover component behaviour not at all. This was a deliberate standing position ("no React-render
+infrastructure — that stays a separate decision"), recorded rather than accidental.
+
+W29 is the first place it has a concrete cost. `MoreHub`'s Android hardware-Back bridge pushes and
+consumes history entries, and both of its failure modes trap the user (stacked entries make Back
+appear broken; no entry lets Back close the app from a detail screen). The *decision* was extracted
+into a pure, directly-tested predicate (`utils/moreNav.js`, `shouldPushHistoryEntry`), but the
+effect that consumes it can only be verified by hand on a device.
+
+**The actual question:** add jsdom + a React testing library (e.g. `@testing-library/react`), or
+keep component behaviour permanently device-verified and continue extracting decisions into pure
+predicates?
+
+**Scope of the gap, measured rather than assumed —** most remaining W29/W30 work does NOT need it:
+backup push (`fetch` mocks fine in node), the ignition store (pure), the Dexie v5 upgrade
+(`fake-indexeddb` is already installed), and Supabase RLS (SQL-level) are all testable today. It
+bites on exactly two things: W29's Back wiring, and W30's due rail + Overview renderer.
+
+**Options:** (a) add jsdom + `@testing-library/react` as its own PR — real component coverage, but a
+dependency change requiring the from-scratch lockfile regeneration and clean `npm ci` verification
+of decision_log 2026-07-10 #8, plus ongoing maintenance; (b) hold the line — keep extracting
+decisions into pure predicates and device-verify the wiring, accepting that trapping-class bugs are
+caught by hand; (c) defer until W30's due rail, the first surface where the untestable part carries
+real user-facing risk.
+
+**Blocks:** nothing today. W29 PR B shipped under option (b) with the device check treated as a
+required part of the PR rather than optional.
+**Not ruled — do not default silently.**

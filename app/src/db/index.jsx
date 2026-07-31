@@ -806,10 +806,21 @@ export function DBProvider({ children }) {
     // or delay first paint. `navigator.storage.persist()` never throws per
     // spec, but the whole call is feature-detected and try/caught anyway.
     // Browser realities: Chromium decides silently from engagement
-    // heuristics; Firefox may prompt; iOS Safari is known to evict
-    // IndexedDB after ~7 days of app disuse REGARDLESS of what persist()
-    // reports — on iOS the full-backup export is the real mitigation, this
-    // call is best-effort only.
+    // heuristics; Firefox may prompt.
+    //
+    // iOS, corrected 2026-07-31: the widely-repeated "Safari deletes PWA
+    // IndexedDB after 7 unused days regardless" is too broad. ITP's 7-day
+    // deletion of script-writable storage applies to Safari BROWSING
+    // contexts; a true Home Screen web app's first-party domain is
+    // explicitly exempt, and this app qualifies (manifest display:
+    // 'standalone'). What still applies everywhere is quota-pressure
+    // eviction, which persistent mode is what exempts you from — so this
+    // call is meaningful, not futile.
+    //
+    // The practical consequence is an ONBOARDING one, not a code one:
+    // iOS users should be steered to install, and a browser-only user is
+    // the one who most needs regular full-backup exports. More › About
+    // surfaces install state for exactly that reason.
     useEffect(() => {
         (async () => {
             try {

@@ -296,5 +296,14 @@ serialized behind the migration baton described in the system design. Design and
 2. Never alter webhook payload shapes or the Sheets integration (exception: W17, explicitly).
 3. Never import Apex-specific content (Apex tab, Maintenance, Regla Cero, RPE components).
 4. Never hand-edit `app/src/data/playbook.js`; CSV changes go through `audit_playbook.py` → `csv_to_js.py`.
-5. Never disrupt the n8n stack — fixed, protected dependency.
+5. Never disrupt the n8n stack — fixed, protected dependency. It is **not** in this repo:
+   n8n (production automation + PostgreSQL) and the Hermes agent run on a Hetzner server
+   documented at `C:\Users\Doble P\Documents\n8n-render\METZCORE_RUNBOOK.md` (n8n reachable at
+   `systems.metzcore.com`; the Hermes dashboard is Tailscale-only). That runbook's §8 hard rules
+   apply to any agent that ever touches this infrastructure — never `docker compose down` or
+   rebuild the n8n stack, and never alter `N8N_ENCRYPTION_KEY`. The app may POST **outbound** to
+   an n8n webhook (a W29 Agent-surface capability); it must never read or modify n8n
+   configuration. Note the app's Supabase keep-alive is already external and already built —
+   `.github/workflows/supabase-keepalive.yml` — and per decision_log 2026-07-20 #8 it must never
+   be reimplemented in-app.
 6. Diagnostic before modification; one change per session; commit per item.

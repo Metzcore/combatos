@@ -84,9 +84,11 @@ is the hard-rule authority; where the two overlap, this file wins.
    whether it's already scoped there — either as an active item, a gated one, or something
    already ruled out. Genuinely open decisions (multiple reasonable answers, no ruling yet)
    belong in `docs/planning/roadmap/OPEN-DECISIONS.md` — **never silently default one and move
-   on.** Most decisions there are ruled (D1–D8 and D10), but **D9 (off-programme activity
-   logging) is still open** — inspect each decision's own ruling line before assuming a question
-   is settled.
+   on.** Most decisions there are ruled. **D9 (off-programme activity logging) was RULED on
+   2026-07-31** — solved by the existing custom-day mechanism, no new machinery (PR #69). Still
+   open as of that date: **D12** (A7 multi-phase cartridge execution), **D13** (Checklist/Notes
+   owner-scoping) and **D14** (component-test infrastructure). Do not trust this list over the
+   file — inspect each decision's own ruling line before assuming a question is settled.
 
 ## Other things worth knowing while working here
 
