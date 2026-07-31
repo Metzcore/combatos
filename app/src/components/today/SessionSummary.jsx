@@ -11,21 +11,13 @@
  * user text is never silently truncated.
  */
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
-
-const PREPARATION = [
-    { id: 'warmup', label: 'Warm-up' },
-    { id: 'cooldown', label: 'Cooldown' },
-]
-
-const ACTIVITY_CHIPS = [
-    { id: 'weights', label: 'Weights' },
-    { id: 'bag-workout', label: 'Bag work' },
-    { id: 'cardio', label: 'Cardio' },
-    { id: 'mobility', label: 'Mobility' },
-    { id: 'abs', label: 'Abs' },
-    { id: 'corrective-exercises', label: 'Corrective' },
-    { id: 'other', label: 'Other' },
-]
+// W26 Stage 1: these two lists were local consts here until the Log hub's
+// Overview needed the same labels. Moved verbatim to utils/sessionActivityLabels.js
+// so the two surfaces cannot drift apart; the rendering below is unchanged.
+import {
+    PREPARATION_ACTIVITIES as PREPARATION,
+    CHIP_ACTIVITIES as ACTIVITY_CHIPS,
+} from '../../utils/sessionActivityLabels.js'
 
 export default function SessionSummary({
     sessionActivities, onToggleActivity,
