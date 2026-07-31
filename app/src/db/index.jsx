@@ -28,6 +28,12 @@ import {
     buildLegacyIdentity, buildCartridgeIdentity, pickFields,
     LEGACY_STATE_FIELD_KEYS, CARTRIDGE_STATE_FIELD_KEYS,
 } from '../utils/workoutDraftState.js'
+import {
+    addCustomIgnitions as addCustomIgnitionsPure,
+    removeCustomIgnition as removeCustomIgnitionPure,
+    resetCustomIgnitions as resetCustomIgnitionsPure,
+    normalizeCustomIgnitions,
+} from '../utils/customIgnitions.js'
 
 // Re-exported so callers (CartridgeToday.jsx) can catch the typed validation
 // error via `import { CartridgeValidationError } from '../../db/index.jsx'`
@@ -236,6 +242,7 @@ export function DBProvider({ children }) {
     const [dailyIgnitionEnabled, _setDailyIgnitionEnabled] = useState(DEFAULTS.dailyIgnitionEnabled)
     const [bookmarkedIgnitions, setBookmarkedIgnitions] = useState([])
     const [ignitionHasShown, setIgnitionHasShown] = useState(false)
+    const [customIgnitions, setCustomIgnitionsState] = useState([])
     const [pendingSync, setPending] = useState(0)
     const [sessionCount, setCount] = useState({}) // { 1: n, 2: n, 3: n }
     const [ready, setReady] = useState(false)
@@ -840,6 +847,14 @@ export function DBProvider({ children }) {
             const bookmarks = await getSetting('bookmarkedIgnitions')
             if (Array.isArray(bookmarks)) setBookmarkedIgnitions(bookmarks)
 
+            // W29 PR D — customIgnitions lives in the key-value `settings`
+            // table, same as bookmarkedIgnitions, so no Dexie version bump
+            // is needed. normalizeCustomIgnitions (via the pure setters
+            // below) repairs anything corrupt; the raw getSetting result is
+            // only trusted as far as "is it an array".
+            const custom = await getSetting('customIgnitions')
+            if (Array.isArray(custom)) setCustomIgnitionsState(normalizeCustomIgnitions(custom))
+
             const setups = await getSetting('savedRoundsTimers')
             if (Array.isArray(setups)) {
                 setSavedRoundsSetups(setups)
@@ -896,6 +911,32 @@ export function DBProvider({ children }) {
             setSetting('bookmarkedIgnitions', newBookmarks).catch(console.error);
             return newBookmarks;
         });
+    }, []);
+
+    // W29 PR D — custom ignition quotes. Mirrors toggleIgnitionBookmark's
+    // shape exactly: functional setState update + fire-and-forget
+    // setSetting persist. The actual add/remove/reset logic is the pure
+    // utils/customIgnitions.js module — this is wiring only.
+    const addCustomIgnitions = useCallback(async (titles) => {
+        setCustomIgnitionsState(prev => {
+            const next = addCustomIgnitionsPure(prev, titles)
+            setSetting('customIgnitions', next).catch(console.error)
+            return next
+        })
+    }, [])
+
+    const deleteCustomIgnition = useCallback(async (id) => {
+        setCustomIgnitionsState(prev => {
+            const next = removeCustomIgnitionPure(prev, id)
+            setSetting('customIgnitions', next).catch(console.error)
+            return next
+        })
+    }, [])
+
+    const resetCustomIgnitions = useCallback(async () => {
+        const next = resetCustomIgnitionsPure()
+        setCustomIgnitionsState(next)
+        await setSetting('customIgnitions', next)
     }, []);
 
     const logSession = useCallback(async (sessionData) => {
@@ -1022,6 +1063,7 @@ export function DBProvider({ children }) {
             dailyIgnitionEnabled, setDailyIgnitionEnabled,
             bookmarkedIgnitions, toggleIgnitionBookmark,
             ignitionHasShown, setIgnitionHasShown,
+            customIgnitions, addCustomIgnitions, deleteCustomIgnition, resetCustomIgnitions,
             sessionCount, pendingSync, logSession, logCartridgeSession, resetSession, deleteLastSession,
             refreshCounts, refreshPending,
             storagePersisted,
