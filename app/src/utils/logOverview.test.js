@@ -113,6 +113,32 @@ describe('buildMonthHeatmap — bucketing', () => {
         expect(cellFor(grid, '2026-07-16')).toMatchObject({ bucket: 'combat', sessionCount: 2 })
     })
 
+    it('gives every cell its own per-category breakdown, for explaining a multi-session day on tap', () => {
+        const grid = buildMonthHeatmap([
+            cartridge({ date: '2026-07-30', sessionCategory: 'strength-conditioning' }),
+            cartridge({ date: '2026-07-30', sessionCategory: 'strength-conditioning' }),
+            cartridge({ date: '2026-07-30', sessionCategory: 'strength-conditioning' }),
+            cartridge({ date: '2026-07-30', sessionCategory: 'strength-conditioning' }),
+            cartridge({ date: '2026-07-30', sessionCategory: 'combat' }),
+        ], { year: 2026, month: 7, todayStr: '2026-07-31' })
+
+        expect(cellFor(grid, '2026-07-30').counts).toEqual({ sc: 4, combat: 1, other: 0, rest: 0, recovery: 0 })
+        // An empty day in the same grid gets an all-zero breakdown, not a
+        // missing field — every day has a `counts` object, session or not.
+        expect(cellFor(grid, '2026-07-06').counts).toEqual({ sc: 0, combat: 0, other: 0, rest: 0, recovery: 0 })
+    })
+
+    it('excludes an unrecognized-category session from the per-cell breakdown, matching the month total', () => {
+        const grid = buildMonthHeatmap([
+            cartridge({ date: '2026-07-16', sessionCategory: 'strength-conditioning' }),
+            cartridge({ date: '2026-07-16', sessionCategory: 'brand-new-thing' }),
+        ], { year: 2026, month: 7, todayStr: '2026-07-31' })
+
+        const cell = cellFor(grid, '2026-07-16')
+        expect(cell.sessionCount).toBe(2)
+        expect(cell.counts).toEqual({ sc: 1, combat: 0, other: 0, rest: 0, recovery: 0 })
+    })
+
     it('prefers sc over combat when a day has both', () => {
         const grid = buildMonthHeatmap([
             cartridge({ date: '2026-07-16', sessionCategory: 'combat' }),
