@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-07-31 (later) · Log hub rebuilt; scope, evidence and colour rulings
+
+**Context:** The Log tab's Stats view still surfaced hip score, Day 1–7 coverage and Phase N —
+legacy-only fields cartridge sessions never populate, so they could only ever read empty. The
+never-run W26 research brief (2026-07-19) was superseded by a fresh plan written against current
+reality, then implemented across four merged PRs (#65–#68).
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Checklist/Notes data never feeds the Log hub, in either direction | Checklist is a general-purpose tool each user bends to their own ends; folding it into a fitness-adherence view assumes everyone uses it as the developer does. Also removes D13 and the two-day-axis reconciliation from this surface entirely |
+| 2 | D9 (off-programme logging) is solved by the existing custom-day mechanism; no new machinery | D10 already made cartridge days a flexible pool loggable on any date, with a category picker on custom days. The one true remaining gap — activity matching no day template at all — is narrow and needs a logging-path change, so it is deferred, not built |
+| 3 | No personal weekly target | The evidence for self-monitoring is strong; for vague distal goals it is weak. The heatmap already delivers the behavioural function through visual continuity, without creating a number to fail against |
+| 4 | Inside the calendar, colour means what was trained; neutral white means a UI marker about the cell (today, selected, multi-session), told apart by shape | `--accent` on today's ring read as the same amber as `--warn` on the "Other" category, so users inferred a training type from a UI state. Bucket colours could not move — they mirror the History tab's badges |
+| 5 | The math layer stays with the architect; the frontend builder consumes it and never patches it | Aggregation bugs render as plausible numbers and survive visual review. The boundary held twice — a per-cell breakdown field was added by the architect on request rather than recomputed in the component |
+| 6 | Small, well-scoped fixes go to a dispatched agent, not to Kimi | Developer ruling: Kimi is reserved for large frontend work and tasks needing a stateless model. Applied this session for the colour-vocabulary fix |
+
+**Also fixed:** a live timezone bug in the History list — `new Date('YYYY-MM-DD').toLocaleDateString()`
+parses as UTC midnight then renders local, showing every row a day early for any user west of UTC
+(invisible at UTC+1, wrong for a US client). Now uses the same string-based formatting as
+`weeklyStats.js`. The hub title dropped "Fight Log" for "Log" — not every cartridge trains a fighter.
+
+**Not done / deferred:** W26 is not yet checked off in `ROADMAP.md` and its entry still describes the
+superseded research scope; D9's ruling is not yet in `OPEN-DECISIONS.md`; `docs/fix-duplicate-w14-entry`
+is pushed but unmerged, so `ROADMAP.md` still lists W14 twice. No Cloudflare production deployment was
+observed. Off-programme logging (the narrow D9 remainder) and the Log hub integration test are unbuilt.
+
+**Next:** merge the W14 fix, truth-up W26/D9, then add the integration test and manual QA checklist.
+
+---
+
 ## 2026-07-31 · Roadmap truth-up + W12/A12 ruled out
 
 **Context:** Sunshine verification against the repo (not the continuity files) found two roadmap
