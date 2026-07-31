@@ -206,8 +206,10 @@ All seven decisions were ruled the same day the roadmap was produced. Gate/scope
 
 ## Track B — Coaching operations & onboarding (ACTIVE, parallel to Track A)
 
-Client onboarding, the coaching dossier, and the coach-facing website. **Runs in parallel with the
-Track A app work and deliberately shares no files with it.** Design and rationale:
+Client onboarding, the coaching dossier, and the coach-facing website. The site code lives in a
+separate repository, while integration documentation and migration history live here. Track B runs
+in parallel with Track A and shares the same production Supabase project, so schema work is
+serialized behind the migration baton described in the system design. Design and rationale:
 `docs/planning/rebuild/ONBOARDING-SYSTEM-DESIGN.md`.
 
 ### Parallel-track protocol (read before starting any session here)
@@ -241,9 +243,12 @@ Track A app work and deliberately shares no files with it.** Design and rational
       seven `[GATES]`, targeted at under ten minutes, plus the vision prompt that keeps equipment
       inventory out of both the questionnaire and Supabase Storage.
       → `ONBOARDING-QUESTION-SPEC.md`, `GYM-PHOTO-VISION-PROMPT.md`
-- [ ] **B5 · Onboarding site v1** — authenticated single-page questionnaire, magic-link auth, save
-      and resume, own Cloudflare Pages project, shared Supabase. Coach applies the migration and RLS;
-      the implementation agent writes SQL for review only. No uploads, no agents, no dashboard.
+- [~] **B5 · Onboarding site v1** — the standalone questionnaire UI is checkpointed locally in its
+      own repository (`a223b9e`); its production build passes, but it does not yet authenticate,
+      persist answers, submit notifications, or deploy. The draft `onboarding_responses` migration
+      remains unapplied and must pass its separate privacy/security review before real intake data.
+      The committed Pages plan and the site's Workers configuration must be reconciled before a
+      hosting target is chosen. No uploads, agents, or dashboard.
       → `docs/planning/rebuild/ONBOARDING-SITE-IMPLEMENTATION-PLAN.md`
 - [ ] **B6 · n8n notification workflows** — submission → Telegram with an intake-gate completeness
       report, client confirmation email, dossier-skeleton render, and a 48-hour abandonment nudge.
