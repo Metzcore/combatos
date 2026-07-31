@@ -3,7 +3,7 @@ import TrainHub from './TrainHub.jsx'
 import Timer from './Timer.jsx'
 import Calendar from './Calendar.jsx'
 import ChecklistHub from './ChecklistHub.jsx'
-import Settings from './Settings.jsx'
+import MoreHub from './MoreHub.jsx'
 import BottomNav from './BottomNav.jsx'
 import { DEFAULT_HUB, initialTopTabs, setHubTab } from '../utils/navState.js'
 
@@ -44,7 +44,9 @@ export default function AppShell() {
                     onTabChange={t => selectHubTab('checklist', t)}
                 />
             )}
-            {activeHub === 'settings' && <Settings />}
+            {/* W29: More owns its own screen selection locally, so unlike the
+                tabbed hubs it takes no tab props — see utils/moreNav.js. */}
+            {activeHub === 'more' && <MoreHub />}
 
             <BottomNav
                 activeHub={activeHub}

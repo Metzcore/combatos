@@ -16,7 +16,8 @@ import { HUBS, DEFAULT_HUB, HUB_TOP_TABS, initialTopTabs, setHubTab } from './na
 
 describe('hub definitions (W19 §6 rulings)', () => {
     it('has exactly 5 hubs in slot order', () => {
-        expect(HUBS).toEqual(['train', 'timer', 'log', 'checklist', 'settings'])
+        // W29: slot 5 renamed `settings` → `more`.
+        expect(HUBS).toEqual(['train', 'timer', 'log', 'checklist', 'more'])
     })
 
     it('defaults to the train hub', () => {
@@ -101,9 +102,21 @@ describe('setHubTab', () => {
     it('returns the same reference for an unknown hub', () => {
         // W23 note: `checklist` used to be the "unknown hub" example here;
         // it now HAS top tabs, so the case uses genuinely unknown keys.
+        // W29: `more` is a REAL hub but deliberately has no top tabs, so it
+        // must still be rejected here — its screens are hierarchical and are
+        // owned by MoreHub via utils/moreNav.js, not by this module.
         const state = initialTopTabs()
+        expect(setHubTab(state, 'more', 'profile')).toBe(state)
         expect(setHubTab(state, 'settings', 'anything')).toBe(state)
         expect(setHubTab(state, 'nope', 'today')).toBe(state)
+    })
+
+    it('keeps `more` out of the top-tab state entirely', () => {
+        // Regression guard: if someone later adds `more` to HUB_TOP_TABS, the
+        // hub would render a tablist for what is a navigation list, and
+        // MoreHub's local screen state would silently compete with it.
+        expect(Object.keys(initialTopTabs())).not.toContain('more')
+        expect(HUB_TOP_TABS.more).toBeUndefined()
     })
 
     it('returns the same reference for a tab the hub does not have', () => {

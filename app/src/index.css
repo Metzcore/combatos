@@ -4236,3 +4236,108 @@ button.cartridge-block__head {
   max-height: none;
 }
 
+
+/* ══════════════════════════════════════════════════════
+   W29 — More hub: menu rows and detail header
+
+   The More hub is a navigation LIST, not a tab bar: six destinations do not
+   fit a 360px TopTabs row, and a catch-all hub accumulates more over time.
+   Rows follow the TRW reference (icon · label · chevron) recorded in
+   archive/Snippets-for-review/trw-app-more-tab.jpeg.
+
+   Deliberately structural only — spacing, hit targets and affordance. The
+   material treatment (Strata slab, spine, motion) is a later visual pass and
+   should replace these values rather than build on them.
+   ══════════════════════════════════════════════════════ */
+.more-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.more-menu__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  /* 56px min keeps every row a comfortable one-thumb target on a phone. */
+  min-height: 56px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.more-menu__row:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.more-menu__row:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+.more-menu__row:active {
+  background: var(--input);
+}
+
+.more-menu__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.more-menu__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.more-menu__label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.more-menu__blurb {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+.more-menu__chevron {
+  flex: 0 0 auto;
+  color: var(--dim);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+/* Detail header: Back sits beside the title rather than above it, so the
+   title block keeps the same vertical rhythm as every other hub header. */
+.more-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.more-detail__back {
+  flex: 0 0 auto;
+  /* 44px is the minimum comfortable touch target; the glyph alone is not. */
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.more-detail__back:active {
+  opacity: 0.6;
+}
