@@ -564,3 +564,25 @@ after localhost use.
 **Not done / deferred:** the curated warm-up reference remains the only incomplete A11 slice; A12
 Academy / Exercise Guides remains gated on real A11 usage; broader Playbook and Log redesign work
 keeps its separate roadmap/research scope.
+
+---
+
+## 2026-07-31 · W15.1 Timer “Instrument Strata” visual baseline accepted
+
+**Context:** Kimi K3 implemented a protected frontend-only Timer experiment covering Basic Timer
+and Custom Rounds. Codex inspected the implementation, reran verification, and committed the
+developer-accepted application and focused tests as `fc63b5d`.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | “Instrument Strata” is the accepted Timer visual baseline: timing modules use clear textual states, dominant clocks, restrained material depth, and phase/module signal rails | It brings Timer into the accepted app language while retaining its distinct function as a glanceable timing instrument |
+| 2 | Timer behavior design follows stable cue → low-friction action → immediate truthful feedback | Clear presets, saved routines, phase labels, and real timer feedback can support repeated use without manipulative rewards or fabricated metrics |
+| 3 | Rest completion visually signals the Rest module, never Stopwatch | The main alarm state is produced by Rest countdown completion; the previous Stopwatch flash was semantically false |
+| 4 | Timer engine, audio, vibration, wake lock, persistence, and saved-setup ownership remain protected from visual passes | Broad presentational freedom produced a strong result without risking the hard-won timing and offline behavior |
+
+**Not done / deferred:** no new presets, timing calculations, saved-setup behavior, notifications,
+analytics, gamification, persistent completion trace, or wider app-header redesign. The full
+physical-device checklist was not independently claimed during closeout.
+
+**To do next session:** choose the next roadmap item in a fresh session; treat W15.1 as complete
+unless real training use reveals a concrete regression or behavioral-friction follow-up.

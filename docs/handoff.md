@@ -1,22 +1,17 @@
 ## Current state (one line)
-Branch `codex/kimi-trial-1` contains the locally accepted A7 interactive renderer and A11
-Plan/Library/Today exercise-reference experience through `c77ea94`, including the device-accepted
-Today “Execution Strata” visual pass. Independent evidence: 45 test files / 900 tests pass and the
-production PWA build succeeds. The branch is not merged into local `main`; remote/PR/deploy state
-was not checked on 2026-07-31.
+Branch `codex/kimi-trial-1` contains the developer-accepted W15.1 Timer “Instrument Strata”
+application commit `fc63b5d` plus its separate roadmap/continuity closeout. Independent evidence:
+47 test files / 933 tests pass, the production PWA build succeeds, and `git diff --check` is clean.
 
 ## Pending
 
-- [ ] **A11 closeout decision:** optionally curate and annotate an approved reference for the
-      generic “Your own 10-min warm-up routine.” This is the only incomplete A11 reference slice.
-- [ ] **A12 remains gated:** do not build Academy / Exercise Guides IA until real usage of the
-      accepted A11 links justifies the information architecture.
-- [ ] **Future visual work stays surgical:** use the accepted bounded Kimi-worker pattern one
-      surface at a time. Playbook and Log already have separate roadmap/research context; do not
-      merge them into an unscheduled app-wide redesign.
-- [ ] **Branch integration:** review/push/merge `codex/kimi-trial-1` when the developer is ready;
-      local refs only were checked this session.
-- [ ] **Still outside this sequence:** D9 remains open; optional device checks can still cover
-      sign-out and active-draft survival across a later PWA update.
-- [ ] **After app work is finished, rotate the developer Supabase password-login user's password:**
-      replace the temporary placeholder with something long and random.
+- [ ] **Preserve unrelated local state:** do not include `.gitignore`, the intentional
+      `app/.env.example` deletion, `.claude/`, rebuild-planning documents, or `.env.local`.
+- [ ] **Choose the next roadmap item in a fresh session:** W15.1 is complete; do not silently
+      expand its frontend scope into another hub.
+- [ ] **A11 closeout remains optional:** decide whether to curate an approved reference for the
+      generic “Your own 10-min warm-up routine.”
+- [ ] **Real-use follow-up:** use the accepted Timer experience during training and record any
+      behavioral or device friction before proposing another Timer feature.
+- [ ] **Branch integration and security follow-up:** push/review/merge `codex/kimi-trial-1` when
+      ready, then rotate the temporary Supabase developer password after app work is finished.
