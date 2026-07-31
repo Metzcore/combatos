@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDB } from '../db/index.jsx'
 import { IGNITION_QUOTES } from '../data/ignition.js'
+import { mergeIgnitions } from '../utils/customIgnitions.js'
 
 export default function DailyIgnition() {
-    const { dailyIgnitionEnabled, ignitionHasShown, setIgnitionHasShown, bookmarkedIgnitions, toggleIgnitionBookmark } = useDB()
+    const {
+        dailyIgnitionEnabled, ignitionHasShown, setIgnitionHasShown,
+        bookmarkedIgnitions, toggleIgnitionBookmark, customIgnitions,
+    } = useDB()
     const [quote, setQuote] = useState(null)
     const [fading, setFading] = useState(false)
     const timeoutRef = useRef(null)
+
+    // W29 PR D — the splash must pick from bundled + user-authored quotes
+    // alike; that is the whole point of custom ignitions existing.
+    const allQuotes = mergeIgnitions(IGNITION_QUOTES, customIgnitions)
 
     useEffect(() => {
         // Prevent Daily Ignition in browser tabs to ensure native PWA install UI is not blocked
@@ -18,9 +26,10 @@ export default function DailyIgnition() {
         }
 
         if (!dailyIgnitionEnabled || ignitionHasShown) return;
-        
-        // Pick random quote
-        const randomQuote = IGNITION_QUOTES[Math.floor(Math.random() * IGNITION_QUOTES.length)]
+        if (allQuotes.length === 0) return;
+
+        // Pick random quote (bundled + custom, merged)
+        const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)]
         setQuote(randomQuote)
 
         timeoutRef.current = setTimeout(() => {
@@ -33,6 +42,12 @@ export default function DailyIgnition() {
         return () => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current)
         }
+        // allQuotes is intentionally NOT a dependency: it's a derived array
+        // (new identity each render), and re-running this effect on every
+        // customIgnitions mutation would re-roll and re-show the splash
+        // mid-session, which is not the intent. dailyIgnitionEnabled/
+        // ignitionHasShown/setIgnitionHasShown are the only real triggers,
+        // matching the pre-existing dependency list.
     }, [dailyIgnitionEnabled, ignitionHasShown, setIgnitionHasShown])
 
     if (!quote || ignitionHasShown || !dailyIgnitionEnabled) return null;
