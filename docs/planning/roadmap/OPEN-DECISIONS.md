@@ -1,7 +1,7 @@
 # Deliverable 4 — Open Decisions (yours, not mine)
 _Each of these has more than one reasonable answer. Where the code has already picked one by default, that's noted — a default is not a decision until you ratify it._
 
-> **2026-07-10 — DEVELOPER RULINGS RECORDED.** The original seven decisions (D1–D7) were answered in the same session. Each section below carries a **RULED:** line. Roadmap impacts are listed in the addendum at the bottom of `ROADMAP.md`. Later decisions (D8–D10) were added as the work uncovered them: **D8 and D10 are ruled; D9 remains open.**
+> **2026-07-10 — DEVELOPER RULINGS RECORDED.** The original seven decisions (D1–D7) were answered in the same session. Each section below carries a **RULED:** line. Roadmap impacts are listed in the addendum at the bottom of `ROADMAP.md`. Later decisions (D8–D10) were added as the work uncovered them: **D8, D9, and D10 are ruled.**
 
 ## Status index
 _Quick reference for current decision status. Each section's **RULED:** / **Not ruled** line records the decision itself; its surrounding "current state," context and options are historical snapshots from when that decision was captured and may not describe today's implementation._
@@ -16,7 +16,7 @@ _Quick reference for current decision status. Each section's **RULED:** / **Not 
 | D6 | Recover vs regenerate README/AGENTS/ARCHITECTURE | **Ruled** — regenerate fresh |
 | D7 | Supabase migration | **Ruled** — go; now live in production |
 | D8 | W24 tracking (standalone vs counted) | **Ruled** — counted tasks |
-| D9 | Off-programme activity logging | **OPEN — not yet ruled** |
+| D9 | Off-programme activity logging | **Ruled (2026-07-31)** — solved by the existing D10 custom-day mechanism; no new machinery |
 | D10 | Cartridge weekly structure | **Ruled** — flexible pool + suggested order |
 | D11 | A7 permanent cartridge-session payload lock | **Ruled (revised, corrective pass)** — versioned `blocks[]` payload with `sessionActivities`, strength/core-only completeness |
 | D12 | A7 multi-phase cartridge execution | **OPEN — not yet ruled** |
@@ -94,7 +94,13 @@ AGENTS.md rule-2 restriction explicitly lifted); (b) a counted task ("Workout" h
 exists in the developer's Daily Habits) + a note, i.e. zero new machinery, surfaced later by
 W26's unified Log view; (c) not worth modeling — the Sheet stays a programme log, period.
 **Blocks:** nothing. Candidate input to W26's proposal rather than a standalone build.
-**Not ruled — do not default silently.**
+**RULED (2026-07-31): solved by the existing custom-day mechanism — no new machinery.** D10
+already made cartridge days a flexible pool loggable on any date, with a category picker on
+custom days — that is Option B's "counted task/note, surfaced by the Log hub" path, now shipped as
+the Log hub's History + Overview rebuild (PRs #65–#68). The one true remaining gap — an activity
+that matches no day template at all — is narrow and needs a logging-path change, so it stays
+deferred rather than built. Full reasoning in `docs/decision_log.md`'s 2026-07-31 "Log hub
+rebuilt" entry.
 
 ## D10 — Cartridge weekly structure: fixed rotation vs flexible pool
 **Context (2026-07-22):** authoring the first real cartridge (developer's own UFC-Gym programme)
