@@ -31,8 +31,12 @@ export const HUB_TOP_TABS = {
         { key: 'rounds', label: 'Custom Rounds' }
     ],
     log: [
-        { key: 'log', label: 'Log' },
-        { key: 'stats', label: 'Stats' }
+        // W26: labels renamed for the Log-hub rebuild (History = the detail
+        // record, Overview = the pattern view). The KEYS stay 'log'/'stats' —
+        // they are matched literally in Calendar.jsx and validated by
+        // setHubTab, so renaming them would risk a silent fallthrough.
+        { key: 'log', label: 'History' },
+        { key: 'stats', label: 'Overview' }
     ],
     checklist: [
         { key: 'checklist', label: 'Checklist' },

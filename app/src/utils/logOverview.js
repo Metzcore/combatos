@@ -114,6 +114,16 @@ function groupByDate(sessions) {
  * EXCLUDES rest/recovery — byte-for-byte the same rule as `summarizeWeek()`'s
  * `total = sc + combat + other`, so "12 sessions" means the same thing on
  * this screen as it does on the weekly cards.
+ *
+ * Each cell also carries its OWN `counts` (same five-key shape, no `total`)
+ * — added so a multi-session day can be explained on demand ("5 sessions:
+ * S&C x4, Combat x1") instead of surfacing a bare, ambiguous number. A bare
+ * digit on a colored cell reads too much like the retired hip-score
+ * convention (colored dot + 1-5 number) to leave as the only signal — see
+ * `docs/planning/rebuild/LOG-HUB-EXPERIENCE-PLAN.md` for that finding. A
+ * session whose category is unrecognized (`sessionBucket` returns null)
+ * still counts toward `sessionCount` but not toward any key in `cell.counts`
+ * — the same "never guess a bucket" rule applied at the cell level.
  */
 export function buildMonthHeatmap(sessions, { year, month, todayStr } = {}) {
     const empty = {
@@ -133,10 +143,12 @@ export function buildMonthHeatmap(sessions, { year, month, todayStr } = {}) {
         const daySessions = byDate.get(date) || []
 
         let bucket = null
+        const dayCounts = { sc: 0, combat: 0, other: 0, rest: 0, recovery: 0 }
         for (const s of daySessions) {
             const b = sessionBucket(s)
             if (b === null) continue
             counts[b] += 1
+            dayCounts[b] += 1
             if (WORKOUT_BUCKETS.has(b)) counts.total += 1
             if (bucket === null || BUCKET_PRIORITY.indexOf(b) < BUCKET_PRIORITY.indexOf(bucket)) {
                 bucket = b
@@ -147,6 +159,7 @@ export function buildMonthHeatmap(sessions, { year, month, todayStr } = {}) {
             date,
             bucket,
             sessionCount: daySessions.length,
+            counts: dayCounts,
             isToday: date === today,
             // String comparison is valid for zero-padded YYYY-MM-DD.
             isFuture: date > today,
