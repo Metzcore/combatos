@@ -37,12 +37,13 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
       now — worth a fresh look once a second fight-day cartridge exists to compare against.
       `prompts/W12-exercise-picker.md` is retained as historical record, not an active spec.
 - [ ] W13 · **IMPL** · Mobility upgrades: per-exercise YouTube link (opens new tab) + Settings-level injury/mobility profile with a global toggle to hide the mobility block. → `prompts/W13-mobility-profile.md` ⚠️ _The legacy mobility-video portion is now a candidate for absorption into A11’s cartridge-era Exercise Reference layer. The injury/profile toggle remains separate, and W13 must be re-scoped before execution._
-- [ ] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
-- [x] W14 · **FAST** · Phase lock/unlock signaling — done in substance via W27, not standalone.
-      _Truth-up 2026-07-31: W27's implementation ([HUD.jsx:253](../../../app/src/components/HUD.jsx)
-      comment) explicitly moved this condition into `utils/phaseUnlock.js` and shipped the disabled-
-      option gating, the "NEXT: PHASE n · DAY m" surface, and the stale-phase mismatch badge — the
-      entirety of what W14 asked for. No separate work needed; checkbox was stale._
+- [x] W14 · **FAST** · Phase lock/unlock signaling: make the existing unlock logic legible in the UI
+      (what unlocks next, why, how close). No logic changes. → `prompts/W14-phase-signaling.md`
+      _Truth-up 2026-07-31: done in substance via W27, not standalone — W27's implementation
+      ([HUD.jsx:253](../../../app/src/components/HUD.jsx) comment) explicitly moved this condition
+      into `utils/phaseUnlock.js` and shipped the disabled-option gating, the "NEXT: PHASE n · DAY m"
+      surface, and the stale-phase mismatch badge — the entirety of what W14 asked for. No separate
+      work needed; the checkbox was stale._
 - [x] W15 · **IMPL** · Timers page: user-controlled reordering of stopwatch/rest-timer blocks through explicit Move up/down actions, with order persisted in settings. → `prompts/W15-timer-reorder.md` _Shipped in commit `efcbe91` (`feat: reorderable timer blocks`), 2026-07-20; explicit controls were chosen over drag-and-drop for reliable touch use._
 - [x] W15.1 · **IMPL**, then **REVIEW** · Timer behavioral UX/UI pass: make Basic and Custom Rounds feel like one premium, action-oriented timing instrument; fix the Rest completion visual signal targeting the Stopwatch card; preserve the timer engine, audio/vibration, wake lock, saved setups, and W15 persistence. Ethical cue→action→truthful-feedback design only—no fabricated rewards or new tracking. → `prompts/W15.1-TIMER-BEHAVIORAL-UX-UI-EXPERIMENT-KIMI.md` _Shipped locally in `fc63b5d` (`feat(timer): add Instrument Strata experience`), 2026-07-31; developer visually accepted, 933 tests and production build passed._
 - [x] W16 · **IMPL**, then **REVIEW** · Day-7 cycle extension (re-scoped per D2 ruling): keep sequential day counting, extend the cycle 6→7 with Day 7 as an optional/custom gym day (cardio/mobility/free-form notes — `FightGymDay.jsx` already supports these session types). Diagnostic-first. → `prompts/W16-next-day-semantics.md` (rewritten 2026-07-10) _Shipped in PR #18 (Sonnet; reviewed by Fable), 2026-07-17._
