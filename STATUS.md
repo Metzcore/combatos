@@ -1,41 +1,27 @@
 # STATUS
-_Last updated: 2026-07-31 · W15.1 Timer “Instrument Strata” committed locally_
+_Last updated: 2026-07-31 · Track A/Track B integration and workspace consolidation_
 
 ## Last session
-Kimi K3 implemented the protected W15.1 Timer behavioral UX/UI pass. Basic Timer and Custom Rounds
-now share an “Instrument Strata” visual language: clearer timing states, stronger clock hierarchy,
-thumb-friendly controls, a prescription preview, reusable saved-setup cards, and restrained
-one-shot alarm feedback.
+The accepted Kimi application work was merged into `main` through PR #62: A7 follow-ups, the A11
+exercise-reference experience, Today/Plan visual refinements, and W15.1 Timer “Instrument Strata.”
+Verification passed: 47 test files / 933 tests, production PWA build, GitHub CI, and Cloudflare PR
+preview. The Timer was also successful in real training use.
 
-The pass also corrected a real presentation defect: Rest completion had been visually illuminating
-the Stopwatch card. The existing alarm, bell, vibration, timing, and wake-lock logic remain
-unchanged; only the visual signal moved to the Rest module.
+Track B documentation was reconciled and merged separately through PR #63. The standalone
+onboarding site now lives in `CombatOS-Onboarding` and has a clean local checkpoint at `a223b9e`;
+its UI builds, but auth, answer persistence, notifications, and deployment are not implemented.
 
-The developer reviewed the resulting Basic and Custom Rounds screens and accepted the direction.
-Independent verification this session: 47 test files / 933 tests pass, the production PWA build
-succeeds with 11 precache entries, and `git diff --check` is clean. No database, Supabase,
-authentication, timer-engine, audio, persistence, webhook, payload, PWA-configuration, dependency,
-%1RM/e1RM, or n8n change was made.
-
-The accepted application and focused tests were committed as `fc63b5d`
-(`feat(timer): add Instrument Strata experience`).
+The permanent layout is now two repositories: `Fight-Camp` for Combat OS and
+`CombatOS-Onboarding` for onboarding. Temporary Git worktrees were removed. No Supabase migration
+was applied.
 
 ## Current focus
-Branch `codex/kimi-trial-1` contains the accepted W15.1 application commit `fc63b5d` and its
-separate roadmap/continuity closeout. W15.1 is complete locally.
-
-The Timer redesign uses an ethical cue → low-friction action → truthful feedback pattern. It does
-not add points, streaks, fabricated rewards, notifications, analytics, or new stored habit data.
-Basic block ordering, saved Custom Rounds setups, timer continuity, bells, vibration, and wake-lock
-behavior remain owned by their existing protected systems.
-
-The intentional `.env.local` remains untouched and gitignored. The pre-existing `.gitignore`
-change, intentional `app/.env.example` deletion, `.claude/`, and rebuild-planning documents remain
-unrelated and must not be included accidentally in the W15.1 application commit.
+`main` is clean at `9547366`. Track A is integrated; A11’s optional generic warm-up reference was
+deliberately skipped, and W15.1 is complete and real-use validated.
 
 ## Up next
-1. Start a fresh session and choose the next roadmap item
-2. Decide whether to close A11 with the optional curated warm-up reference
-3. Use the accepted Timer experience in real training and report any behavioral friction
-4. Push/review/merge `codex/kimi-trial-1` when ready
+1. Choose one new Combat OS roadmap item and create a short-lived branch from `main`
+2. Remove the empty `Fight-Camp-kimi-trial` directory after the previous task releases it
+3. Continue the onboarding site as a separate repository when ready
+4. Review the onboarding migration’s privacy/security gates before applying anything
 5. Rotate the temporary Supabase developer password after app work is finished
