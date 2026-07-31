@@ -254,3 +254,50 @@ reset role;
 | 3 | `anon` denied on both tables | No grants exist for `anon` -- failure is at the grant layer, not RLS |
 | 4 | Mapped coach: SELECT-only, scoped to their athlete | Coach policy is `for select` only; no insert/update/delete path opens up; `coach_athletes` itself stays ungranted to `authenticated` |
 | 5 | Unmapped coach sees nothing | `is_coach_of()` returns `false` with no mapping row, denying by default |
+
+---
+
+## Applied to production — 2026-07-31
+
+Applied to project `pckokypnxrimayjmjgcl` (CombatOS) as migration `add_body_metrics`.
+Post-apply state verified directly against the live database, not inferred from the file:
+
+| Check | Result |
+|---|---|
+| `body_metrics` + `coach_athletes` exist, `relrowsecurity` | both `true` |
+| `authenticated` table grants on `body_metrics` | `SELECT`, `INSERT`, `DELETE` only |
+| `authenticated` **column** grants for `UPDATE` on `body_metrics` | `kg`, `client_id` **only** — `user_id`, `measured_on`, `created_at`, `updated_at` are unwritable by the client |
+| `authenticated` / `anon` grants on `coach_athletes` | **none at all** |
+| Policies on `body_metrics` | 5 — owner select/insert/update/delete + mapped-coach select |
+| Policies on `coach_athletes` | 0, deliberately |
+
+The §1–§5 behavioural checks above are still worth running once real accounts exist; the table
+above verifies the privilege surface, not the runtime behaviour.
+
+### Two security advisories are EXPECTED here — do not "fix" them
+
+`get_advisors(type: security)` reports two lints against this migration. Both are the intended
+design, and acting on either would break something.
+
+**1. `rls_enabled_no_policy` on `coach_athletes` (INFO).**
+RLS enabled with zero policies AND zero grants means the table is unreachable by any client —
+`service_role` only. That is exactly the lockdown intended: coaches never touch the mapping
+directly, they reach it solely through `is_coach_of()`. The linter flags this shape because it is
+usually an accident (someone enables RLS and forgets the policies). Here it is the point.
+**Adding a policy for `authenticated` would widen access, not harden it.**
+
+**2. `authenticated_security_definer_function_executable` on `is_coach_of` (WARN).**
+The `EXECUTE` grant to `authenticated` is **required, not incidental**: the coach-read policy
+(`using (public.is_coach_of(user_id))`) is evaluated in the querying user's context, so revoking
+`EXECUTE` would make every coach read fail. Switching it to `SECURITY INVOKER` breaks it too —
+the whole reason it is `SECURITY DEFINER` is to consult `coach_athletes`, which `authenticated`
+has no grant on.
+
+It is safe to expose because of what it returns: a boolean answering *"am I a coach of this
+athlete?"* for the **caller only**. It reveals nothing about anyone else's coaching relationships,
+and it returns `false` identically for "not your athlete" and "no such user", so it is not a user
+enumeration oracle either.
+
+A third advisory, `auth_leaked_password_protection`, predates this migration and is unrelated — it
+is an Auth project setting (HaveIBeenPwned checks), worth enabling separately before onboarding
+real users who choose their own passwords.

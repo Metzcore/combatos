@@ -22,6 +22,7 @@ _Quick reference for current decision status. Each section's **RULED:** / **Not 
 | D12 | A7 multi-phase cartridge execution | **OPEN — not yet ruled** |
 | D13 | Checklist/Notes owner-scoping for a unified/cross-device Log view | **OPEN — not yet ruled** |
 | D14 | Component-test infrastructure (jsdom + React testing library) | **OPEN — not yet ruled** |
+| D15 | Local-data account scoping on a shared device | **Ruled (2026-07-31)** — one account per device, stated as a product constraint |
 
 ## D1 — Delete Last Logged Day: hard vs. soft delete
 **Current state (shipped, by default not by decision):** hard delete on both ends — local Dexie record removed, `webhook.gs` removes the Sheet row entirely (`deleteRow`, with a code comment justifying it as avoiding formatting-inheritance bugs). The commit message and webhook header both *say* soft/strikethrough, which is wrong.
@@ -280,3 +281,43 @@ real user-facing risk.
 **Blocks:** nothing today. W29 PR B shipped under option (b) with the device check treated as a
 required part of the PR rather than optional.
 **Not ruled — do not default silently.**
+
+## D15 — Local-data account scoping on a shared device (RULED 2026-07-31)
+**Context (surfaced by Codex during the W29 analysis, 2026-07-31):** the Dexie database is
+single-named (`FightersOS`) and most of its tables are **not** keyed by auth user. Two are:
+`workoutDrafts` uses `[ownerUserId+slot]` and `bodyWeight` uses `[ownerUserId+date]`, both
+deliberately, so one identity's row can never hydrate — or upload — under another. The rest
+(`sessions`, `settings`, `checklistGroups`/`Tasks`/`Completions`, `noteGroups`, `notes`,
+`syncQueue`) carry no owner column at all.
+
+On separate personal phones this is harmless. On a **shared device, or after an account switch**,
+the next signed-in identity inherits the previous user's checklist, notes, settings, custom
+ignitions and Agent endpoint configuration — and an unscoped pending `syncQueue` row could be
+uploaded under the wrong account. `CartridgeAccessProvider` already notes that account switching
+is unsupported and clears a mismatched cartridge cache.
+
+**The actual question:** scope the remaining local tables by user now, or state single-account as a
+product constraint?
+
+**Options:** (a) owner-key the remaining tables, matching `workoutDrafts`/`bodyWeight` — correct,
+but a Dexie version bump touching seven stores plus every read path, on real installed data, with
+no component tests (D14) to catch fallout; (b) **state "one account per device" as an explicit
+product constraint** — zero code, honest about what is actually supported; (c) defer silently,
+which AGENTS.md rule 8 forbids.
+
+**RULED (2026-07-31): Option B — one account per device.** The app has exactly one real user
+today, and the first external pilot will run on their own phone. Claiming multi-account isolation
+the local schema does not provide would be worse than stating the limit. The two tables that
+already have owner keys keep them — that protection was cheap where it was added and is not being
+removed.
+
+**Binding consequences, not optional advice:**
+- Any onboarding or pilot simulation must run on a **separate device or a separate browser
+  profile** — never a second account in the same installed app as an existing one.
+- Sign-out does NOT clear checklist, notes, settings or Agent config. Only the workout draft and
+  cartridge-access cache are cleared.
+- The Agent backup endpoint and token are **device-scoped, not account-scoped**. On a shared
+  device the next user would inherit them. This is a further reason the endpoint is treated as a
+  credential and excluded from backups (`db/backupRedaction.js`).
+- **Revisit before any genuinely shared-device scenario**, and before advertising multi-user
+  support. This ruling is about what is true now, not a claim that (a) is wrong.

@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-07-31 (late) · Pilot-readiness: live schema applied, account scoping ruled
+
+**Context:** W29/W30 shipped across nine PRs. Before handing the app to a first external pilot
+user, the three non-credential items on the pre-pilot list were closed. The Supabase developer
+password rotation remains outstanding and is the developer's to do.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | `body_metrics` + `coach_athletes` **applied to production** (`pckokypnxrimayjmjgcl`) and verified against the live database, not inferred from the migration file | Weight stays local-only until the schema exists; the migration is purely additive (two new tables, two functions, no ALTER/DROP), so applying it ahead of the app PRs carries no risk to existing data |
+| 2 | **D15 ruled: one account per device**, stated as a product constraint rather than fixed in code | Most Dexie tables carry no owner column. Claiming multi-account isolation the local schema does not provide is worse than stating the limit; `workoutDrafts` and `bodyWeight` keep the owner keys they already have |
+| 3 | The two new Supabase security advisories are **expected and must not be "fixed"** | `coach_athletes` having RLS with no policies IS the lockdown (unreachable by any client); and `is_coach_of`'s EXECUTE grant to `authenticated` is REQUIRED — the coach-read policy evaluates it in the caller's context, so revoking it breaks every coach read |
+
+**Verified against the live database (not the files):** all five pre-existing migrations applied;
+RLS enabled on `profiles`/`user_cartridges`/`body_metrics`/`coach_athletes`; `authenticated` holds
+column-limited `UPDATE (assigned_cartridge)` on `profiles` — **no path to `role`**, closing out the
+privilege-escalation question raised and then refuted earlier in the day — and column-limited
+`UPDATE (kg, client_id)` on `body_metrics`; `coach_athletes` has zero grants for
+`authenticated`/`anon`.
+
+**Why `is_coach_of` is safe to expose:** it answers *"am I a coach of this athlete?"* for the
+caller only, reveals nothing about third-party relationships, and returns `false` identically for
+"not your athlete" and "no such user" — so it is not a user-enumeration oracle.
+
+**Also this session:** a real regression was found by the visual-pass worker and fixed —
+`BackupScreen` used `db` after it was dropped from the import during the redaction PR, so "Remove
+Last Logged Day" threw a ReferenceError. 1145 tests passed with that bug present, because nothing
+renders a component. **That is D14 biting for the third time**, and a lint rule would have caught
+it instantly — this repo still has no ESLint config at all.
+
+**Not done / deferred:** Supabase developer-password rotation · enabling Auth leaked-password
+protection (a project setting, relevant once pilot users choose passwords) · D14 · ESLint · the
+`Overview.jsx` UTC-vs-local "today" bug · the §1–§5 behavioural RLS checks in
+`README-body-metrics-verification.md`, which need two real accounts.
+
+**Next:** merge the three open PRs, then the onboarding simulation — a burner email on a
+**separate device or browser profile** (per D15), gym-photo cartridge authoring in its own
+worktree, then back here to integrate the cartridge and provision the user.
+
+---
+
 ## 2026-07-31 (later) · Log hub rebuilt; scope, evidence and colour rulings
 
 **Context:** The Log tab's Stats view still surfaced hip score, Day 1–7 coverage and Phase N —

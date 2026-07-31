@@ -92,6 +92,18 @@ is the hard-rule authority; where the two overlap, this file wins.
 
 ## Other things worth knowing while working here
 
+- **One account per device (D15, ruled 2026-07-31).** The Dexie database is single-named and most
+  of its tables carry no owner column — only `workoutDrafts` (`[ownerUserId+slot]`) and
+  `bodyWeight` (`[ownerUserId+date]`) are owner-keyed. Signing out does NOT clear checklist,
+  notes, settings or the Agent endpoint config, so a second account on the same install inherits
+  them. Any onboarding or pilot simulation must run on a **separate device or browser profile**.
+  Do not describe the app as supporting multiple accounts on one device, and do not "fix" this
+  silently — it is a stated product constraint with a recorded revisit condition.
+- **Two Supabase security advisories are EXPECTED and must not be actioned:**
+  `rls_enabled_no_policy` on `coach_athletes` (RLS with no policies and no grants IS the lockdown)
+  and `authenticated_security_definer_function_executable` on `is_coach_of` (the EXECUTE grant is
+  required — the coach-read policy evaluates it in the caller's context). Reasoning in
+  `supabase/migrations/README-body-metrics-verification.md`.
 - `archive/CHECKLIST.md` is an older, longer-arc tracking document (Project A / Project B
   framing) that predates `ROADMAP.md` and was moved into `archive/` on 2026-07-22. `ROADMAP.md`
   supersedes it for sequencing; `CHECKLIST.md` remains a historical record and is not touched by
