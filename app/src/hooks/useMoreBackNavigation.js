@@ -65,16 +65,30 @@ export function useMoreBackNavigation(screen, goToMenu) {
         }
     }, [screen])
 
-    // Leaving the hub with a detail open (bottom-nav tap) must not strand the
-    // entry — otherwise the next Back press would silently consume it and look
-    // like a dead gesture. The popstate listener is already torn down by the
-    // time this runs, so no state update is attempted on an unmounted tree.
-    useEffect(() => () => {
-        if (pushedRef.current) {
-            pushedRef.current = false
-            window.history.back()
-        }
-    }, [])
+    // NOTE — no history.back() on unmount, deliberately.
+    //
+    // An earlier version popped the entry when the user left the hub with a
+    // detail open, to stop stale entries accumulating. That is unshippable:
+    // history.back() fires popstate ASYNCHRONOUSLY, so the cleanup pop can land
+    // AFTER the next MoreHub has mounted, and the new instance reads it as
+    // "the user pressed Back" and bounces to the menu. Reproduced in the
+    // browser — open a More detail, tap another hub, then deep-link straight
+    // into a detail (the W30 due rail's "Log it") and you land on the menu
+    // instead of the screen you asked for.
+    //
+    // Neither `history.state` inspection nor a pending-pop counter fixes it
+    // reliably: a cleanup pop and a genuine Back are indistinguishable to the
+    // listener, and a counter is never decremented when the pop happens to fire
+    // during the unmount→mount gap where no listener is registered — which then
+    // poisons the NEXT real Back.
+    //
+    // The trade taken instead: leaving a detail via the bottom nav strands one
+    // history entry, so the next hardware-Back press is a no-op before the app
+    // closes. That is a small wart, bounded by how often anyone abandons a
+    // detail screen, and strictly better than an in-app Back that silently
+    // fails or a deep link that lands on the wrong screen. Revisit only with a
+    // real router, or once DOM tests exist to prove a cleverer scheme.
+
 
     return useCallback(() => {
         if (pushedRef.current) {
