@@ -12,7 +12,7 @@
  * screen is manual export only.
  */
 import { useState, useEffect } from 'react'
-import { useDB, getSetting } from '../../db/index.jsx'
+import { useDB, db, getSetting } from '../../db/index.jsx'
 import { runFullBackup, LAST_BACKUP_KEY } from '../../db/backup.js'
 import { shareOrDownloadJson } from '../../utils/checklistShare.js'
 import { localDateStr } from '../../utils/checklistDate.js'
