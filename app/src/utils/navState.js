@@ -13,13 +13,21 @@
  */
 
 // Bottom-nav hubs, in slot order (W19 §6 rulings).
-export const HUBS = ['train', 'timer', 'log', 'checklist', 'settings']
+// W29: slot 5 `settings` → `more`. The hub grew from one flat page into a
+// menu of six screens, so the label now describes the hub rather than one of
+// its rows (Settings is still in there, as a row).
+export const HUBS = ['train', 'timer', 'log', 'checklist', 'more']
 
 export const DEFAULT_HUB = 'train'
 
-// Layer-2 top-tab definitions per hub. Hubs absent here (settings) have no
-// top tabs. A10 gives Train the user-facing Today / Plan / Library contract;
-// the other labels preserve their existing hub language.
+// Layer-2 top-tab definitions per hub. Hubs absent here (more) have no top
+// tabs. A10 gives Train the user-facing Today / Plan / Library contract; the
+// other labels preserve their existing hub language.
+//
+// W29: `more` is deliberately absent. Its menu-to-screen relationship is
+// hierarchical, not peer tabs — those screen keys live in utils/moreNav.js and
+// are owned locally by MoreHub. Adding `more` here would render a TopTabs bar
+// with the wrong ARIA semantics for what is really a navigation list.
 export const HUB_TOP_TABS = {
     train: [
         { key: 'today', label: 'Today' },

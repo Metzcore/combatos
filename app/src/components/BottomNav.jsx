@@ -4,7 +4,9 @@ const HUB_BUTTONS = [
     { key: 'timer', icon: '⏱️', label: 'Timer' },
     { key: 'log', icon: '📅', label: 'Log' },
     { key: 'checklist', icon: '☑️', label: 'Checklist' },
-    { key: 'settings', icon: '⚙️', label: 'Settings' }
+    // W29: was ⚙️ Settings. The hub is now a menu of six screens, of which
+    // Settings is one row.
+    { key: 'more', icon: '⋯', label: 'More' }
 ]
 
 export default function BottomNav({ activeHub, onChange }) {

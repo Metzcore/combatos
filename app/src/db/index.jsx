@@ -3,8 +3,11 @@
  *
  * Tables:
  *   sessions   — logged workout sessions (source of truth, local)
- *   syncQueue  — sessions pending push to Google Sheets webhook
- *   settings   — app config (currentPhase, webhookUrl)
+ *   syncQueue  — sessions pending push to Supabase (see sync/syncQueue.js;
+ *                the Google Sheets webhook it originally targeted is no
+ *                longer called)
+ *   settings   — app config (currentPhase, and the now-unused webhookUrl
+ *                default left from the Sheets era)
  *
  * In-memory shared state (not persisted to Dexie):
  *   activeWorkout — current HUD session inputs (survives tab switches)
@@ -1092,8 +1095,10 @@ export function useDB() {
     return ctx
 }
 
-// ─── Sync to Google Sheets webhook ────────────────────────────────────────────
+// ─── Outbound session sync ────────────────────────────────────────────────────
 // Implementation lives in ../sync/syncQueue.js (extracted in W8, no behavior
-// change). Auto-sync listener registration happens here at module-eval time,
+// change). The drain has targeted SUPABASE since M2 — the Google Sheets Apps
+// Script webhook is left in place but no longer called (see that module's
+// header). Auto-sync listener registration happens here at module-eval time,
 // matching the pre-refactor timing exactly.
 initSyncListeners()

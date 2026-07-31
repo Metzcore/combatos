@@ -721,7 +721,10 @@ export default function HUD() {
                         {/* ── Pending sync indicator ──────────── */}
                         {pendingSync > 0 && (
                             <div className="sync-indicator">
-                                ⏳ {pendingSync} session{pendingSync > 1 ? 's' : ''} pending sync to Google Sheets
+                                {/* W29: was "pending sync to Google Sheets". The drain has
+                                    targeted Supabase since M2 (sync/syncQueue.js:8-17); the Apps
+                                    Script webhook is no longer called. */}
+                                ⏳ {pendingSync} session{pendingSync > 1 ? 's' : ''} pending sync
                             </div>
                         )}
 
