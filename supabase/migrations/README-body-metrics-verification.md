@@ -1,4 +1,4 @@
-# Manual verification: `20260731180314_add_body_metrics.sql`
+# Manual verification: `20260731202537_add_body_metrics.sql`
 
 This is a hand-run procedure for the developer to execute in the Supabase **SQL
 Editor** (or `psql` against the project connection string) after applying the

@@ -69,7 +69,7 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
       fail against). Full ruling in `docs/decision_log.md`'s 2026-07-31 "Log hub rebuilt" entry._
 - [x] W27 · **IMPL** · Phase logging integrity (Workout/HUD): fixes a real mislogging risk the developer hit after a gym change. Touch A gates the phase `<select>` (unearned phases disabled; new pure `highestUnlockedPhase`/`isPhaseSelectable` helpers in `phaseUnlock.js`, no-lockout-trap proven in tests); Touch B surfaces the phase that WILL be logged in the "Next up" box (`NEXT: PHASE n · DAY m`); Touch C a gentle stale-phase mismatch badge (last-logged ≠ selected). UI-only — logging path/webhook/Playbook untouched (Playbook stays browsable per W14). → `prompts/W27-phase-logging-integrity.md` _Built 2026-07-20 (Sonnet, reviewed by coordinator); merged via PR #37 (`a327d68`). Truth-up 2026-07-31: confirmed `a327d68` is an ancestor of current `main` — the "PR open" note and unchecked box were stale, not an actual gap._
 
-- [~] W29 · **IMPL**, then **REVIEW** · Settings → **More hub**: a menu of six screens (Profile,
+- [x] W29 · **IMPL**, then **REVIEW** · Settings → **More hub**: a menu of six screens (Profile,
       Settings, Ignition, Backup & Data, Agent, About & Help) replacing the flat 214-line Settings
       page, plus the Agent outbound-integration surface. Ships the backup **credential-redaction
       boundary** (a backup would otherwise carry the token for writing to the endpoint it is sent
@@ -77,17 +77,18 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
       and Android hardware-Back support the app never had. → rationale
       `docs/planning/rebuild/MORE-HUB-EXPERIENCE-PLAN.md`, executable
       `prompts/W29-MORE-HUB-AND-WEIGHT-KIMI.md` _Structure/logic merged in PRs #72–#75, #78
-      (2026-07-31). **Visual pass outstanding** — the only remaining piece._
-- [~] W30 · **IMPL**, then **REVIEW** · **Body-weight tracking**: Dexie v5 `bodyWeight` store
+      (2026-07-31); the visual pass merged in PR #81 (`7705b64`), completing the item._
+- [x] W30 · **IMPL**, then **REVIEW** · **Body-weight tracking**: Dexie v5 `bodyWeight` store
       (compound owner key), pure value/trend/due-state utilities, an owner-aware sibling sync to a
       new Supabase `body_metrics` table with owner-scoped RLS, a Profile check-in surface, a Log ›
       Overview trend, and a quiet weekly due rail. Governed by the Log-hub ruling that
       self-monitoring is well-evidenced and distal targets are not: **no target, no streak, no
       projection, no verdict.** Enables the coach loop (weight → Supabase → n8n/Hermes → Telegram)
       without building the gated B9 dashboard. → same plan/prompt as W29 _Merged in PRs #76, #77,
-      #79 (2026-07-31). **Visual pass outstanding**, bundled with W29 so the visual worker sees the
-      final feature set once. Supabase migration written and reviewed but **deliberately not yet
-      applied**._
+      #79 (2026-07-31); the visual pass merged with W29's in PR #81 (`7705b64`), completing the
+      item. Supabase migration **applied to production on 2026-07-31** as
+      `20260731202537_add_body_metrics` and verified against the live database (see
+      `docs/decision_log.md`); the repo file was renamed to match that live version on 2026-08-01._
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
 - [ ] W28 · **candidate, unruled** · Data-layer phase guard (belt-and-suspenders follow-up to W27): reject an ineligible phase inside `logSession` (`db/index.jsx`) by comparing `sessionData.phase` against `highestUnlockedPhase(sessionCount)` before persisting, so even a direct Dexie/webhook write or a future bug can't record an unearned phase. Deliberately NOT bundled into W27 (UI-scoped) because it touches the logging path — near the frozen webhook contract (AGENTS.md rule 2), so it needs its own diagnostic. Also the natural home for self-healing a pre-W27 corrupted `currentPhase`. Decide whether the UI gate is sufficient before scoping.
