@@ -90,6 +90,21 @@ is the hard-rule authority; where the two overlap, this file wins.
    owner-scoping) and **D14** (component-test infrastructure). Do not trust this list over the
    file — inspect each decision's own ruling line before assuming a question is settled.
 
+9. **This Supabase project is shared with a second application.** The standalone client-onboarding
+   site (`CombatOS-Onboarding`, referred to as **Track B**) uses the *same* Supabase project
+   `pckokypnxrimayjmjgcl` as this app. It owns the `onboarding_*` tables; this app owns `sessions`,
+   `profiles`, `user_cartridges`, `body_metrics` and `coach_athletes`. Consequences that bite:
+   `auth.users` is a **shared identity pool**, so deleting a user cascades into this app's tables
+   and destroys training history; there is **one migration ledger**, so any migration — including
+   one authored for the onboarding site — belongs in `supabase/migrations/` under its live version
+   string; and the Auth settings (redirect allow-list, "Allow new users to sign up" = off) are
+   project-wide, so both apps depend on them. Before dropping a table you believe is unused,
+   changing Auth config, or "cleaning up" the schema, read
+   `docs/engineering/SHARED-SUPABASE-BOUNDARY.md` — the authoritative contract, mirrored in
+   Track B's own `AGENTS.md`.
+   ⚠️ "Track B" in documents written before 2026-08-01 usually means the *second user* (Apex),
+   not the onboarding site. Check the date before trusting the label.
+
 ## Other things worth knowing while working here
 
 - **One account per device (D15, ruled 2026-07-31).** The Dexie database is single-named and most
