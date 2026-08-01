@@ -86,8 +86,9 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
       projection, no verdict.** Enables the coach loop (weight → Supabase → n8n/Hermes → Telegram)
       without building the gated B9 dashboard. → same plan/prompt as W29 _Merged in PRs #76, #77,
       #79 (2026-07-31). **Visual pass outstanding**, bundled with W29 so the visual worker sees the
-      final feature set once. Supabase migration written and reviewed but **deliberately not yet
-      applied**._
+      final feature set once. Supabase migration **applied to production on 2026-07-31** as
+      `20260731202537_add_body_metrics` and verified against the live database (see
+      `docs/decision_log.md`); the repo file was renamed to match that live version on 2026-08-01._
 
 ## Phase 5 — Gated / deferred (no prompts yet, on purpose)
 - [ ] W28 · **candidate, unruled** · Data-layer phase guard (belt-and-suspenders follow-up to W27): reject an ineligible phase inside `logSession` (`db/index.jsx`) by comparing `sessionData.phase` against `highestUnlockedPhase(sessionCount)` before persisting, so even a direct Dexie/webhook write or a future bug can't record an unearned phase. Deliberately NOT bundled into W27 (UI-scoped) because it touches the logging path — near the frozen webhook contract (AGENTS.md rule 2), so it needs its own diagnostic. Also the natural home for self-healing a pre-W27 corrupted `currentPhase`. Decide whether the UI gate is sufficient before scoping.

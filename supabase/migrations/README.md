@@ -1,8 +1,18 @@
-# Supabase migrations — Combat OS (Track B foundation)
+# Supabase migrations — Combat OS backend
 
-These SQL files are the schema history for the multi-tenant Supabase backend
-(project `pckokypnxrimayjmjgcl`, off-`main` on `feat/supabase-foundation`). See
+These SQL files are the schema history for the Supabase backend
+(project `pckokypnxrimayjmjgcl`), which is **live in production**. See
 `docs/planning/rebuild/SUPABASE-MIGRATION-PLAN.md` for the design.
+
+> **Naming note.** An earlier revision titled this "Track B foundation", where
+> "Track B" meant the *second user* (Apex). That label is now overloaded: in
+> current vocabulary **Track B is the standalone onboarding site**
+> (`CombatOS-Onboarding`) — a separate repository that shares this same Supabase
+> project. This file covers the Combat OS app's schema history.
+>
+> **One project, one ledger.** Any migration applied to `pckokypnxrimayjmjgcl` —
+> including one authored for the onboarding site — is recorded here, under the
+> version string it carries live.
 
 ## Provenance
 
@@ -12,6 +22,12 @@ local Supabase CLI stack. The first three were captured back into the repo on 20
 Filenames use the Supabase CLI convention `<version>_<name>.sql` and match the versions recorded
 remotely. Replaying them in version order on a fresh project reproduces the current live schema.
 
+**Reconciled 2026-08-01.** `add_body_metrics` was committed as `20260731180314` but applied live as
+`20260731202537`, breaking the "filenames match the versions recorded remotely" invariant stated
+above. The file was renamed to the live version after verifying the SQL is identical — comments and
+whitespace stripped, md5 `4bc0035d06fa4044d9500047785ab027`, 2497 chars, matching
+`supabase_migrations.schema_migrations`. Bookkeeping only; no schema change.
+
 | Version | What it does |
 |---|---|
 | `20260720231445_init_sessions_profiles_rls` | `sessions` + `profiles` tables, RLS (`own sessions` / `own profile`, own-rows-only), and the `handle_new_user` trigger that auto-creates a profile on signup. |
@@ -19,6 +35,7 @@ remotely. Replaying them in version order on a fresh project reproduces the curr
 | `20260721090354_m3_profiles_auto_create_and_backfill` | Idempotent re-assert of the trigger (`on conflict do nothing`) + backfill of existing users. |
 | `20260722184735_add_user_cartridge_access` | Adds per-user cartridge availability, constrains the active cartridge to that set, and narrows profile grants/RLS. |
 | `20260722185014_index_profiles_active_cartridge` | Adds the covering index required by the active-cartridge composite foreign key. |
+| `20260731202537_add_body_metrics` | Adds `body_metrics` (owner-keyed weight log) and `coach_athletes`, their RLS, and the `is_coach_of` helper. Applied live 2026-07-31. |
 
 > Ordering note: migration 3 uses `create or replace function`, which **preserves**
 > the grants revoked in migration 2 — so the lock-down survives a replay. Verified
