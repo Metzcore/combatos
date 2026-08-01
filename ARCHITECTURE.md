@@ -144,6 +144,23 @@ a hardcoded default (below).
 
 ## Data model
 
+### ⚠️ The Supabase project is shared with a second application
+
+The Supabase backend (`pckokypnxrimayjmjgcl`) is **not exclusive to this app**. The standalone
+client-onboarding site (`CombatOS-Onboarding`, "Track B") uses the same project.
+
+| Owned by this app | Owned by the onboarding site |
+|---|---|
+| `sessions`, `profiles`, `user_cartridges`, `body_metrics`, `coach_athletes` | `onboarding_cases`, `onboarding_case_events`, `onboarding_responses` (not yet applied) |
+
+Also shared, and easy to break from either side: **`auth.users`** (one identity pool — deleting a
+user cascades into `profiles`/`sessions`/`user_cartridges`/`body_metrics`), the **migration ledger**
+(one version sequence, recorded in `supabase/migrations/`), and **project-wide Auth settings**
+(redirect allow-list, invite-only signup).
+
+Full contract, including which rules are automated and which are only convention:
+`docs/engineering/SHARED-SUPABASE-BOUNDARY.md`.
+
 ### Dexie database: `FightersOS` (schema v4)
 
 Defined in `app/src/db/index.jsx`. Four additive versions, each restating **all** tables
