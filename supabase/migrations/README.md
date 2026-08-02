@@ -36,80 +36,45 @@ whitespace stripped, md5 `4bc0035d06fa4044d9500047785ab027`, 2497 chars, matchin
 | `20260722184735_add_user_cartridge_access` | Adds per-user cartridge availability, constrains the active cartridge to that set, and narrows profile grants/RLS. |
 | `20260722185014_index_profiles_active_cartridge` | Adds the covering index required by the active-cartridge composite foreign key. |
 | `20260731202537_add_body_metrics` | Adds `body_metrics` (owner-keyed weight log) and `coach_athletes`, their RLS, and the `is_coach_of` helper. Applied live 2026-07-31. |
+| `20260802065508_onboarding_pilot1` | Adds `onboarding_cases`, `onboarding_case_events` and `onboarding_responses` for **Track B** (`CombatOS-Onboarding`), their RLS, column-limited client grants, the `onboarding_responses_guard` trigger and the `onboarding_case_is_open` helper. Recorded here under **R5** — one project, one ledger — even though the tables belong to the onboarding site. Applied live 2026-08-02. Verification: `README-onboarding-pilot1-verification.md`. |
 
 > Ordering note: migration 3 uses `create or replace function`, which **preserves**
 > the grants revoked in migration 2 — so the lock-down survives a replay. Verified
 > live: EXECUTE is held only by `postgres` + `service_role`.
 
-## Pending — not yet applied
+**Reconciled 2026-08-02.** `onboarding_pilot1` was applied through the Supabase **SQL
+Editor**, which executes DDL but does **not** write `supabase_migrations.schema_migrations`.
+That left the schema live with no ledger row — an R5 breach in the opposite direction to
+2026-08-01's: not a version mismatch, but no version at all. The row was inserted by hand as
+`20260802065508`, carrying the full file text as its single `statements` element, and the file
+renamed from `PENDING_onboarding_pilot1.sql` to match. Bookkeeping only; no schema change.
 
-| File | What it does |
-|---|---|
-| `PENDING_onboarding_pilot1.sql` | Creates `onboarding_cases`, `onboarding_case_events` and `onboarding_responses` for **Track B** (`CombatOS-Onboarding`), with their RLS, column-limited client grants, the `onboarding_responses_guard` trigger and the `onboarding_case_is_open` helper. Recorded here under rule **R5** — one project, one ledger — even though the tables belong to the onboarding site. Verification procedure: `README-onboarding-pilot1-verification.md`. |
+Fidelity was verified rather than assumed, in two steps:
 
-> ### ⚠️ Applied 2026-08-02 — but the ledger row is MISSING
->
-> The schema is live and fully verified (`README-onboarding-pilot1-verification.md`,
-> "Applied to production"), but `supabase_migrations.schema_migrations` still ends
-> at `20260731202537_add_body_metrics`. It was applied through a path that does not
-> write the ledger — the SQL Editor.
->
-> **R5 is currently breached: the schema exists live with no ledger entry**, so a
-> replay onto a fresh project would not reproduce it and `db push` cannot see it.
-> Fix it by inserting the row by hand (statement below), then rename the file and
-> complete the steps under "After the developer applies it". Until then this file
-> keeps its `PENDING_` name, because the ledger — not the database — is what the
-> name tracks.
+1. **At insert:** the text written to the ledger was byte-identical to the repo file as it then
+   stood — md5 `c3d16bb3185948f21837c1ba90dd6157`, 18330 chars (LF-normalised), computed
+   independently on both sides. No transcription drift.
+2. **After the header fix:** the file's opening comment then had to change, because it still read
+   "NOT YET APPLIED" — actively misleading on an applied migration. The ledger text was left
+   alone, since it must record what actually ran. So the two now differ, and the divergence was
+   pinned rather than waved at: substituting the new header block back into the ledger text
+   reproduces the repo file **byte for byte** (md5 `fc084159c627531fa8fa39eb891f645a`, 18958
+   chars). That comment block is the only difference; every executable statement is identical.
 
-**This file has no version string because it has not been applied.** The version
-is assigned by Supabase at apply time, and guessing it is exactly what produced
-the drift reconciled on 2026-08-01 (below). It is named `PENDING_` on purpose so
-it cannot be mistaken for applied history.
+This is the same "comments differ, SQL is identical" standard applied to `add_body_metrics` on
+2026-08-01, but checked by exact substitution rather than by stripping comments.
 
-### Apply it as one transaction, through the migration path
+> **The version is the ledger-recording time, not the apply time.** The SQL Editor records no
+> apply timestamp and `pg_stat_file` is not grantable here, so the exact apply minute is
+> unrecoverable — it is known only to be earlier the same day. The version's job is to sort
+> after `20260731202537` and match the filename, which it does. Do not read it as forensic.
 
-Paste the **whole file** — it is wrapped in `begin; … commit;` and is meant to
-land atomically. Do not run it statement by statement. This project's default
-privileges still auto-grant `anon` full CRUD on new `public` tables (verified
-2026-08-01 in `pg_default_acl`), so between `create table` and the
-`revoke all … from public, anon, authenticated` near the foot of the file there
-is a window in which all three tables are world-writable. Inside one transaction
-no other session ever observes that window; committed statement-by-statement, it
-is real.
-
-**Use `apply_migration` (the Supabase MCP connector), the same path
-`add_body_metrics` took — not the SQL Editor.** The distinction is not cosmetic:
-
-> ⚠️ **The SQL Editor does not write to `supabase_migrations.schema_migrations`.**
-> Applying there leaves the schema live, this repo holding a file, and the live
-> ledger with no entry — precisely the R5 breach the one-ledger rule exists to
-> prevent, and step 1 below would have nothing to read.
-
-If the SQL Editor is used anyway, the ledger row must be written by hand
-afterwards, as `postgres`, carrying the **entire file text** as the single
-statement element (that is the shape all six existing rows have):
-
-```sql
-insert into supabase_migrations.schema_migrations (version, name, statements)
-values ('<YYYYMMDDHHMMSS-utc>', 'onboarding_pilot1', array[$mig$<entire file>$mig$]);
-```
-
-The version must be 14 digits UTC and sort after `20260731202537`.
-
-**After the developer applies it:**
-
-1. Read the assigned version back from the live ledger:
-   ```sql
-   select version, name from supabase_migrations.schema_migrations order by version desc limit 1;
-   ```
-2. Rename the file to `<version>_onboarding_pilot1.sql`.
-3. Move its row from this section into the table above.
-4. Record the applied-to-production result at the foot of
-   `README-onboarding-pilot1-verification.md`, in the same shape as the
-   `add_body_metrics` entry.
-
-This is the same reconciliation `add_body_metrics` needed after the fact; doing
-it as a planned step is the point of the `PENDING_` name.
+**If you apply a migration here again, use `apply_migration` (the Supabase MCP connector), not
+the SQL Editor** — it writes the ledger row for you and this whole reconciliation never happens.
+Paste any migration whole rather than statement-by-statement: these files are wrapped in
+`begin; … commit;`, and this project's default privileges still auto-grant `anon` full CRUD on
+new `public` tables (verified 2026-08-01 in `pg_default_acl`), so a per-statement run opens a
+real window between `create table` and the matching `revoke`.
 
 ## What is NOT in here (deliberately)
 

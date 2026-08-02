@@ -5,9 +5,19 @@
 -- one migration ledger. The tables belong to Track B (CombatOS-Onboarding); the
 -- ledger entry belongs here. See docs/engineering/SHARED-SUPABASE-BOUNDARY.md.
 --
--- NOT YET APPLIED. Filename is a placeholder: rename this file to
--- <live_version>_onboarding_pilot1.sql after the developer applies it, exactly
--- as add_body_metrics was reconciled on 2026-08-01. See README.md.
+-- APPLIED LIVE 2026-08-02 as version 20260802065508. The ledger row was written
+-- by hand because this was applied through the SQL Editor, which does not record
+-- one -- see README.md, "Reconciled 2026-08-02".
+--
+-- This header block is the ONLY difference between this file and the text stored
+-- in supabase_migrations.schema_migrations, which necessarily still carries the
+-- pre-apply wording (that text: md5 c3d16bb3185948f21837c1ba90dd6157, 18330
+-- chars, LF). Proven, not assumed: substituting this block back into the ledger
+-- text reproduces this file byte for byte. Every executable statement below is
+-- identical to what ran. The check is recorded in README.md.
+--
+-- DO NOT EDIT FURTHER. This is applied history; a change here would silently
+-- diverge from what the database actually ran. Corrections go in a NEW migration.
 --
 -- Hardened from CombatOS-Onboarding/docs/SCHEMA-HANDOFF-PILOT-1.md; every
 -- deviation from that draft is listed in README-onboarding-pilot1-verification.md.
