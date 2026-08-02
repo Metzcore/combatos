@@ -47,6 +47,20 @@ whitespace stripped, md5 `4bc0035d06fa4044d9500047785ab027`, 2497 chars, matchin
 |---|---|
 | `PENDING_onboarding_pilot1.sql` | Creates `onboarding_cases`, `onboarding_case_events` and `onboarding_responses` for **Track B** (`CombatOS-Onboarding`), with their RLS, column-limited client grants, the `onboarding_responses_guard` trigger and the `onboarding_case_is_open` helper. Recorded here under rule **R5** — one project, one ledger — even though the tables belong to the onboarding site. Verification procedure: `README-onboarding-pilot1-verification.md`. |
 
+> ### ⚠️ Applied 2026-08-02 — but the ledger row is MISSING
+>
+> The schema is live and fully verified (`README-onboarding-pilot1-verification.md`,
+> "Applied to production"), but `supabase_migrations.schema_migrations` still ends
+> at `20260731202537_add_body_metrics`. It was applied through a path that does not
+> write the ledger — the SQL Editor.
+>
+> **R5 is currently breached: the schema exists live with no ledger entry**, so a
+> replay onto a fresh project would not reproduce it and `db push` cannot see it.
+> Fix it by inserting the row by hand (statement below), then rename the file and
+> complete the steps under "After the developer applies it". Until then this file
+> keeps its `PENDING_` name, because the ledger — not the database — is what the
+> name tracks.
+
 **This file has no version string because it has not been applied.** The version
 is assigned by Supabase at apply time, and guessing it is exactly what produced
 the drift reconciled on 2026-08-01 (below). It is named `PENDING_` on purpose so
