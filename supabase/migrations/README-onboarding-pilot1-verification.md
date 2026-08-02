@@ -198,20 +198,28 @@ policy's `with check` requires `auth.uid() = user_id`.
 insert into public.onboarding_responses (user_id, answers, spec_version, updated_at)
 values ('<USER_A>', '{}'::jsonb, '2026-08-01', '2020-01-01');
 ```
-**Expected:** fails — `permission denied for column updated_at of relation
-onboarding_responses` (it fails on the column privilege before the PK conflict
-is even reached).
+**Expected:** fails — `42501: permission denied for table onboarding_responses`.
+It fails on the column privilege before the PK conflict is even reached.
+
+> Postgres reports a missing **column** privilege as `permission denied for
+> **table** …`, not "for column". Supabase then appends
+> `HINT: … GRANT INSERT ON public.onboarding_responses TO authenticated;`.
+> **Do not follow that hint** — it would replace the column-limited grant with a
+> blanket one and reintroduce the exact defect this migration fixed. The hint is
+> generated from the failing statement, not from the intended privilege model.
 
 ```sql
 update public.onboarding_responses set updated_at = '2020-01-01' where user_id = '<USER_A>';
 ```
-**Expected:** fails — `permission denied for column updated_at ...`.
+**Expected:** fails the same way — `42501: permission denied for table
+onboarding_responses`, with a `GRANT UPDATE …` hint that is equally misleading.
 
 ```sql
 -- 1e. A cannot rewrite the identity of their own row.
 update public.onboarding_responses set user_id = '<USER_B>' where user_id = '<USER_A>';
 ```
-**Expected:** fails — `permission denied for column user_id ...`. This is the
+**Expected:** fails — `42501: permission denied for table onboarding_responses`
+(same table-not-column wording as above). This is the
 defect the draft carried: its blanket `grant select, insert, update` would have
 allowed this statement to reach RLS, where the `with check` would then have
 rejected it — a second-layer save for something that should never reach layer
@@ -339,8 +347,14 @@ reset role;
 -- 4d. Expiry behaves identically to revocation. Reissue (clearing
 -- invite_revoked_at and setting a future expiry) restores entry.
 set role postgres;
+-- invite_issued_at must be backdated TOO. Setting only invite_expires_at into
+-- the past violates onboarding_cases_invite_expiry_after_issue -- an expiry
+-- cannot precede its own issuance. That constraint firing here is the
+-- constraint working; it is not a fixture problem to route around.
 update public.onboarding_cases
-set invite_revoked_at = null, invite_expires_at = now() - interval '1 day'
+set invite_revoked_at = null,
+    invite_issued_at  = now() - interval '2 days',
+    invite_expires_at = now() - interval '1 day'
 where handle = 'verify-b';
 reset role;
 
@@ -672,3 +686,74 @@ and image-status domains; no Storage or upload surface.
 - The spec ↔ `questions.js` parity test required by Track B ruling 5 is Track B
   code and is not in this migration's scope.
 - `onboarding_cases.updated_at` is Worker-maintained, not trigger-enforced.
+
+---
+
+## Applied to production — 2026-08-02
+
+Applied to project `pckokypnxrimayjmjgcl` by the developer. Post-apply state
+verified directly against the live database, not inferred from the file.
+
+### Privilege surface
+
+| Check | Result |
+|---|---|
+| All three tables exist, `relrowsecurity` / `relforcerowsecurity` | `true` / `true` on all three |
+| `authenticated` / `anon` table grants on `onboarding_cases`, `onboarding_case_events` | **none at all** — ACL is `postgres` + `service_role` only |
+| `authenticated` table grant on `onboarding_responses` | `SELECT` only (`authenticated=r`) |
+| `authenticated` **column** grants on `onboarding_responses` | `user_id` = INSERT only; `answers`, `status`, `spec_version` = INSERT + UPDATE; **`created_at` / `updated_at` have no column ACL at all** |
+| Policies | `onboarding_responses` 3 (select/insert/update, owner-scoped, insert also gated on `onboarding_case_is_open()`); cases + events **0**, deliberately |
+| `onboarding_case_is_open()` | `security definer`, `stable`, `search_path=""`, EXECUTE = `postgres` + `service_role` + `authenticated` |
+| `onboarding_responses_guard()` | `security invoker`, `search_path=""`, EXECUTE = `postgres` + `service_role` only |
+| Trigger | `BEFORE INSERT OR UPDATE ... FOR EACH ROW`, enabled (`O`) |
+| Constraints | both invite-timestamp checks, `spec_version` length, status + stage + image_status + kind domains, `jsonb_typeof(answers) = 'object'`, both `auth.users` FKs `ON DELETE CASCADE` |
+
+### Behavioural checks — §1–§7 all pass
+
+Run 2026-08-02 via role impersonation. Fixtures were bound to the three existing
+auth identities (throwaway users were not created — creating `auth.users` rows is
+out of bounds for an agent, per R3 and the boundary contract). Cleanup verified:
+all three onboarding tables back to 0 rows, and Track A untouched — `auth.users`
+3, `profiles` 3, `sessions` 13, unchanged before and after.
+
+| § | Result |
+|---|---|
+| 1 | Owner insert sets `created_at = updated_at`; update gives `updated_at > created_at` with `created_at` preserved; cross-user insert, timestamp forging (insert **and** update paths) and `user_id` rewrite all denied |
+| 2 | Non-owner sees 0 rows, updates 0 rows; owner's `answers` verified unchanged afterwards |
+| 3 | `anon` denied on all three tables at the **grant** layer |
+| 4 | Active case → entry allowed, `onboarding_case_is_open()` true. Revoked → false, **but the existing row stayed readable and editable**, as documented. Revoke + service-role delete → cannot restart. Expiry behaves identically; reissue restores entry. Argument form rejected (`42883`) — not an enumeration oracle |
+| 5 | Owner DELETE denied at the grant layer |
+| 6 | Submit once succeeds; every later write raises `P0001 submitted onboarding responses are immutable` — including un-submit and `spec_version` rewrite. Status domain rejected at `23514`. **`service_role` raised the same exception**, confirming the trigger binds `BYPASSRLS` roles |
+| 7 | Signed-in non-owner: `onboarding_cases` denied at the grant layer, `onboarding_responses` returns 0 rows (policy filter), self-enrolment refused by RLS |
+
+The grant-layer-vs-policy-layer distinction held everywhere it was claimed:
+staff tables fail with `42501`, owned-but-empty reads return `0 rows`.
+
+### Two defects this run found in **this document** (both fixed above)
+
+1. **§4d was unrunnable as written.** Backdating `invite_expires_at` alone
+   violates `onboarding_cases_invite_expiry_after_issue` — an expiry cannot
+   precede its own issuance. The step now backdates `invite_issued_at` too. The
+   constraint was right; the test was wrong.
+2. **§1d/§1e predicted the wrong error text.** Postgres reports a missing column
+   privilege as `permission denied for **table** …`, not "for column", and
+   Supabase appends a `GRANT … TO authenticated` hint that would undo the
+   column-limiting if followed. Both now stated correctly, with the warning.
+
+### Still outstanding
+
+- **§8 was not run.** It needs a real user access token, which means signing in
+  as that user — out of bounds for an agent. It remains the only check that
+  proves Data API **reachability** over HTTP, and §8d still decides whether the
+  Track B client uses `PATCH` or upsert for resume. Developer action.
+- **The migration ledger has no row for this migration** — see `README.md`.
+
+### Advisories — as predicted, none actionable
+
+`rls_enabled_no_policy` ×3 (`coach_athletes` pre-existing, plus
+`onboarding_cases` and `onboarding_case_events` — RLS on with zero policies and
+zero grants IS the lockdown) and
+`authenticated_security_definer_function_executable` ×2 (`is_coach_of`
+pre-existing, plus `onboarding_case_is_open` — the EXECUTE grant is required by
+the insert policy). `auth_leaked_password_protection` predates this migration and
+is an Auth setting, still worth enabling before real users choose passwords.
