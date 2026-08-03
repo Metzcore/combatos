@@ -1,0 +1,380 @@
+{
+  "schemaVersion": 3,
+  "cartridgeVersion": "1.0.0",
+  "cartridgeId": "pilot-01-full-body-base-2026",
+  "type": "training",
+  "label": "Full-Body Base",
+  "summary": "Build balanced muscle and dependable strength without draining your weekly sport sessions.",
+  "outcomes": [
+    "Build balanced muscle across the whole body",
+    "Strengthen joints through controlled, repeatable training",
+    "Keep enough energy for regular sport and class sessions"
+  ],
+  "tags": [
+    "beginner",
+    "full-body",
+    "hypertrophy",
+    "longevity"
+  ],
+  "requirements": {
+    "equipment": [
+      "Treadmill",
+      "Leg press",
+      "Plate-loaded chest press",
+      "Lat pulldown",
+      "Olympic barbell and plates",
+      "Rack station",
+      "Standard bench",
+      "Selectorised shoulder press",
+      "Single-handle cable station"
+    ]
+  },
+  "description": "This 12-week phase builds balanced muscle and a dependable full-body strength base while leaving room for your normal sport and class sessions.\n\nTrain three gym sessions in the suggested order. Rest 60–90 seconds between most sets and up to two minutes for barbell lifts. Remove optional volume before forcing rushed work.\n\nProgress a movement when you reach the top of its rep range at the prescribed effort with consistent technique. Move to the next phase after twelve steady weeks.",
+  "cycle": {
+    "dayCount": 7,
+    "weeksPerBlock": 12
+  },
+  "days": [
+    {
+      "day": 1,
+      "label": "Gym 1",
+      "type": "training",
+      "focus": "Full Body A — Base and balance",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            {
+              "id": "d1-mob-1",
+              "name": "Easy Treadmill Walk",
+              "dose": "5 minutes at conversational pace",
+              "cue": "Raise body temperature without spending the energy needed for the strength work."
+            },
+            {
+              "id": "d1-mob-2",
+              "name": "Squat-to-Stand",
+              "dose": "2 sets of 6 controlled reps",
+              "cue": "Open the hips and ankles so the leg work starts from a comfortable range."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Full-Body Strength",
+          "items": [
+            {
+              "id": "d1-str-1",
+              "name": "Bodyweight Vertical Jump",
+              "target": "Lower-body power",
+              "sets": 3,
+              "reps": "3",
+              "cue": "Jump fast, land quietly, and stop the set if height or speed drops; power improves through quality, not fatigue."
+            },
+            {
+              "id": "d1-str-2",
+              "name": "45-Degree Leg Press",
+              "target": "Quads and glutes",
+              "sets": 3,
+              "reps": "8-12",
+              "prescription": {
+                "rpe": 7,
+                "note": "When all sets reach 12 clean reps at RPE 7 or below, add the smallest available load next time."
+              },
+              "cue": "Use a controlled depth and keep the whole foot planted to build the legs without chasing maximal load."
+            },
+            {
+              "id": "d1-str-3",
+              "name": "Plate-Loaded Chest Press",
+              "target": "Chest and triceps",
+              "sets": 3,
+              "reps": "8-12",
+              "prescription": {
+                "rpe": 7,
+                "note": "Reach the top of the range with stable shoulders before adding the smallest available load."
+              },
+              "cue": "Keep the shoulder blades supported and control the return so the chest works without rushed joint stress."
+            },
+            {
+              "id": "d1-str-4",
+              "name": "Lat Pulldown",
+              "target": "Upper back and lats",
+              "sets": 3,
+              "reps": "8-12",
+              "prescription": {
+                "rpe": 7,
+                "note": "Add the smallest available load only after every rep reaches the same controlled finish."
+              },
+              "cue": "Drive the elbows down without leaning back so the upper back balances the pressing work."
+            },
+            {
+              "id": "d1-str-5",
+              "name": "Barbell Romanian Deadlift",
+              "target": "Hamstrings and glutes",
+              "sets": 2,
+              "reps": "8-10",
+              "prescription": {
+                "rpe": 7,
+                "note": "Increase load only when ten reps keep the same range and control."
+              },
+              "cue": "Push the hips back and keep the bar close to train the hinge while preserving a stable trunk."
+            }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Trunk Control",
+          "items": [
+            {
+              "id": "d1-core-1",
+              "name": "Cable Pallof Press",
+              "sets": 2,
+              "reps": "10 each side",
+              "prescription": {
+                "rir": 3
+              },
+              "cue": "Resist rotation rather than chasing load so the trunk can transfer force during lifting and sport."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "label": "Sport / Class 1",
+      "type": "custom",
+      "focus": "Usual sport or class session"
+    },
+    {
+      "day": 3,
+      "label": "Gym 2",
+      "type": "training",
+      "focus": "Full Body B — Control and single-leg balance",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            {
+              "id": "d3-mob-1",
+              "name": "Easy Treadmill Walk",
+              "dose": "5 minutes at conversational pace",
+              "cue": "Arrive warm and ready without turning the warm-up into another conditioning session."
+            },
+            {
+              "id": "d3-mob-2",
+              "name": "Supported Split-Squat Rehearsal",
+              "dose": "2 sets of 5 controlled reps each side",
+              "cue": "Practise balance and knee tracking before the loaded work begins."
+            },
+            {
+              "id": "d3-mob-3",
+              "name": "Wall Slide",
+              "dose": "2 sets of 8 controlled reps",
+              "cue": "Prepare the shoulder blades to rotate smoothly before pressing and rowing."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Full-Body Strength",
+          "items": [
+            {
+              "id": "d3-str-1",
+              "name": "Barbell Box Squat to Bench",
+              "target": "Quads, glutes and squat control",
+              "sets": 3,
+              "reps": "6-8",
+              "prescription": {
+                "rpe": 7,
+                "note": "Use a consistent bench height and add load only after every rep stays controlled."
+              },
+              "cue": "Touch the bench under control without relaxing, then stand smoothly to learn a repeatable squat pattern."
+            },
+            {
+              "id": "d3-str-2",
+              "name": "Selectorised Shoulder Press",
+              "target": "Shoulders and triceps",
+              "sets": 3,
+              "reps": "8-12",
+              "prescription": {
+                "rpe": 7,
+                "note": "Add the smallest available load after twelve controlled reps across every set."
+              },
+              "cue": "Use the supported path and keep the ribs quiet to train overhead strength without turning it into a back extension."
+            },
+            {
+              "id": "d3-str-3",
+              "name": "Single-Handle Cable Row",
+              "target": "Mid-back and lats",
+              "sets": 3,
+              "reps": "10-12 each side",
+              "prescription": {
+                "rpe": 7,
+                "note": "Progress only when both sides complete the top of the range with equal control."
+              },
+              "cue": "Row one side at a time without twisting so the back develops evenly and the trunk stays organised."
+            },
+            {
+              "id": "d3-str-4",
+              "name": "Rear-Foot-Elevated Split Squat",
+              "target": "Quads, glutes and single-leg stability",
+              "sets": 2,
+              "reps": "8-12 each side",
+              "prescription": {
+                "rir": 3,
+                "note": "Use bodyweight and progress repetitions within the range before considering external load."
+              },
+              "cue": "Use the bench only for foot support and move through a stable range to build useful single-leg control."
+            }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Trunk Control",
+          "items": [
+            {
+              "id": "d3-core-1",
+              "name": "Dead Bug",
+              "sets": 2,
+              "reps": "8 each side",
+              "cue": "Keep the trunk still while the limbs move so the spine is supported during the main lifts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "label": "Rest",
+      "type": "rest",
+      "focus": "Rest and normal daily movement"
+    },
+    {
+      "day": 5,
+      "label": "Gym 3",
+      "type": "training",
+      "focus": "Full Body C — Repeatable strength",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up",
+          "items": [
+            {
+              "id": "d5-mob-1",
+              "name": "Easy Treadmill Walk",
+              "dose": "5 minutes at conversational pace",
+              "cue": "Raise body temperature while preserving energy for the final gym session of the week."
+            },
+            {
+              "id": "d5-mob-2",
+              "name": "Bodyweight Hip-Hinge Rehearsal",
+              "dose": "2 sets of 8 controlled reps",
+              "cue": "Rehearse the hip movement before loading it so the hamstrings work without borrowing motion from the spine."
+            },
+            {
+              "id": "d5-mob-3",
+              "name": "Bench-Supported Thoracic Rotation",
+              "dose": "1 set of 6 controlled reps each side",
+              "cue": "Open the upper back before pressing and pulling while keeping the lower back quiet."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Full-Body Strength",
+          "items": [
+            {
+              "id": "d5-str-1",
+              "name": "Bodyweight Vertical Jump",
+              "target": "Lower-body power",
+              "sets": 3,
+              "reps": "3",
+              "cue": "Make every rep fast and quiet, and stop when speed drops so power stays separate from fatigue."
+            },
+            {
+              "id": "d5-str-2",
+              "name": "Barbell Bench Press",
+              "target": "Chest and triceps",
+              "sets": 3,
+              "reps": "6-8",
+              "prescription": {
+                "rpe": 7,
+                "note": "Add the smallest available load only after all eight-rep sets remain smooth and controlled."
+              },
+              "cue": "Keep the feet planted and shoulders supported so the press builds strength without chasing a maximal effort."
+            },
+            {
+              "id": "d5-str-3",
+              "name": "Barbell Romanian Deadlift",
+              "target": "Hamstrings and glutes",
+              "sets": 3,
+              "reps": "8-10",
+              "prescription": {
+                "rpe": 7,
+                "note": "Add load only when ten reps preserve the same bar path, range and trunk control."
+              },
+              "cue": "Keep the bar close and finish by standing tall so the posterior chain grows through controlled tension."
+            },
+            {
+              "id": "d5-str-4",
+              "name": "Lat Pulldown",
+              "target": "Upper back and lats",
+              "sets": 3,
+              "reps": "10-12",
+              "prescription": {
+                "rpe": 7,
+                "note": "Progress after every set reaches twelve reps without leaning or shortening the range."
+              },
+              "cue": "Pull with the elbows and control the return to balance the week's pressing volume."
+            },
+            {
+              "id": "d5-str-5",
+              "name": "45-Degree Leg Press",
+              "target": "Quads and glutes",
+              "sets": 2,
+              "reps": "10-15",
+              "prescription": {
+                "rpe": 7,
+                "note": "Use the rep range before adding load; this is the first strength item removed if recovery is short."
+              },
+              "cue": "Use controlled repetitions for extra leg volume without turning the final session into a maximal effort."
+            }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Trunk Control",
+          "items": [
+            {
+              "id": "d5-core-1",
+              "name": "Cable Pallof Press",
+              "sets": 2,
+              "reps": "10 each side",
+              "prescription": {
+                "rir": 3
+              },
+              "cue": "Finish with controlled anti-rotation work that supports lifting and sport without adding conditioning fatigue."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "label": "Sport / Class 2",
+      "type": "custom",
+      "focus": "Usual sport or class session"
+    },
+    {
+      "day": 7,
+      "label": "Recovery",
+      "type": "recovery",
+      "focus": "Easy recovery and preparation for the next week"
+    }
+  ],
+  "features": {
+    "hipScoreRouting": false,
+    "bagWork": false
+  }
+}

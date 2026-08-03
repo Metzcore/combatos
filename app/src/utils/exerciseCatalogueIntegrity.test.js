@@ -41,7 +41,7 @@ vi.mock('../data/exerciseCatalogue.json', () => ({
 
 const CANONICAL_CATALOGUE_PATH = resolve(here, '../../../catalogue/exercise-catalogue.json')
 const BUNDLED_CATALOGUE_PATH = resolve(here, '../data/exerciseCatalogue.json')
-const CARTRIDGE_NAMES = ['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json']
+const CARTRIDGE_NAMES = ['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json', 'pilot-01-full-body-base-2026.json']
 
 /** Collect every authored training-item exerciseId in a parsed cartridge. */
 function collectAuthoredExerciseIds(cartridge) {

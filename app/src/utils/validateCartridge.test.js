@@ -330,7 +330,7 @@ describe('validateCartridge — real authored cartridges (regression guard)', ()
     const here = dirname(fileURLToPath(import.meta.url))
     const load = (name) => JSON.parse(readFileSync(resolve(here, '../../../cartridges/', name), 'utf8'))
     const loadBundled = (name) => JSON.parse(readFileSync(resolve(here, '../data/cartridges/', name), 'utf8'))
-    const cartridgeNames = ['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json']
+    const cartridgeNames = ['combatos-foundation-2026.json', 'combatos-operator-2026.json', 'apex-protocol-phase1.json', 'pilot-01-full-body-base-2026.json']
 
     it.each(cartridgeNames)('%s validates clean', (name) => {
         expect(validateCartridge(load(name))).toEqual([])
