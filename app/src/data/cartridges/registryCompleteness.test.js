@@ -4,7 +4,8 @@
  * Enumerates every JSON file physically present in this directory and fails
  * if any of them is absent from the runtime registry exported by index.js.
  * Catches the case where a cartridge file is added/mirrored but never wired
- * into CARTRIDGES / CARTRIDGE_BY_ID.
+ * into CARTRIDGES / CARTRIDGE_BY_ID, a stale entry left with no backing file,
+ * or a duplicate/collapsed cartridgeId on disk or in the registry.
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -38,5 +39,31 @@ describe('cartridge registry — completeness', () => {
         )
         const orphaned = CARTRIDGES.map((cartridge) => cartridge.cartridgeId).filter((id) => !cartridgeIdsOnDisk.has(id))
         expect(orphaned).toEqual([])
+    })
+
+    it('no two on-disk JSON files share a cartridgeId', () => {
+        const idToFiles = new Map()
+        for (const file of jsonFiles) {
+            const id = JSON.parse(readFileSync(resolve(here, file), 'utf8')).cartridgeId
+            idToFiles.set(id, [...(idToFiles.get(id) ?? []), file])
+        }
+        const duplicates = [...idToFiles.entries()].filter(([, files]) => files.length > 1)
+        expect(duplicates).toEqual([])
+    })
+
+    it('CARTRIDGES contains no duplicate cartridgeId values', () => {
+        const ids = CARTRIDGES.map((cartridge) => cartridge.cartridgeId)
+        const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
+        expect(duplicates).toEqual([])
+    })
+
+    it('CARTRIDGE_BY_ID has exactly one entry per CARTRIDGES entry (no collapsed duplicates)', () => {
+        expect(CARTRIDGE_BY_ID.size).toBe(CARTRIDGES.length)
+    })
+
+    it('every CARTRIDGE_BY_ID entry references the exact same object as its CARTRIDGES counterpart', () => {
+        for (const cartridge of CARTRIDGES) {
+            expect(CARTRIDGE_BY_ID.get(cartridge.cartridgeId)).toBe(cartridge)
+        }
     })
 })
