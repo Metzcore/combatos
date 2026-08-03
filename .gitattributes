@@ -1,0 +1,11 @@
+# Cartridge JSON is hash-pinned: an approved candidate is identified by the
+# SHA-256 of its raw bytes, and the canonical copy under cartridges/ must stay
+# byte-equivalent to its app-bundled mirror. On Windows, core.autocrlf=true
+# smudges LF->CRLF at checkout, which changes those raw bytes (and so the
+# SHA-256) without changing anything Git tracks. Pin these paths to LF so the
+# approved hash survives checkout, clone and rebase on every platform.
+#
+# Deliberately scoped to the cartridge paths only -- not a repo-wide JSON
+# policy.
+cartridges/*.json text eol=lf
+app/src/data/cartridges/*.json text eol=lf
