@@ -11,9 +11,10 @@
  * Automated push to a configured endpoint is a separate, later change; this
  * screen is manual export only.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDB, db, getSetting } from '../../db/index.jsx'
 import { runFullBackup, LAST_BACKUP_KEY } from '../../db/backup.js'
+import { restoreFullBackup, RestoreError } from '../../db/restore.js'
 import { shareOrDownloadJson } from '../../utils/checklistShare.js'
 import { localDateStr } from '../../utils/checklistDate.js'
 
@@ -35,6 +36,7 @@ function formatLastBackup(iso) {
 export default function BackupScreen() {
     const { deleteLastSession, storagePersisted } = useDB()
     const [lastBackupAt, setLastBackupAt] = useState(null)
+    const restoreInputRef = useRef(null)
 
     useEffect(() => {
         getSetting(LAST_BACKUP_KEY).then(v => {
@@ -55,6 +57,39 @@ export default function BackupScreen() {
             // The share sheet is its own confirmation; only the silent
             // download fallback gets an alert (reviewer ruling, 2026-07-12).
             if (result === 'downloaded') alert(`Backup downloaded: ${filename}`)
+        }
+    }
+
+    const handleRestoreFileChosen = async (event) => {
+        const file = event.target.files?.[0]
+        event.target.value = '' // allow re-choosing the same file next time
+        if (!file) return
+
+        const confirmed = confirm(
+            'Restore from this backup file?\n\n' +
+            'Only use this once, when setting up a new device or a new install. ' +
+            'Any data already on THIS device that shares an ID with the backup will be ' +
+            'overwritten — this does not merge, it replaces.'
+        )
+        if (!confirmed) return
+
+        try {
+            const text = await file.text()
+            const data = JSON.parse(text)
+            const { restored, skipped } = await restoreFullBackup(data, { targetDb: db })
+            const summary = Object.entries(restored)
+                .map(([table, count]) => `${table}: ${count}`)
+                .join('\n') || '(nothing to restore — file had no rows)'
+            const skippedNote = skipped.length
+                ? `\n\nSkipped unknown tables: ${skipped.join(', ')}`
+                : ''
+            alert(`Restore complete.\n\n${summary}${skippedNote}`)
+        } catch (err) {
+            const message = err instanceof RestoreError || err instanceof SyntaxError
+                ? err.message
+                : 'Restore failed — see console for details.'
+            if (!(err instanceof RestoreError || err instanceof SyntaxError)) console.error(err)
+            alert(`Restore failed: ${message}`)
         }
     }
 
@@ -97,6 +132,28 @@ export default function BackupScreen() {
                     </p>
                     <button className="btn-primary" onClick={handleBackup}>
                         EXPORT FULL BACKUP
+                    </button>
+                </div>
+            </div>
+
+            <div className="card">
+                <div className="section-header amber">📲 Restore on a New Device</div>
+                <div className="more-body">
+                    <p className="more-note">
+                        For moving to a new phone or a fresh install ONLY. Loads a previously
+                        exported backup file's workouts, checklist and notes onto this device.
+                        This replaces any matching local data rather than merging it — do not use
+                        this on a device that already has data you want to keep.
+                    </p>
+                    <input
+                        ref={restoreInputRef}
+                        type="file"
+                        accept="application/json"
+                        onChange={handleRestoreFileChosen}
+                        style={{ display: 'none' }}
+                    />
+                    <button className="btn-secondary" onClick={() => restoreInputRef.current?.click()}>
+                        RESTORE FROM BACKUP FILE
                     </button>
                 </div>
             </div>
