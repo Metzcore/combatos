@@ -33,6 +33,11 @@ Output cartridges live in [`../../cartridges/`](../../cartridges/).
 4. **Assign** — a developer/agent attaches the cartridge to the person's account. (Long-term:
    Supabase, per account; for now, files in `cartridges/`.)
 
+Before an approved cartridge is copied into the canonical library or app registry, run the
+[Track A-only registration preflight](CARTRIDGE-REGISTRATION-PREFLIGHT.md). It verifies the approved
+raw-byte SHA-256 and prepares the canonical/mirror/registry/integrity change list without making
+any source, deployment, assignment or database change.
+
 ## Key design principles (why it's built this way)
 - **Model-agnostic core** — the prompt/schema/reviewer are portable text, never locked into one
   vendor's format. This is the single decision that keeps a future self-hosted onboarding flow cheap.

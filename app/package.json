@@ -8,7 +8,8 @@
         "build": "vite build",
         "preview": "vite preview",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "preflight:cartridge-registration": "node ../scripts/cartridge-registration-preflight.mjs"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.110.7",
