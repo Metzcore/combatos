@@ -15,8 +15,9 @@ import combatosFoundation2026 from './combatos-foundation-2026.json'
 import combatosOperator2026 from './combatos-operator-2026.json'
 import apexProtocolPhase1 from './apex-protocol-phase1.json'
 import pilot01FullBodyBase2026 from './pilot-01-full-body-base-2026.json'
+import foundationConditioningPhase1 from './foundation-conditioning-phase1.json'
 
-export const CARTRIDGES = [combatosFoundation2026, combatosOperator2026, apexProtocolPhase1, pilot01FullBodyBase2026]
+export const CARTRIDGES = [combatosFoundation2026, combatosOperator2026, apexProtocolPhase1, pilot01FullBodyBase2026, foundationConditioningPhase1]
 
 export const CARTRIDGE_BY_ID = new Map(
     CARTRIDGES.map((cartridge) => [cartridge.cartridgeId, cartridge])
