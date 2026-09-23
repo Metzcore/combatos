@@ -1,28 +1,32 @@
 # STATUS
-_Last updated: 2026-07-31 · Log hub rebuild (W26) — planning through merge_
+_Last updated: 2026-09-23 · Password auth planned (W31–W33); continuity docs reconciled_
 
 ## Last session
-The Log hub was rebuilt end to end and merged through PR #68. Its two tabs now do genuinely
-different jobs: History is the detail record, Overview is visual pattern recognition (monthly
-heatmap, weekly completeness trend, activity coverage). A new pure aggregation layer
-(`utils/logOverview.js`, 27 tests) landed first through PR #65, with the plan documents through
-PR #66 and a roadmap truth-up through PR #67.
+Two prior sessions are folded in here: the 2026-08-04 close was written but never committed, and
+the 2026-09-12 cartridge work closed without one.
 
-Verification: 48 test files / 960 tests pass, production PWA build succeeds, developer accepted on
-Android portrait across three review rounds. A Cloudflare production deployment was NOT observed
-this session.
+**2026-08-04 —** Both production surfaces went live for the first time: train.metzcore.com (Track A,
+a new Cloudflare Pages project in the correct production account) and portal.metzcore.com (Track B,
+a Cloudflare Worker, not Pages). PRs #91 (cartridge-registration preflight) and #92
+(device-migration restore, then used for a real personal data migration off the old device) merged.
+The first real onboarding client was provisioned and invited; an invite hash mismatch blocked him
+and was fixed directly in Supabase.
 
-A live timezone bug was found and fixed on the way: the History list formatted dates with
-`new Date('YYYY-MM-DD').toLocaleDateString()`, showing every row a day early for any user west of
-UTC.
+**2026-09-12 —** `foundation-conditioning-phase1` registered as a Track A cartridge (PR #93).
+
+**2026-09-23 (this session) —** Password-based sign-in designed and scoped as W31–W33. No app code
+changed; this PR is documentation reconciliation only.
 
 ## Current focus
-`main` is at `b665e2d`. Checklist/Notes are permanently out of the Log hub's scope, which keeps D13
-and the two-day-axis problem off this surface entirely.
+`main` is at `1604607`. Next work is **W31 — production password sign-in**. Magic link stays in the
+code but leaves the production UI: Supabase's built-in email sender is rate-limited and uses a
+spam-prone shared domain, and it blocked a real client twice.
 
 ## Up next
-1. Merge the open `docs/fix-duplicate-w14-entry` PR — `ROADMAP.md` on `main` still lists W14 twice
-2. Truth-up W26 in `ROADMAP.md` and D9 in `OPEN-DECISIONS.md` now the rebuild has merged
-3. Add the Log hub integration test + a written manual QA checklist
-4. Remove the stale `Fight-Camp-kimi-trial` directory (still present)
-5. Rotate the temporary Supabase developer password
+1. W31 · production password sign-in (branch off `1604607`)
+2. W32 · self-service change-password in More › Profile
+3. W33 · custom SMTP + self-service forgot-password — closes the remote-reset gap
+4. Rotate the temporary Supabase developer password
+5. Push Track B: its local `main` is 5 commits ahead of `origin/main`, unpushed since 2026-08-10
+6. Remove the stale `Fight-Camp-kimi-trial` folder
+7. Log hub integration test + written manual QA checklist

@@ -2,6 +2,51 @@
 
 ---
 
+## 2026-09-23 · Password sign-in replaces magic link as the production path
+
+**Context:** The app shipped magic-link-only. Supabase's built-in email sender is rate-limited and
+sends from a spam-prone shared domain; a real client entered his email twice and never received a
+link. `signInWithPassword` has existed in `AuthProvider` since the 2026-07-22 dev auth-bypass work
+but was gated behind `import.meta.env.DEV`, so `vite build` stripped it from production. This
+session designed promoting it to the production path and ruled the questions that come with it.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Email + password becomes the only sign-in path visible in production. `signInWithMagicLink` / `signInWithOtp` stay in the code, unused by the UI | Surfacing a known-unreliable option reproduces the exact failure this work exists to fix. It can return once W33's SMTP lands |
+| 2 | **D16 ruled: no magic-link escape hatch in the sign-in UI.** Instead a hard prerequisite — every existing account is issued a password *before* deploy | The alternative (a de-emphasised "email me a link" fallback) still depends on the broken channel. Issuing passwords ahead of deploy removes the lockout risk without offering a button that fails |
+| 3 | No forced password change on first login | An enterprise-IT pattern, not a consumer one. NIST SP 800-63B also recommends against arbitrary rotation |
+| 4 | **Minimum length 8, no required character classes** | NIST SP 800-63B sets the floor at 8 and explicitly advises against composition rules, which push users toward predictable patterns like `Password1!` |
+| 5 | **Leaked-password protection is ruled out permanently, not deferred** | It is Pro-plan-only and the developer has ruled out upgrading. This supersedes the 2026-07-31 (late) entry's "relevant once pilot users choose passwords": it is not a pending task |
+| 6 | No CAPTCHA and no client-side attempt counter | `/auth/v1/token` allows 1800 req/hr per IP, so a client-side counter is UX, not security, and a real attacker calls the API directly. At a handful of invite-only users the return does not justify the machinery. Revisit at ~20 users, or if the app ever takes payments |
+| 7 | No auto-generated passwords | The developer sets the first password by hand, and sets a user-chosen one on request. This makes W32 load-bearing: the developer necessarily knows the password, so the user must be able to change it to something private |
+| 8 | The dev bypass (the `import.meta.env.DEV` block in `SignIn.jsx`) **stays** | It is how coding agents drive the app in a browser without an email round-trip. `vite build` strips it, so it carries no production risk |
+| 9 | **W33 (custom SMTP) is approved and in scope**, reversing the original brief's exclusion | The developer surfaced a new requirement: resetting a client's password while away from a computer. SMTP solves it for roughly thirty minutes of dashboard work and removes the developer from the loop entirely |
+| 10 | **A password-reset button in Track B's coach dashboard is rejected** | It needs `/auth/v1/admin`, which Track B's `scripts/isolation-test.mjs` fails the build on, and which Track B's 2026-08-05 entry already considered and rejected. Lifting it means amending `SHARED-SUPABASE-BOUNDARY.md` in both repos, and `/api/admin/*` currently has no rate limit and no edge auth |
+| 11 | A Telegram/n8n reset bot is rejected | It inherits the same Admin API ban, and Track B's automation credential is deliberately read-only. A bot that can set passwords is account-takeover by chat message, against an identity pool shared with every client's training history |
+
+**Doc corrections made this session (stale-doc bugs, per AI-WORKFLOW §1):**
+`docs/fix-duplicate-w14-entry` is **already merged** — STATUS.md and handoff.md both still listed it
+as pending. `main` moved from `a2b81fc` to `1604607`. Track B's Cloudflare Access was **deferred** on
+2026-08-06 because Cloudflare Zero Trust requires a payment method on file, not merely left undone,
+and its WAF rate-limit rule on `/api/onboard/verify` is live — Track A's continuity files described
+both as still open. D9's heading in `OPEN-DECISIONS.md` and its line in `ICEBOX.md` still read
+"open, unruled" while its own body and the status index say RULED 2026-07-31.
+
+**Verified against live state, not inferred:** `origin/main` = `1604607`, with no unmerged remote
+branches in Track A; Track B's local `main` (`09eb2e9`) is 5 commits ahead of its `origin/main`
+(`b7bd58d`); `metzcore.com` resolves to Cloudflare nameservers with Zoho EU on MX and an existing
+SPF record; Supabase advisors report the five expected findings plus
+`auth_leaked_password_protection`; `@supabase/auth-js` 2.110.7 already accepts `current_password`,
+so W32 needs no dependency change.
+
+**Not done / deferred:** no app code changed yet — W31–W33 are planned, not built. This file's entry
+order has drifted (a cluster of 2026-07-31 entries sits at the bottom from a past merge); this entry
+follows the dominant newest-first convention at the top rather than reordering the file.
+
+**Next:** W31 — production password sign-in, branched from `1604607`.
+
+---
+
 ## 2026-07-31 (late) · Pilot-readiness: live schema applied, account scoping ruled
 
 **Context:** W29/W30 shipped across nine PRs. Before handing the app to a first external pilot
@@ -695,3 +740,25 @@ unless real training use reveals a concrete regression or behavioral-friction fo
 hosting decision, production deployment, and the next Combat OS roadmap item.
 
 **Next:** begin a fresh sunshine session from clean `main` and choose one scoped roadmap item.
+
+---
+
+## 2026-08-04 · Both production surfaces deployed; first real onboarding client invited
+
+**Context:** Track A's Cloudflare Pages project moved to the correct production account (the
+pre-existing free-tier project predates that account and is now a frozen rollback reference, Git
+disconnected not deleted). Track B went from undeployed to a live Worker with a real client mid-flow.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Track A deploys via a new Pages project in the production account, not the old free-tier one | Custom domains need the zone in the same account; the old project stays as a disconnected rollback reference |
+| 2 | Supabase Auth "Redirect URLs" gets one additive entry per production hostname, never a Site URL change | Site URL is shared with Track B; both apps already supply their own `emailRedirectTo`, so only the allow-list needed to catch up |
+| 3 | Device-migration restore ships scoped to populating an empty database only, not general restore-onto-live-data | The W23.5 "restore is out of scope" ruling was about the harder general case (ID collision, tombstones) — this is a narrower problem it never covered |
+
+**Not done / deferred:** Track B's Cloudflare Access and WAF rate-limit rule — both explicit pre-deploy
+checklist items, deliberately deferred to send the first real client's invite sooner (informed
+developer call, not an oversight); rotating the Supabase dev password; W14/kimi-trial/Log-hub-test
+housekeeping carried over from the prior session.
+
+**To do next session:** close Track B's Access + WAF gap before a second client; then work through
+Track A's remaining housekeeping.

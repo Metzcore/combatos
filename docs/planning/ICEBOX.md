@@ -84,4 +84,6 @@ Anything ruled that isn't ready → record it in `OPEN-DECISIONS.md` (with ratio
 ## Already-deferred decisions living elsewhere (pointers, not duplicates)
 - **D4** — notepad / idea-organizer: deferred-with-shape in `OPEN-DECISIONS.md`.
 - **D8** — standalone tracker: deferred; revisit only on heavy sustained counted-task use.
-- **D9** — off-programme activity logging: **open, unruled**; candidate input to W26.
+- **D9** — off-programme activity logging: **ruled 2026-07-31** — solved by the existing D10
+  custom-day mechanism, no new machinery. Only the narrow remainder (an activity matching no day
+  template at all) stays deferred.

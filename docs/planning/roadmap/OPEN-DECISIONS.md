@@ -23,6 +23,7 @@ _Quick reference for current decision status. Each section's **RULED:** / **Not 
 | D13 | Checklist/Notes owner-scoping for a unified/cross-device Log view | **OPEN — not yet ruled** |
 | D14 | Component-test infrastructure (jsdom + React testing library) | **OPEN — not yet ruled** |
 | D15 | Local-data account scoping on a shared device | **Ruled (2026-07-31)** — one account per device, stated as a product constraint |
+| D16 | Magic-link fallback on the password sign-in screen | **Ruled (2026-09-23)** — no fallback in the UI; every account is issued a password before deploy |
 
 ## D1 — Delete Last Logged Day: hard vs. soft delete
 **Current state (shipped, by default not by decision):** hard delete on both ends — local Dexie record removed, `webhook.gs` removes the Sheet row entirely (`deleteRow`, with a code comment justifying it as avoiding formatting-inheritance bugs). The commit message and webhook header both *say* soft/strikethrough, which is wrong.
@@ -84,7 +85,7 @@ direction only pays off where numbers are judged. Also re-affirmed in the same s
 policy (Sheets = append-only workout log; Supabase D7 is the mutable-data destination; the
 full-backup JSON is its seed).
 
-## D9 — Off-programme activity logging (OPEN — not yet ruled)
+## D9 — Off-programme activity logging (RULED 2026-07-31)
 **Context:** developer idea captured in the app's own "App improvements" checklist group
 (2026-07-17): some days include real physical activity outside the 7-day programme (any sport,
 ad-hoc sessions); today those days look like rest in the Log, skewing the picture. Day 7
@@ -321,3 +322,35 @@ removed.
   credential and excluded from backups (`db/backupRedaction.js`).
 - **Revisit before any genuinely shared-device scenario**, and before advertising multi-user
   support. This ruling is about what is true now, not a claim that (a) is wrong.
+
+---
+
+## D16 — Magic-link fallback on the password sign-in screen (RULED 2026-09-23)
+**Context (2026-09-23, surfaced while scoping W31):** W31 makes email + password the only sign-in
+path visible in production and takes magic link out of the UI, because Supabase's built-in email
+sender is rate-limited and sends from a spam-prone shared domain — it blocked a real client twice.
+That creates a gap the magic-link-only app never had: an account that has never been issued a
+password has no self-service way in, and the "forgotten password" path is also email.
+
+**The actual question:** should the sign-in screen keep a de-emphasised magic-link fallback for
+that case — (a) no fallback at all, paired with a hard operational prerequisite that every existing
+account is issued a password before W31 deploys; (b) a visually secondary "email me a link instead"
+control, which is not the co-equal option the developer ruled against; (c) no fallback now, added
+back once W33's custom SMTP makes email trustworthy?
+
+**RULED (2026-09-23): (a) — no fallback in the sign-in UI.** A fallback that routes through the
+broken channel is not a fallback; it reproduces the failure this work exists to fix, just one tap
+further in. The lockout risk is removed operationally instead: **issuing a password to every
+existing account is a hard prerequisite of the W31 deploy, not a follow-up.** The screen carries a
+static "Forgotten your password? Contact your coach" line — honest about the real recovery path,
+and it does not offer a button that fails.
+
+**Binding consequences:**
+- W31 must not be deployed until every provisioned account has a password. An existing magic-link
+  user who opens the app after deploy with no password set is locked out of an app that previously
+  worked for them.
+- `signInWithMagicLink` / `signInWithOtp` stay in `AuthProvider` untouched. This is a UI ruling,
+  not a code deletion.
+- **Revisit once W33 ships.** Custom SMTP makes email trustworthy again, at which point a
+  self-service recovery link is the better answer than "contact your coach", and returning magic
+  link to the UI becomes a live option rather than a known-broken one.
