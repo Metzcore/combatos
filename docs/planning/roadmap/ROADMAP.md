@@ -101,6 +101,49 @@ _Deliverable 2 of the Fable 5 architect session, 2026-07-10. Same format and rol
 
 ---
 
+## Phase 6 — Authentication (ACTIVE since 2026-09-23)
+Magic-link-only sign-in blocked a real client twice: Supabase's built-in email sender is
+rate-limited and uses a spam-prone shared sending domain. Password sign-in becomes the production
+path. Rulings for all three items are in `docs/decision_log.md` (2026-09-23) and **D16** in
+`OPEN-DECISIONS.md`. Auth is high-risk under `AI-WORKFLOW.md` §4/§8, so each item takes the full
+lifecycle: diagnostic → independent review → human approval → one writer → evidence.
+
+- [ ] W31 · **IMPL**, then **REVIEW** · **Production password sign-in**: promote the existing
+      `signInWithPassword` (`auth/AuthProvider.jsx:137`, live since 2026-07-22 but gated behind
+      `import.meta.env.DEV`) to the only sign-in path visible in production. A new pure
+      `auth/authErrors.js` maps Supabase failures to user-safe copy with one identical message for
+      unknown-email and wrong-password, so sign-in is not an enumeration oracle. `SignIn.jsx`
+      becomes a real email + password form (`autoComplete="current-password"`, reveal toggle,
+      "Forgotten your password? Contact your coach"). `signInWithMagicLink` stays in the code,
+      unused by the UI (D16). The `import.meta.env.DEV` dev-bypass block **stays** — it is how
+      coding agents drive the app without an email round-trip, and `vite build` strips it.
+      ⚠️ **Deploy prerequisite: every existing account must be issued a password first**, or a
+      working magic-link user is locked out. → `prompts/W31-password-signin.md`
+- [ ] W32 · **IMPL** · **Self-service change password**: a new card in More › Profile beside
+      `WeightCheckIn`, calling `updateUser({ current_password, password })` — already supported by
+      the installed `@supabase/auth-js` 2.110.7, so no dependency change. Requires enabling
+      **"Require current password when changing password"** in Supabase Auth (project-wide, so it
+      needs a Track B compatibility check per `SHARED-SUPABASE-BOUNDARY.md` R6). Do **not** enable
+      the reauthentication-by-nonce setting — it emails a nonce, and broken email is the whole
+      premise. Load-bearing, not polish: the developer sets passwords by hand and therefore knows
+      them, so the user must be able to change to something private.
+- [ ] W33 · **IMPL** · **Custom SMTP + self-service forgot-password**: the real fix for remote
+      password resets. Replaces Supabase's built-in sender, then adds `resetPasswordForEmail()`
+      plus a recovery landing route. `metzcore.com` already runs on Cloudflare nameservers with
+      Zoho EU on MX and an existing SPF record, so the DNS work is small or nil. Once this ships,
+      revisit D16 — a working recovery link beats "contact your coach", and returning magic link to
+      the UI becomes a live option.
+
+**Ruled out for this phase, with reasons on record** (do not silently revisit):
+leaked-password protection (Pro-plan-only; the developer has ruled out upgrading) · CAPTCHA ·
+client-side attempt counters · auto-generated passwords · a password-reset button in Track B's
+coach dashboard (needs `/auth/v1/admin`, which Track B's `scripts/isolation-test.mjs` fails the
+build on and whose 2026-08-05 entry already rejected it; lifting it means amending
+`SHARED-SUPABASE-BOUNDARY.md` in both repos) · a Telegram/n8n reset bot. Revisit the rate-limiting
+items at roughly 20 users, or if the app ever takes payments.
+
+---
+
 ## Track A / Stage-2 — Train + Playbook cartridge rebuild (ACTIVE — main line since 2026-07-21)
 The Train tab (incl. Playbook) becomes a universal player over a **cartridge** — one person's
 program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` (v2, block-composable).
