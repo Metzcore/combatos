@@ -1,5 +1,5 @@
 /**
- * auth/AuthProvider.jsx — app-wide auth state built on Supabase magic-link.
+ * auth/AuthProvider.jsx — app-wide auth state built on Supabase Auth.
  *
  * Exposes authenticated identity plus a tightly-scoped offline device mode.
  * `loading` is true only until the initial getSession() resolves, so the gate
@@ -129,11 +129,16 @@ export function AuthProvider({ children }) {
         return { error }
     }, [])
 
-    // Password sign-in. Only wired up behind an import.meta.env.DEV guard in
-    // SignIn (see the dev-bypass block there) so it never reaches production —
-    // it exists so localhost + agent browser testing can skip the magic-link
-    // email round-trip using a dedicated password user. Harmless in prod: no
-    // shipped code path calls it.
+    // Password sign-in — the production path since W31. It replaced magic link
+    // in the UI because Supabase's built-in email sender is rate-limited and
+    // sends from a shared, spam-prone domain, which locked a real client out
+    // twice.
+    //
+    // This is also invite-only, and more strictly than the OTP path above:
+    // signInWithPassword has no create-user parameter because the endpoint
+    // cannot create one. Only /auth/v1/signup mints an account, and nothing in
+    // this app calls it — backed up by "Allow new users to sign up" being off
+    // at the project. Passwords are issued out of band (docs/OPERATIONS.md).
     const signInWithPassword = useCallback(async (email, password) => {
         if (!isSupabaseConfigured) {
             return { error: new Error('Supabase is not configured for this build.') }

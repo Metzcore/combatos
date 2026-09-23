@@ -1,32 +1,71 @@
 /**
  * components/SignIn.jsx — the only screen a signed-out user sees (plan §5).
  *
- * Minimal magic-link flow: email field → "Send link" → confirmation. No
- * passwords, no signup (public signup is disabled in Supabase Auth; accounts
- * are invite-only). Styled with the app's tactical-amber CSS vars.
+ * Email + password (W31). Magic link was the original and only path, but
+ * Supabase's built-in email sender is rate-limited and sends from a shared,
+ * spam-prone domain — it blocked a real client twice. `signInWithMagicLink`
+ * is still on the auth context and is deliberately unused here: showing a
+ * known-unreliable option reproduces the exact failure this screen exists to
+ * fix (D16). It returns once W33's custom SMTP makes email trustworthy.
+ *
+ * No signup: public signup is off at the Supabase project, and
+ * `signInWithPassword` has no create path at all, so this screen cannot mint
+ * an account even by accident. Accounts stay invite-only with passwords
+ * issued out of band (docs/OPERATIONS.md).
+ *
+ * Styled with the app's tactical-amber CSS vars. Note this file uses inline
+ * styles throughout rather than the `.btn-*` classes every other screen uses;
+ * that predates W31 and is left alone rather than half-migrated.
  */
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider.jsx'
+import { describeSignInError } from '../auth/authErrors.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Both auth fields share this. Two properties here are load-bearing rather
+// than cosmetic:
+//
+// `fontFamily` — index.css styles `input[type="text"]` globally (Courier, a
+// tighter radius) but NOT `input[type="password"]`. Without an explicit
+// inherit, tapping "Show" re-fonts the field and shifts its height by ~1px.
+//
+// `fontSize` in px, not the app's usual 1rem — the root size is 14px, and
+// iOS Safari auto-zooms the viewport whenever a focused input computes under
+// 16px. On the one screen that gates the whole app, that zoom is worse than
+// being 2px off the app's type scale.
+const fieldStyle = {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '0.85rem 1rem',
+    fontSize: '16px',
+    fontFamily: 'inherit',
+    color: 'var(--text)',
+    background: 'var(--input)',
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--radius-md)',
+    outline: 'none',
+}
+
 export default function SignIn() {
-    const { signInWithMagicLink, signInWithPassword } = useAuth()
+    const { signInWithPassword } = useAuth()
     const [email, setEmail] = useState('')
-    const [status, setStatus] = useState('idle') // idle | sending | sent | error
+    const [password, setPassword] = useState('')
+    const [status, setStatus] = useState('idle') // idle | signing | error
     const [error, setError] = useState('')
+    const [revealed, setRevealed] = useState(false)
     const [devError, setDevError] = useState('')
 
-    const canSubmit = EMAIL_RE.test(email.trim()) && status !== 'sending'
+    const canSubmit = EMAIL_RE.test(email.trim()) && password.length > 0 && status !== 'signing'
 
     // ── Dev-only password bypass (localhost + agent browser testing) ──
-    // Skips the magic-link email entirely by signing in a dedicated password
-    // user whose creds live in gitignored app/.env.local (VITE_DEV_EMAIL /
-    // VITE_DEV_PASSWORD). The whole block is guarded by import.meta.env.DEV, so
-    // `vite build` (DEV=false) strips it from the production bundle — and the
-    // VITE_DEV_* vars aren't set in the Cloudflare build env either. Prod is
-    // untouched: real users still get magic-link only.
+    // Kept deliberately at W31: it is how a coding agent drives the app in a
+    // browser without a human typing credentials. The creds live in gitignored
+    // app/.env.local (VITE_DEV_EMAIL / VITE_DEV_PASSWORD). The whole block is
+    // guarded by import.meta.env.DEV, so `vite build` (DEV=false) strips it
+    // from the production bundle — and the VITE_DEV_* vars aren't set in the
+    // Cloudflare build env either.
     async function handleDevLogin() {
         const devEmail = import.meta.env.VITE_DEV_EMAIL
         const devPassword = import.meta.env.VITE_DEV_PASSWORD
@@ -36,7 +75,7 @@ export default function SignIn() {
         }
         setDevError('')
         const { error: err } = await signInWithPassword(devEmail, devPassword)
-        if (err) setDevError(err.message || 'Dev sign-in failed')
+        if (err) setDevError(describeSignInError(err).message)
     }
 
     // Optional zero-click auto-login for agents: set VITE_DEV_AUTOLOGIN=true.
@@ -50,15 +89,19 @@ export default function SignIn() {
     async function handleSubmit(e) {
         e.preventDefault()
         if (!canSubmit) return
-        setStatus('sending')
+        setStatus('signing')
         setError('')
-        const { error: err } = await signInWithMagicLink(email)
+        const { error: err } = await signInWithPassword(email, password)
         if (err) {
-            setError(err.message || 'Could not send the link. Try again.')
+            setError(describeSignInError(err).message)
             setStatus('error')
-        } else {
-            setStatus('sent')
+            return
         }
+        // On success AuthProvider's onAuthStateChange fires and AuthGate swaps
+        // this screen out. Returning to idle rather than holding 'signing', so
+        // a session that somehow never propagates leaves a usable button
+        // instead of a permanent spinner.
+        setStatus('idle')
     }
 
     return (
@@ -75,6 +118,7 @@ export default function SignIn() {
                 paddingBottom: 'calc(2rem + var(--safe-bottom))',
                 backgroundColor: 'var(--bg)',
                 color: 'var(--text)',
+                overflowY: 'auto',
             }}
         >
             <div style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}>
@@ -83,96 +127,110 @@ export default function SignIn() {
                     Fighter&apos;s OS
                 </h1>
                 <p style={{ color: 'var(--dim)', margin: '0 0 2rem', fontSize: '0.9rem' }}>
-                    Sign in with a magic link
+                    Sign in to your account
                 </p>
 
-                {status === 'sent' ? (
-                    <div
-                        role="status"
-                        style={{
-                            background: 'var(--panel)',
-                            border: '1px solid var(--divider)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '1.25rem',
-                            lineHeight: 1.5,
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        placeholder="you@email.com"
+                        value={email}
+                        onChange={(e) => {
+                            setEmail(e.target.value)
+                            if (status === 'error') setStatus('idle')
                         }}
-                    >
-                        <div style={{ fontSize: '1.75rem', marginBottom: 8 }}>📧</div>
-                        <div style={{ fontWeight: 600 }}>Check your email</div>
-                        <div style={{ color: 'var(--dim)', fontSize: '0.85rem', marginTop: 6 }}>
-                            A sign-in link is on its way to{' '}
-                            <span style={{ color: 'var(--text)' }}>{email.trim()}</span>. Open it on
-                            this device to finish.
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setStatus('idle')}
-                            style={{
-                                marginTop: '1rem',
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--accent)',
-                                cursor: 'pointer',
-                                fontSize: '0.85rem',
-                            }}
-                        >
-                            Use a different email
-                        </button>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit}>
+                        aria-label="Email address"
+                        style={fieldStyle}
+                    />
+
+                    <div style={{ position: 'relative', marginTop: '0.75rem' }}>
                         <input
-                            type="email"
-                            inputMode="email"
-                            autoComplete="email"
+                            type={revealed ? 'text' : 'password'}
+                            id="password"
+                            name="password"
+                            autoComplete="current-password"
                             autoCapitalize="off"
                             autoCorrect="off"
                             spellCheck={false}
-                            placeholder="you@email.com"
-                            value={email}
+                            enterKeyHint="go"
+                            placeholder="Password"
+                            value={password}
                             onChange={(e) => {
-                                setEmail(e.target.value)
+                                setPassword(e.target.value)
                                 if (status === 'error') setStatus('idle')
                             }}
-                            aria-label="Email address"
-                            style={{
-                                width: '100%',
-                                boxSizing: 'border-box',
-                                padding: '0.85rem 1rem',
-                                fontSize: '1rem',
-                                color: 'var(--text)',
-                                background: 'var(--input)',
-                                border: '1px solid var(--divider)',
-                                borderRadius: 'var(--radius-md)',
-                                outline: 'none',
-                            }}
+                            aria-label="Password"
+                            // Room for the reveal control, which sits inside the field.
+                            style={{ ...fieldStyle, paddingRight: '4.25rem' }}
                         />
                         <button
-                            type="submit"
-                            disabled={!canSubmit}
+                            type="button"
+                            onClick={() => setRevealed((v) => !v)}
+                            aria-label={revealed ? 'Hide password' : 'Show password'}
+                            aria-pressed={revealed}
                             style={{
-                                width: '100%',
-                                marginTop: '0.75rem',
-                                padding: '0.85rem 1rem',
-                                fontSize: '1rem',
-                                fontWeight: 700,
-                                color: 'var(--bg)',
-                                background: canSubmit ? 'var(--primary)' : 'var(--divider)',
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                height: '100%',
+                                // Generous tap area: a 20px target gets missed by
+                                // a sweaty thumb (mobile-interaction-ux).
+                                minWidth: '4rem',
+                                padding: '0 0.75rem',
+                                background: 'none',
                                 border: 'none',
-                                borderRadius: 'var(--radius-md)',
-                                cursor: canSubmit ? 'pointer' : 'not-allowed',
-                                transition: 'background 0.15s',
+                                color: 'var(--dim)',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                cursor: 'pointer',
                             }}
                         >
-                            {status === 'sending' ? 'Sending…' : 'Send link'}
+                            {revealed ? 'Hide' : 'Show'}
                         </button>
-                        {status === 'error' && (
-                            <p style={{ color: 'var(--alert)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
-                                {error}
-                            </p>
-                        )}
-                    </form>
-                )}
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={!canSubmit}
+                        style={{
+                            width: '100%',
+                            marginTop: '0.75rem',
+                            padding: '0.85rem 1rem',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            color: 'var(--bg)',
+                            background: canSubmit ? 'var(--primary)' : 'var(--divider)',
+                            border: 'none',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: canSubmit ? 'pointer' : 'not-allowed',
+                            transition: 'background 0.15s',
+                        }}
+                    >
+                        {status === 'signing' ? 'Signing in…' : 'Sign in'}
+                    </button>
+
+                    {status === 'error' && (
+                        <p
+                            role="alert"
+                            style={{ color: 'var(--alert)', fontSize: '0.85rem', marginTop: '0.75rem' }}
+                        >
+                            {error}
+                        </p>
+                    )}
+                </form>
+
+                <p style={{ color: 'var(--dim)', fontSize: '0.8rem', marginTop: '1.5rem', lineHeight: 1.5 }}>
+                    Forgotten your password? Contact your coach to have it reset.
+                </p>
 
                 {import.meta.env.DEV && (
                     <div
@@ -208,7 +266,7 @@ export default function SignIn() {
                                 cursor: 'pointer',
                             }}
                         >
-                            ⚡ Dev sign-in (skip magic link)
+                            ⚡ Dev sign-in (use .env.local creds)
                         </button>
                         {devError && (
                             <p style={{ color: 'var(--alert)', fontSize: '0.8rem', marginTop: '0.6rem' }}>
