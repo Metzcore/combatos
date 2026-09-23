@@ -22,21 +22,65 @@
 
 ---
 
-## Supabase — user management (magic-link, invite-only)
+## Supabase — user management (password, invite-only)
 
-The app is **invite-only**: signups are OFF at the project level *and* the app refuses to create
-accounts (`shouldCreateUser: false`). So **nobody gets in unless you add them first.**
+The app is **invite-only**: signups are OFF at the project level *and* no code path in the app can
+create an account. `signInWithPassword` has no create-user option because the endpoint cannot make
+one, and the magic-link call still passes `shouldCreateUser: false`. So **nobody gets in unless you
+add them first.**
+
+Since W31 the app signs in with **email + password**. Magic link is still in the code but is not
+shown on the sign-in screen — see "Magic link" below for why.
 
 ### Add a user
-Dashboard → **Authentication → Users → "Add user"** (top-right). Two options:
-- **"Send invitation"** — email only; sends them an invite link immediately. Best when the
-  person is ready to log in *right now* (e.g. onboarding your brother).
-- **"Create new user"** — email + a throwaway password + tick **"Auto Confirm User"**. They
-  never use the password; they log in via magic link from the app afterwards.
+Dashboard → **Authentication → Users → "Add user"** (top-right). Use **"Create new user"**:
+email + the password you are giving them + tick **"Auto Confirm User"**. This is now the only
+option that works end to end — the password you type here is the one they will actually sign in
+with, so set the real one rather than a throwaway.
+
+**Do not use "Send invitation"** for a new app user. It emails them a link, which is the exact
+delivery path that is unreliable and the reason W31 exists.
 
 After the user exists, confirm that **Table Editor → `profiles`** contains a row with the same user
-ID. The existing database trigger normally creates it automatically. Because the app signs in with
-`shouldCreateUser: false`, adding the Auth user must happen before they request a magic link.
+ID. The existing database trigger normally creates it automatically.
+
+### Issue or reset a password for an existing account
+**The dashboard cannot do this.** Authentication → Users has no field to set a password on a user
+that already exists; "Send password recovery" emails them, which is the broken path. Until W33 adds
+custom SMTP and self-service reset, this is a local command you run yourself.
+
+> ⚠️ **Never delete and recreate the user to get a new password.** Deleting an `auth.users` row
+> cascades into `profiles`, `sessions`, `user_cartridges`, `body_metrics` **and** the onboarding
+> site's `onboarding_cases` — it destroys training history, not just a login. See
+> `docs/engineering/SHARED-SUPABASE-BOUNDARY.md`.
+
+1. Grab the user's UUID from **Authentication → Users**, and the **service-role key** from
+   **Settings → API**. That key bypasses RLS on every table in the project, including the
+   onboarding site's — treat it like a root password. It never goes in the repo, in
+   `.env.local`, or in any `VITE_*` variable (Vite inlines those into the public bundle).
+2. Stop this shell from recording the command, because both the key and the password appear in it:
+   ```powershell
+   Set-PSReadLineOption -HistorySaveStyle SaveNothing
+   ```
+3. Set the password:
+   ```powershell
+   $key = "<service-role key>"
+   $uid = "<user uuid>"
+   $pw  = "<the new password>"
+   curl.exe -s -X PUT "https://pckokypnxrimayjmjgcl.supabase.co/auth/v1/admin/users/$uid" `
+     -H "apikey: $key" -H "Authorization: Bearer $key" `
+     -H "Content-Type: application/json" `
+     -d (@{ password = $pw } | ConvertTo-Json -Compress)
+   ```
+   A success returns the user JSON. A `422` usually means the password is under the minimum
+   length; a `401`/`403` means the key is the anon key rather than the service-role key.
+4. Close the shell window, then confirm by signing in as that user on a **separate browser
+   profile** (one account per device — D15).
+
+**Handing the password over:** say it in person, or send it over Signal/WhatsApp — never email,
+never in the repo, and never in `STATUS.md`, `docs/handoff.md` or `docs/decision_log.md`. If they
+tell you the password they want, set that; then point them at **More → Profile → change password**
+(W32) so they can move to something you don't know.
 
 ### Assign programs to a user
 
@@ -87,23 +131,41 @@ Cascades: their profile, program assignments, **and** all their logged sessions 
 **Authentication → Sign In / Providers → Supabase Auth → User Signups →
 "Allow new users to sign up"**. Keep this **OFF** for invite-only.
 
-### Magic-link facts to remember
-- **One tap, one time per device.** The session persists + auto-refreshes for months.
+### Password facts to remember
+- **One sign-in per device.** The session persists + auto-refreshes for months, exactly as the
+  magic-link session did. `persistSession` / `autoRefreshToken` are unchanged.
+- **Minimum length 8, no required character classes** (Auth → Sign In / Providers → Email).
+  NIST SP 800-63B puts the floor at 8 and advises *against* composition rules, which push people
+  toward predictable shapes like `Password1!`.
+- **Leaked-password protection is not available to us.** It needs the Pro plan; upgrading is
+  ruled out (decision log, 2026-09-23). Do not treat the advisor warning as a to-do.
+- **There is no self-service reset yet.** A forgotten password is a message to you, and you run
+  the command above. W33 fixes this.
+- **Wrong-password attempts are barely rate-limited** — `/auth/v1/token` allows 1800/hour per IP.
+  Accepted for a handful of invite-only users; revisit at ~20 users.
+- An existing password that falls below a *tightened* strength setting fails at sign-in with a
+  weak-password error, not at change time. The app tells the user to contact you.
+
+### Magic link — still in the code, not on the screen
+`signInWithMagicLink` remains on the auth context and still works if ever called, but W31 removed
+it from the sign-in UI (D16). Showing a known-unreliable option reproduces the failure the change
+was made to fix. Facts worth keeping for when W33 brings it back:
+- **Built-in email is test-grade + rate-limited** (a few/hour) and sends from a shared, spam-prone
+  domain. This is the whole reason for W33's **custom SMTP**. `metzcore.com` already runs on
+  Cloudflare nameservers with Zoho on MX, so the DNS work is small or nil.
 - **Links expire (default 1 hour) and are single-use.** Never pre-send — generate when ready.
-  (Change under Auth → Emails → OTP expiry, up to 24h.)
-- The email also carries an **8-digit code** as an alternative to clicking the link.
-- **Built-in email is test-grade + rate-limited** (a few/hour). Fine for you + brother. Before
-  onboarding more people, add a **custom SMTP** (Resend/SendGrid) in Auth settings, or you'll
-  hit "email rate limit exceeded."
+  (Auth → Emails → OTP expiry, up to 24h.)
 - **Redirect allowlist matters.** A link only lands if its target is the **Site URL** or in the
-  **Redirect URLs** list (Authentication → URL Configuration). Missing entry = broken login.
-- Expired link? They just request another from the sign-in screen (works for existing users
-  even with signups off).
+  **Redirect URLs** list (Authentication → URL Configuration). Missing entry = broken login. Add
+  entries additively per hostname; **never change the Site URL** — it is shared with the
+  onboarding site (decision log, 2026-08-04 #2).
 
 ### Other Supabase self-serve
 - **See who exists / their data:** Authentication → Users; Table Editor → `profiles` / `sessions`.
-- **Security check after any schema change:** Advisors → Security (the "leaked password" warning
-  is irrelevant to us — we're passwordless).
+- **Security check after any schema change:** Advisors → Security. The **"leaked password
+  protection disabled"** warning is expected and **must not be actioned** — the feature is
+  Pro-plan-only and upgrading is ruled out (decision log, 2026-09-23). It is the sixth known-benign
+  advisory, alongside the five listed in `AGENTS.md`; anything beyond those six is a real finding.
 - **Keys:** the *publishable/anon* key is public-safe (ships in the client bundle; it's the
   `VITE_SUPABASE_ANON_KEY`). The **service-role key never leaves the dashboard** and never goes
   in the repo or the client.

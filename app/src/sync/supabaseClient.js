@@ -30,7 +30,7 @@ export const supabase = isSupabaseConfigured
     ? createClient(url, key, {
         auth: {
             // Persist the session in localStorage and silently refresh the token,
-            // so magic-link login is a one-time action per device (plan §5).
+            // so signing in is a one-time action per device (plan §5).
             persistSession: true,
             autoRefreshToken: true,
             // Pick up the tokens Supabase appends to the URL after the magic-link
