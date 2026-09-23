@@ -44,10 +44,37 @@ delivery path that is unreliable and the reason W31 exists.
 After the user exists, confirm that **Table Editor → `profiles`** contains a row with the same user
 ID. The existing database trigger normally creates it automatically.
 
+### Set up custom SMTP (do this once — W33 depends on it)
+Supabase's built-in email sender is test-grade: a few messages an hour, from a shared domain that
+lands in spam. Every email feature — the W33 reset link, magic link — is unreliable until this is
+replaced. **`metzcore.com` already runs on Cloudflare nameservers with Zoho on MX**, so there is
+usually **no DNS work at all**: SPF already authorises `zohomail.eu`
+(`v=spf1 include:zohomail.eu include:dc-…._spfm.metzcore.com ~all`), Zoho already signs with DKIM,
+and DMARC is `p=none`, so nothing will be rejected while you set it up.
+
+1. In **Zoho Mail**, create or pick a sending mailbox — `noreply@metzcore.com` is better than your
+   personal address, because this credential lives in Supabase and should have a small blast radius.
+2. Generate an **app-specific password** for it (Zoho → My Account → Security → App Passwords).
+   Zoho's normal account password will not work for SMTP when 2FA is on, and should not be used
+   here regardless.
+3. Supabase → **Project Settings → Authentication → SMTP Settings → Enable Custom SMTP**:
+   - Host `smtp.zoho.eu` · Port `587` · uncheck nothing (STARTTLS)
+   - Username: the full mailbox address · Password: the app-specific password
+   - Sender email: the same address · Sender name: `Combat OS`
+4. Send yourself a password reset from the app's sign-in screen and confirm it arrives **and does
+   not land in spam**.
+5. While you are there, raise the email rate limit (Auth → Rate Limits) — the low default only
+   exists because of the built-in sender.
+
+If Zoho's sending limits or deliverability ever bite, switching to Resend (3,000/month free, DNS
+all in Cloudflare) is a five-field change here and needs no code change.
+
 ### Issue or reset a password for an existing account
 **The dashboard cannot do this.** Authentication → Users has no field to set a password on a user
-that already exists; "Send password recovery" emails them, which is the broken path. Until W33 adds
-custom SMTP and self-service reset, this is a local command you run yourself.
+that already exists. Once custom SMTP is live, prefer **"Send password recovery"** from the user's
+row, or just tell them to tap **Forgotten your password?** on the sign-in screen — that is the whole
+point of W33, and it does not involve you. The command below stays as the fallback for when a user
+cannot receive email at all.
 
 > ⚠️ **Never delete and recreate the user to get a new password.** Deleting an `auth.users` row
 > cascades into `profiles`, `sessions`, `user_cartridges`, `body_metrics` **and** the onboarding
@@ -139,8 +166,13 @@ Cascades: their profile, program assignments, **and** all their logged sessions 
   toward predictable shapes like `Password1!`.
 - **Leaked-password protection is not available to us.** It needs the Pro plan; upgrading is
   ruled out (decision log, 2026-09-23). Do not treat the advisor warning as a to-do.
-- **There is no self-service reset yet.** A forgotten password is a message to you, and you run
-  the command above. W33 fixes this.
+- **Self-service reset exists since W33** — "Forgotten your password?" on the sign-in screen emails
+  a link. It only works if custom SMTP is configured; without it you are back on the built-in
+  sender that caused all of this.
+- The reset screen **never confirms whether an address has an account**, by design. Supabase
+  returns success either way so the form cannot be used to discover who exists — so "I got no
+  email" and "that address has no account" look identical to the user. Check Authentication →
+  Users if someone is stuck.
 - **Wrong-password attempts are barely rate-limited** — `/auth/v1/token` allows 1800/hour per IP.
   Accepted for a handful of invite-only users; revisit at ~20 users.
 - An existing password that falls below a *tightened* strength setting fails at sign-in with a

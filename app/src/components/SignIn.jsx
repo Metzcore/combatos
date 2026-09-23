@@ -49,15 +49,30 @@ const fieldStyle = {
 }
 
 export default function SignIn() {
-    const { signInWithPassword } = useAuth()
+    const { signInWithPassword, requestPasswordReset } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [status, setStatus] = useState('idle') // idle | signing | error
     const [error, setError] = useState('')
     const [revealed, setRevealed] = useState(false)
     const [devError, setDevError] = useState('')
+    // W33 — reset request: idle | sending | sent
+    const [resetStatus, setResetStatus] = useState('idle')
 
-    const canSubmit = EMAIL_RE.test(email.trim()) && password.length > 0 && status !== 'signing'
+    const emailLooksValid = EMAIL_RE.test(email.trim())
+    const canSubmit = emailLooksValid && password.length > 0 && status !== 'signing'
+
+    async function handleForgotPassword() {
+        if (!emailLooksValid || resetStatus === 'sending') return
+        setResetStatus('sending')
+        setError('')
+        // The outcome is deliberately ignored. Supabase returns success whether
+        // or not the address has an account, and surfacing a failure here would
+        // hand back the very signal that design is protecting. A genuine send
+        // failure shows up as "no email arrived", which the copy already covers.
+        await requestPasswordReset(email)
+        setResetStatus('sent')
+    }
 
     // ── Dev-only password bypass (localhost + agent browser testing) ──
     // Kept deliberately at W31: it is how a coding agent drives the app in a
@@ -228,9 +243,39 @@ export default function SignIn() {
                     )}
                 </form>
 
-                <p style={{ color: 'var(--dim)', fontSize: '0.8rem', marginTop: '1.5rem', lineHeight: 1.5 }}>
-                    Forgotten your password? Contact your coach to have it reset.
-                </p>
+                {resetStatus === 'sent' ? (
+                    <p
+                        role="status"
+                        style={{ color: 'var(--dim)', fontSize: '0.8rem', marginTop: '1.5rem', lineHeight: 1.5 }}
+                    >
+                        If <span style={{ color: 'var(--text)' }}>{email.trim()}</span> has an account,
+                        a reset link is on its way. Open it on this device. Still nothing after a few
+                        minutes? Check spam, then contact your coach.
+                    </p>
+                ) : (
+                    <div style={{ marginTop: '1.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={!emailLooksValid || resetStatus === 'sending'}
+                            style={{
+                                padding: '0.6rem 1rem',
+                                background: 'none',
+                                border: 'none',
+                                color: emailLooksValid ? 'var(--accent)' : 'var(--dim)',
+                                fontSize: '0.85rem',
+                                cursor: emailLooksValid ? 'pointer' : 'not-allowed',
+                            }}
+                        >
+                            {resetStatus === 'sending' ? 'Sending…' : 'Forgotten your password?'}
+                        </button>
+                        <p style={{ color: 'var(--dim)', fontSize: '0.75rem', margin: '0.1rem 0 0', lineHeight: 1.5 }}>
+                            {emailLooksValid
+                                ? 'We will email a reset link to this address.'
+                                : 'Enter your email address above first.'}
+                        </p>
+                    </div>
+                )}
 
                 {import.meta.env.DEV && (
                     <div

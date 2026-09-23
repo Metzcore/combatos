@@ -1,9 +1,13 @@
 /**
  * components/AuthGate.jsx — gates the app on a Supabase session.
  *
- *   loading  → brief spinner (matches DBProvider's loading style)
- *   no user  → SignIn only (a signed-out app shows nothing else, plan §5)
- *   signed in → children
+ *   loading      → brief spinner (matches DBProvider's loading style)
+ *   no user      → SignIn only (a signed-out app shows nothing else, plan §5)
+ *   recovering   → SetNewPassword (W33) — checked BEFORE children, because a
+ *                  recovery link yields a real session and would otherwise
+ *                  drop the user straight into the app without ever asking
+ *                  for a password
+ *   signed in    → children
  *
  * The DB/app tree mounts only when authed, so no Dexie/sync work happens for a
  * signed-out visitor.
@@ -11,9 +15,10 @@
 
 import { useAuth } from '../auth/AuthProvider.jsx'
 import SignIn from './SignIn.jsx'
+import SetNewPassword from './SetNewPassword.jsx'
 
 export default function AuthGate({ children }) {
-    const { user, loading } = useAuth()
+    const { user, loading, recoveryMode } = useAuth()
 
     if (loading) {
         return (
@@ -30,6 +35,8 @@ export default function AuthGate({ children }) {
     }
 
     if (!user) return <SignIn />
+
+    if (recoveryMode) return <SetNewPassword />
 
     return children
 }

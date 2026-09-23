@@ -127,12 +127,18 @@ lifecycle: diagnostic → independent review → human approval → one writer �
       the reauthentication-by-nonce setting — it emails a nonce, and broken email is the whole
       premise. Load-bearing, not polish: the developer sets passwords by hand and therefore knows
       them, so the user must be able to change to something private.
-- [ ] W33 · **IMPL** · **Custom SMTP + self-service forgot-password**: the real fix for remote
-      password resets. Replaces Supabase's built-in sender, then adds `resetPasswordForEmail()`
-      plus a recovery landing route. `metzcore.com` already runs on Cloudflare nameservers with
-      Zoho EU on MX and an existing SPF record, so the DNS work is small or nil. Once this ships,
-      revisit D16 — a working recovery link beats "contact your coach", and returning magic link to
-      the UI becomes a live option.
+- [ ] W33 · **IMPL**, then **REVIEW** · **Custom SMTP + self-service forgot-password**: the real
+      fix for remote password resets. Custom SMTP replaces Supabase's built-in sender (Zoho, via
+      the existing `metzcore.com` mailbox — no DNS change needed, SPF already authorises
+      `zohomail.eu`), then `requestPasswordReset()` → emailed link → a `SetNewPassword` screen
+      gated on the `PASSWORD_RECOVERY` event. That event handling is the non-obvious part: a
+      Supabase recovery link yields a **real session**, so without intercepting it in `AuthGate`
+      the user is silently signed in and never asked for a password. Adds a pure
+      `auth/passwordPolicy.js` (min 8, no character classes — NIST SP 800-63B) that W32 reuses.
+      D16 narrowed, not reversed: a reset link is used once and ends at a durable credential; a
+      magic link would make email a permanent dependency of every sign-in.
+      ⚠️ **Deploy prerequisite: custom SMTP must be live first**, or "Forgotten your password?"
+      sends through the same broken sender this work exists to escape.
 
 **Ruled out for this phase, with reasons on record** (do not silently revisit):
 leaked-password protection (Pro-plan-only; the developer has ruled out upgrading) · CAPTCHA ·

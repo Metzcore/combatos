@@ -1,6 +1,11 @@
 import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { SIGN_IN_MESSAGES, describeSignInError } from './authErrors.js'
+import {
+    PASSWORD_UPDATE_MESSAGES,
+    SIGN_IN_MESSAGES,
+    describePasswordUpdateError,
+    describeSignInError,
+} from './authErrors.js'
 
 describe('sign-in error copy', () => {
     it('gives one identical answer for every credential rejection, so the form is not an enumeration oracle', () => {
@@ -71,6 +76,52 @@ describe('sign-in error copy', () => {
 
     it('always returns a string message, for every reason it can produce', () => {
         for (const [reason, message] of Object.entries(SIGN_IN_MESSAGES)) {
+            expect(typeof message, reason).toBe('string')
+        }
+    })
+})
+
+describe('password update copy', () => {
+    it('tells the user what to change, unlike sign-in which deliberately does not', () => {
+        // No enumeration concern here: the caller is already authenticated, so
+        // a specific message is helpful rather than leaky.
+        expect(describePasswordUpdateError(new AuthWeakPasswordError('too weak', 400, ['length'])).reason)
+            .toBe('weak-password')
+        expect(describePasswordUpdateError(new AuthApiError('same password', 422, 'same_password')).reason)
+            .toBe('same-password')
+    })
+
+    it('sends an exhausted recovery link back for a new one rather than blaming the password', () => {
+        // A used or expired link is not a bad password. Telling the user to
+        // pick a different password would loop them forever.
+        for (const error of [
+            new AuthApiError('Session expired', 401, 'session_expired'),
+            new AuthApiError('Token has expired', 403, 'otp_expired'),
+            new AuthApiError('Session not found', 404, 'session_not_found'),
+        ]) {
+            const { reason, message } = describePasswordUpdateError(error)
+            expect(reason).toBe('expired')
+            expect(message).toMatch(/new one|request/i)
+        }
+    })
+
+    it('separates an unreachable server and rate limiting from a rejected password', () => {
+        expect(describePasswordUpdateError(new AuthRetryableFetchError('Failed to fetch', 0)).reason)
+            .toBe('offline')
+        expect(describePasswordUpdateError(new AuthApiError('slow down', 429, 'over_request_rate_limit')).reason)
+            .toBe('rate-limited')
+    })
+
+    it('treats no error as no message, so the success path renders nothing', () => {
+        expect(describePasswordUpdateError(null)).toEqual({ reason: 'none', message: '' })
+    })
+
+    it('falls back rather than asserting a cause it does not know', () => {
+        expect(describePasswordUpdateError(new Error('unmapped')).reason).toBe('unknown')
+    })
+
+    it('always returns a string message, for every reason it can produce', () => {
+        for (const [reason, message] of Object.entries(PASSWORD_UPDATE_MESSAGES)) {
             expect(typeof message, reason).toBe('string')
         }
     })
