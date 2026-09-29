@@ -23,6 +23,13 @@ export function AuthProvider({ children }) {
     const [session, setSession] = useState(null)
     const [offlineUserId, setOfflineUserId] = useState(null)
     const [loading, setLoading] = useState(true)
+    // W33 — true from the moment a recovery link is consumed until the new
+    // password is saved or the user backs out. Supabase's recovery link
+    // produces a REAL session, so without this the user would land on the HUD
+    // having never set a password, and the link they clicked would behave as a
+    // plain magic link. AuthGate uses it to show the set-password screen
+    // instead of the app.
+    const [recoveryMode, setRecoveryMode] = useState(false)
 
     // A6.5 — the onAuthStateChange listener below is registered ONCE (empty
     // effect deps) so its closure over `session`/`offlineUserId` is stale by
@@ -82,7 +89,12 @@ export function AuthProvider({ children }) {
         const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
             setSession(newSession)
             if (newSession) setOfflineUserId(null)
+            // Fired when detectSessionInUrl consumes a `type=recovery` link.
+            // Must be handled before anything renders the app, or the user is
+            // silently signed in without ever choosing a password.
+            if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
             if (event === 'SIGNED_OUT') {
+                setRecoveryMode(false)
                 setOfflineUserId(null)
                 window.dispatchEvent(new Event(CARTRIDGE_ACCESS_RESET_EVENT))
                 clearCartridgeAccessCache().catch(console.error)
@@ -150,6 +162,44 @@ export function AuthProvider({ children }) {
         return { error }
     }, [])
 
+    // W33 — self-service password recovery. Supabase deliberately returns
+    // success whether or not the address has an account, so this call cannot
+    // be used to discover who exists; the UI must keep that property by never
+    // confirming the address either way.
+    //
+    // It also cannot create an account: /auth/v1/recover only ever sends to an
+    // existing user, so invite-only is unaffected.
+    const requestPasswordReset = useCallback(async (email) => {
+        if (!isSupabaseConfigured) {
+            return { error: new Error('Supabase is not configured for this build.') }
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            // Same live-origin reasoning as the magic-link redirect: each
+            // origin must be registered in Supabase Auth → URL Configuration
+            // → Redirect URLs. Add entries additively; never touch Site URL,
+            // which is shared with the onboarding site.
+            redirectTo: window.location.origin,
+        })
+        return { error }
+    }, [])
+
+    // Completes the recovery started above. No `current_password` here by
+    // design — the emailed link is the proof of identity, which is the whole
+    // point of a reset, and the user does not know the old password.
+    const completePasswordReset = useCallback(async (password) => {
+        if (!isSupabaseConfigured) {
+            return { error: new Error('Supabase is not configured for this build.') }
+        }
+        const { error } = await supabase.auth.updateUser({ password })
+        if (!error) setRecoveryMode(false)
+        return { error }
+    }, [])
+
+    // Leaves recovery without setting a password. The session stays valid
+    // (Supabase's recovery link really does sign the user in), so this drops
+    // them into the app rather than pretending to log them out.
+    const dismissPasswordRecovery = useCallback(() => setRecoveryMode(false), [])
+
     const signOut = useCallback(async () => {
         if (!isSupabaseConfigured) return
         // A6.5 — invalidate the draft controller synchronously and attempt
@@ -191,8 +241,12 @@ export function AuthProvider({ children }) {
                 user,
                 authMode,
                 loading,
+                recoveryMode,
                 signInWithMagicLink,
                 signInWithPassword,
+                requestPasswordReset,
+                completePasswordReset,
+                dismissPasswordRecovery,
                 signOut,
             }}
         >

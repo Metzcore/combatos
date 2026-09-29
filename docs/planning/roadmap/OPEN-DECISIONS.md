@@ -354,3 +354,13 @@ and it does not offer a button that fails.
 - **Revisit once W33 ships.** Custom SMTP makes email trustworthy again, at which point a
   self-service recovery link is the better answer than "contact your coach", and returning magic
   link to the UI becomes a live option rather than a known-broken one.
+
+**REVISITED (2026-09-23, W33): a password-reset link is now on the sign-in screen; magic link is
+still not.** The distinction is deliberate and the ruling above is narrowed, not reversed. A reset
+link ends at a screen that forces a *durable* credential, so email is used once and never needed
+again. A magic link makes email a permanent dependency of every future sign-in — which is the
+failure mode that started all of this. Password stays the primary path; email is recovery only.
+
+The "contact your coach" line is gone from the screen, replaced by "Forgotten your password?".
+**That control is only honest if custom SMTP is configured** — see `docs/OPERATIONS.md`. W33 must
+not deploy before it is.

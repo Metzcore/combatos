@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-09-23 (later) · Self-service password recovery; email becomes recovery-only
+
+**Context:** W31 shipped password sign-in but left the sign-in screen saying "contact your coach"
+for a forgotten password. That is untenable in practice — a client at the gym needs in while the
+developer is away from a computer, and the Supabase dashboard cannot set a password on an existing
+user. Three routes were compared; the cheapest one was the item the original brief had excluded.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **Custom SMTP, not an admin reset button.** Supabase's built-in sender is replaced by the existing Zoho mailbox on `metzcore.com` | It is dashboard-only work with no DNS change (SPF already authorises `zohomail.eu`, Zoho signs DKIM, DMARC is `p=none`), it needs no cross-repo boundary amendment, and it is the only option that removes the developer from the loop rather than making them faster in it |
+| 2 | **D16 is narrowed, not reversed.** A password-reset link goes on the sign-in screen; magic link still does not | A reset link is used once and ends at a screen that forces a durable credential. A magic link makes email a permanent dependency of *every* sign-in — the exact failure this work exists to escape. Password stays primary; email is recovery only |
+| 3 | The reset request **ignores its own result** and always shows the same "if that address has an account…" copy | Supabase returns success whether or not the user exists, specifically to prevent enumeration. Surfacing a failure would hand back the signal that design protects. Same property W31 established for sign-in errors |
+| 4 | `PASSWORD_RECOVERY` is intercepted in `AuthProvider` and gates `AuthGate` ahead of the app | A Supabase recovery link yields a **real session**. The existing handler set the session for every event, so a recovery link would have signed the user straight into the HUD without ever asking for a password — i.e. it would have behaved as the magic link that #2 just declined to ship |
+| 5 | No `current_password` on the recovery save | The emailed link is the proof of identity. The user is there precisely because they do not know the old password |
+| 6 | Minimum 8, **no character-class rules**, never trimmed | NIST SP 800-63B sets the floor at 8 and advises against composition rules, which yield `Password1!` rather than entropy. Trimming would store something other than what the user typed, and they would then fail to sign in with the password they chose |
+
+**Verified, not inferred:** `PASSWORD_RECOVERY` is a real `AuthChangeEvent` in the installed
+`@supabase/auth-js` 2.110.7 and is emitted from the redirect path (`GoTrueClient.js:1604, 2021`).
+`metzcore.com` resolves to Cloudflare nameservers (`jule`/`charles.ns.cloudflare.com`) with Zoho EU
+on MX, SPF `v=spf1 include:zohomail.eu include:dc-…._spfm.metzcore.com ~all`, and DMARC `p=none`.
+62 test files / 1207 tests pass; production build succeeds; the recovery screen's validation states
+were exercised in a 375px browser.
+
+**Two traps recorded for W32, which must verify rather than assume:** the installed library accepts
+**`current_password` (snake_case) only** — Supabase's own docs show a camelCase `currentPassword`
+in one guide, which does not exist in 2.110.7 and would be silently dropped, leaving the check
+unenforced. And it is **not documented** whether a recovery session is exempt from the
+"Require current password when changing password" project setting; the library's type comment
+implies it is, but W32 must test a full recovery with that setting ON before leaving it on — if
+recovery is not exempt, enabling it destroys the only self-service recovery path.
+
+**Not done / deferred:** custom SMTP itself is a developer dashboard step and is **a hard
+prerequisite of merging W33**, not a follow-up — shipping "Forgotten your password?" on the
+built-in sender routes users back into the original failure, and the screen deliberately cannot
+tell them the email never went out. W32 (change password while signed in) is unstarted.
+
+**Next:** W32 — self-service change password in More › Profile.
+
+---
+
 ## 2026-09-23 · Password sign-in replaces magic link as the production path
 
 **Context:** The app shipped magic-link-only. Supabase's built-in email sender is rate-limited and

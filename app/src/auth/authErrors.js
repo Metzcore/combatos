@@ -39,6 +39,58 @@ export function describeSignInError(error) {
     return { reason, message: SIGN_IN_MESSAGES[reason] }
 }
 
+export const PASSWORD_UPDATE_MESSAGES = {
+    'none': '',
+    'offline': 'Cannot reach the server. Check your connection and try again.',
+    'rate-limited': 'Too many attempts. Wait a few minutes, then try again.',
+    'weak-password': 'That password does not meet the minimum requirements.',
+    'same-password': 'That is already your password. Choose a different one.',
+    'expired': 'That reset link has expired. Request a new one from the sign-in screen.',
+    'unconfigured': 'This build has no cloud connection, so this is unavailable.',
+    'unknown': 'Could not save the new password. Try again.',
+}
+
+/**
+ * Classify a failure from setting a new password (recovery, and later the
+ * change-password screen). Distinct from sign-in because the remedies differ:
+ * here the user CAN act — pick a longer password, pick a different one, or
+ * request a fresh link — so collapsing everything into one message would be
+ * unhelpful rather than safe. There is no enumeration concern: the caller is
+ * already authenticated.
+ */
+export function describePasswordUpdateError(error) {
+    const reason = classifyUpdate(error)
+    return { reason, message: PASSWORD_UPDATE_MESSAGES[reason] }
+}
+
+function classifyUpdate(error) {
+    if (!error) return 'none'
+
+    const name = typeof error.name === 'string' ? error.name : ''
+    const code = typeof error.code === 'string' ? error.code : ''
+    const status = typeof error.status === 'number' ? error.status : null
+    const message = typeof error.message === 'string' ? error.message : ''
+
+    if (name === 'AuthRetryableFetchError' || status === 0) return 'offline'
+    if (code === 'over_request_rate_limit' || status === 429) return 'rate-limited'
+    if (name === 'AuthWeakPasswordError' || code === 'weak_password') return 'weak-password'
+    if (code === 'same_password') return 'same-password'
+    // A recovery session whose link was already used, or which sat unopened
+    // past the OTP expiry window. The remedy is a new link, not a new password.
+    if (
+        code === 'session_expired' ||
+        code === 'otp_expired' ||
+        code === 'session_not_found' ||
+        status === 401 ||
+        status === 403
+    ) {
+        return 'expired'
+    }
+    if (/not configured/i.test(message)) return 'unconfigured'
+
+    return 'unknown'
+}
+
 function classify(error) {
     if (!error) return 'none'
 
