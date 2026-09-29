@@ -11,7 +11,7 @@
  */
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
-import { supabase, isSupabaseConfigured } from '../sync/supabaseClient.js'
+import { supabase, isSupabaseConfigured, landedOnRecoveryLink } from '../sync/supabaseClient.js'
 import { clearCartridgeAccessCache, readCartridgeAccessCache } from '../db/cartridgeAccess.js'
 import { canResumeFromCartridgeCache } from './offlineAccess.js'
 import { CARTRIDGE_ACCESS_RESET_EVENT } from '../cartridges/accessModel.js'
@@ -29,7 +29,14 @@ export function AuthProvider({ children }) {
     // having never set a password, and the link they clicked would behave as a
     // plain magic link. AuthGate uses it to show the set-password screen
     // instead of the app.
-    const [recoveryMode, setRecoveryMode] = useState(false)
+    //
+    // Seeded from the URL rather than from the PASSWORD_RECOVERY event alone.
+    // GoTrue initialises inside its own constructor at import time and emits
+    // that event from a setTimeout(…, 0) — all before React mounts, so the
+    // subscriber registered below does not exist yet and never sees it. Only
+    // the URL flag survives that race; the event handler stays as well,
+    // because it is the right trigger whenever a subscriber does exist.
+    const [recoveryMode, setRecoveryMode] = useState(landedOnRecoveryLink)
 
     // A6.5 — the onAuthStateChange listener below is registered ONCE (empty
     // effect deps) so its closure over `session`/`offlineUserId` is stale by
@@ -69,7 +76,15 @@ export function AuthProvider({ children }) {
             }
 
             let cached = null
-            if (error) {
+            // W33 fix — never fall back to the offline cartridge cache on a
+            // recovery-link load. If the link failed (expired, already used,
+            // tokens rejected), the offline path would hand this device a
+            // `user` from cache, AuthGate would render the app, and the person
+            // who just clicked "reset my password" would be dropped into a
+            // working-looking app having never set one — the failure silently
+            // disguised as success. Suppressing it here means a failed link
+            // falls through to SignIn, which is the honest outcome.
+            if (error && !landedOnRecoveryLink) {
                 try {
                     cached = await readCartridgeAccessCache()
                 } catch {
