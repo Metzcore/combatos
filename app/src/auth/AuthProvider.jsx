@@ -239,7 +239,20 @@ export function AuthProvider({ children }) {
         window.dispatchEvent(new Event(CARTRIDGE_ACCESS_RESET_EVENT))
         await clearCartridgeAccessCache()
         setOfflineUserId(null)
-        const result = await supabase.auth.signOut()
+        // scope:'local' is deliberate and must not be dropped. Supabase's
+        // default is 'global', which terminates the user's sessions on EVERY
+        // device — so signing out on a laptop also killed the phone, where
+        // SIGNED_OUT then discards the active workout draft and clears the
+        // cartridge access cache. ProfileScreen asks "Sign out on this
+        // device?" and warns only about this device's consequences; 'local' is
+        // what makes that copy true.
+        //
+        // Note this is not the whole story for multi-device: a password change
+        // DOES revoke every other session, server-side and unconditionally
+        // (measured 2026-09-29 — a reset took one account from 8 live sessions
+        // to 1). That is Supabase's behaviour on password update, not this
+        // call, and it is the correct security outcome for a credential change.
+        const result = await supabase.auth.signOut({ scope: 'local' })
         // Close the narrow race where an already-completed access request
         // could have written between the first clear and the auth event.
         await clearCartridgeAccessCache()
