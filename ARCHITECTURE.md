@@ -393,11 +393,23 @@ Alongside the local Dexie layer, a Supabase backend provides identity and per-ac
 access. It is **not** on the logged-session write path — that still goes to the Google Sheets
 webhook (repointing it to Supabase is separate, unstarted work).
 
-- **Auth** (`app/src/auth/AuthProvider.jsx`): Supabase magic-link, **invite-only** at two layers
-  (`shouldCreateUser: false` in the app; project signups off). A tightly-scoped offline mode lets a
-  previously-confirmed device resume read-only when auth cannot refresh purely due to a network
-  failure (A9c); explicit sign-out clears device trust. The publishable key is the
-  `VITE_SUPABASE_ANON_KEY` (RLS is the real protection).
+- **Auth** (`app/src/auth/AuthProvider.jsx`): Supabase **email + password** since W31
+  (2026-09-23). Magic link was the original and only path until then; `signInWithMagicLink` is
+  still on the context but no UI calls it, because the built-in email sender is rate-limited and
+  sends from a shared, spam-prone domain (D16). **Invite-only at two layers**: the project has
+  signups off, and no app code path can create an account — `signInWithPassword` has no
+  create-user option because the endpoint cannot make one, and the OTP call still passes
+  `shouldCreateUser: false`.
+  W33 added self-service recovery: `resetPasswordForEmail` → emailed link → the
+  `PASSWORD_RECOVERY` event sets `recoveryMode`, which `AuthGate` checks **before** rendering the
+  app, because a recovery link yields a real session and would otherwise sign the user in without
+  ever asking for a password. Two pure modules carry the decisions so they stay testable without a
+  DOM (D14 is unruled): `auth/authErrors.js` — one identical message for every credential
+  rejection, so sign-in is not a user-enumeration oracle — and `auth/passwordPolicy.js` (minimum
+  8, no character-class rules, never trimmed).
+  A tightly-scoped offline mode lets a previously-confirmed device resume read-only when auth
+  cannot refresh purely due to a network failure (A9c); explicit sign-out clears device trust. The
+  publishable key is the `VITE_SUPABASE_ANON_KEY` (RLS is the real protection).
 - **Schema** (captured as repo migrations under `supabase/migrations/`): `profiles` (one row per
   user; `assigned_cartridge` is the single active-programme pointer), `sessions` (a generic JSONB
   payload, so the cartridge rebuild changes the payload, not the table), and `user_cartridges`

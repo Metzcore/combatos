@@ -9,7 +9,7 @@ It is **offline-first**: all workout state lives in the browser (IndexedDB via D
 account and device access have been established, the core local workout / checklist / logging
 flow keeps working with no network — sessions logged offline are queued and POSTed once the
 network returns. First-time sign-in and cartridge activation do require a network. A **Supabase
-backend** (live since 2026-07-21) provides magic-link authentication and per-account programme
+backend** (live since 2026-07-21) provides email + password authentication and per-account programme
 (cartridge) access; logged sessions are additionally POSTed to a Google Apps Script webhook as an
 append-only remote record the app never reads back. Onboarding is invite-only — the app never
 self-mints accounts.
@@ -121,7 +121,8 @@ app/                     React + Vite PWA source (the actual product)
   src/data/               Generated playbook.js + ignition.js (quote data)
   src/sync/               Outbound queue + webhook push (syncQueue.js, extracted in W8),
                           plus the Supabase client and cartridge-access sync
-  src/auth/               Supabase magic-link auth provider + offline-access gating
+  src/auth/               Supabase password auth provider, error/policy predicates,
+                          offline-access gating
   src/cartridges/         Cartridge access model + provider (assigned-programme access)
   vite.config.js          Vite + vite-plugin-pwa configuration
   package.json            Scripts and dependencies (see Stack above)

@@ -90,9 +90,14 @@ SQL / a future serverless function) — never from the client. No client-side ad
 
 ## 5. Auth
 
-- **Magic link (passwordless email OTP).** One emailed link, tapped once on the phone → logged
+- ⚠️ **SUPERSEDED 2026-09-23 (W31/W33) — auth is now email + password**, with an emailed reset
+  link used for recovery only. The magic-link design below is the historical record of what
+  shipped first; it is not how the app works today. See `ARCHITECTURE.md` § Auth & Supabase
+  backend.
+- ~~**Magic link (passwordless email OTP).** One emailed link, tapped once on the phone → logged
   in. `supabase-js` persists the session and auto-refreshes the token, so it's a **one-time**
-  login per device (survives app closes for months). No passwords.
+  login per device (survives app closes for months). No passwords.~~ The session-persistence half
+  of this is unchanged and still true.
 - **Public signup DISABLED** in the Supabase Auth settings — invite-only. You create accounts;
   no randoms from the public/demo URL.
 - **Minimal sign-in screen**: email field → "Send link". A signed-out app shows only this.
