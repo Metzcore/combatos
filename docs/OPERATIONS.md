@@ -173,6 +173,14 @@ Cascades: their profile, program assignments, **and** all their logged sessions 
   returns success either way so the form cannot be used to discover who exists — so "I got no
   email" and "that address has no account" look identical to the user. Check Authentication →
   Users if someone is stuck.
+- **A password change signs that account out everywhere.** Measured 2026-09-29: a reset took one
+  account from 8 live sessions to 1 (the new one). This is Supabase's own behaviour on a password
+  update, not something the app does, and it is the right outcome for a credential change — but
+  it means **you cannot reset your own password without having to sign in again on your phone.**
+  Test resets on a spare account, never on your daily driver.
+- **Signing out from More → Profile affects only that device** (`scope: 'local'`). Supabase's
+  default is `global`, which would sign the account out everywhere; that was a real bug until
+  2026-09-29, when the button's "Sign out on this device?" wording did not match what it did.
 - **Wrong-password attempts are barely rate-limited** — `/auth/v1/token` allows 1800/hour per IP.
   Accepted for a handful of invite-only users; revisit at ~20 users.
 - An existing password that falls below a *tightened* strength setting fails at sign-in with a
