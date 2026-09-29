@@ -108,7 +108,7 @@ path. Rulings for all three items are in `docs/decision_log.md` (2026-09-23) and
 `OPEN-DECISIONS.md`. Auth is high-risk under `AI-WORKFLOW.md` §4/§8, so each item takes the full
 lifecycle: diagnostic → independent review → human approval → one writer → evidence.
 
-- [ ] W31 · **IMPL**, then **REVIEW** · **Production password sign-in**: promote the existing
+- [x] W31 · **IMPL**, then **REVIEW** · **Production password sign-in**: promote the existing
       `signInWithPassword` (`auth/AuthProvider.jsx:137`, live since 2026-07-22 but gated behind
       `import.meta.env.DEV`) to the only sign-in path visible in production. A new pure
       `auth/authErrors.js` maps Supabase failures to user-safe copy with one identical message for
@@ -117,8 +117,11 @@ lifecycle: diagnostic → independent review → human approval → one writer �
       "Forgotten your password? Contact your coach"). `signInWithMagicLink` stays in the code,
       unused by the UI (D16). The `import.meta.env.DEV` dev-bypass block **stays** — it is how
       coding agents drive the app without an email round-trip, and `vite build` strips it.
-      ⚠️ **Deploy prerequisite: every existing account must be issued a password first**, or a
-      working magic-link user is locked out. → `prompts/W31-password-signin.md`
+      → `prompts/W31-password-signin.md` _Shipped in PR #95 (Opus 5), 2026-09-23 — 61 test files
+      / 1192 tests green; dev bypass verified stripped from `dist/`. Two browser-found defects
+      fixed: `index.css` styles `input[type="text"]` but not `[type="password"]`, so revealing
+      re-fonted the field; and `1rem` computes to 14px, which triggers iOS Safari zoom-on-focus.
+      On-device acceptance still outstanding._
 - [ ] W32 · **IMPL** · **Self-service change password**: a new card in More › Profile beside
       `WeightCheckIn`, calling `updateUser({ current_password, password })` — already supported by
       the installed `@supabase/auth-js` 2.110.7, so no dependency change. Requires enabling
@@ -127,7 +130,7 @@ lifecycle: diagnostic → independent review → human approval → one writer �
       the reauthentication-by-nonce setting — it emails a nonce, and broken email is the whole
       premise. Load-bearing, not polish: the developer sets passwords by hand and therefore knows
       them, so the user must be able to change to something private.
-- [ ] W33 · **IMPL**, then **REVIEW** · **Custom SMTP + self-service forgot-password**: the real
+- [x] W33 · **IMPL**, then **REVIEW** · **Custom SMTP + self-service forgot-password**: the real
       fix for remote password resets. Custom SMTP replaces Supabase's built-in sender (Zoho, via
       the existing `metzcore.com` mailbox — no DNS change needed, SPF already authorises
       `zohomail.eu`), then `requestPasswordReset()` → emailed link → a `SetNewPassword` screen
@@ -137,8 +140,18 @@ lifecycle: diagnostic → independent review → human approval → one writer �
       `auth/passwordPolicy.js` (min 8, no character classes — NIST SP 800-63B) that W32 reuses.
       D16 narrowed, not reversed: a reset link is used once and ends at a durable credential; a
       magic link would make email a permanent dependency of every sign-in.
-      ⚠️ **Deploy prerequisite: custom SMTP must be live first**, or "Forgotten your password?"
-      sends through the same broken sender this work exists to escape.
+      → `prompts/W33-smtp-password-recovery.md` _Shipped in PR #96, 2026-09-29, then fixed in
+      PR #97 — **verified end to end on a real account**: reset requested, email delivered through
+      Zoho (spam on first send), link opened the set-password screen, new password worked, and the
+      account's cartridge loaded. 63 test files / 1213 tests green.
+      **PR #96 alone did not work.** It relied on Supabase's `PASSWORD_RECOVERY` event, but GoTrue
+      initialises inside its own constructor at import time and emits that event from a
+      `setTimeout(…, 0)` — both before React mounts, so `AuthProvider` subscribed too late and the
+      event was missed on every first load, which is the only load a recovery link has. The link
+      signed the user into the app having never asked for a password. PR #97 reads the intent from
+      the URL at module scope instead, and also stops a failed recovery link falling through to the
+      offline cartridge cache, which had been disguising failure as success. Caught by the
+      developer's first real test, not by CI — there is no component-test infrastructure (D14)._
 
 **Ruled out for this phase, with reasons on record** (do not silently revisit):
 leaked-password protection (Pro-plan-only; the developer has ruled out upgrading) · CAPTCHA ·

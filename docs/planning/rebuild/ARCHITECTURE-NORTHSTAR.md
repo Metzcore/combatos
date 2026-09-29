@@ -112,9 +112,14 @@ The developer is committing to **Track B** as the load-bearing move (2026-07-20)
 
 ## 6. Multi-tenant specifics (Track B)
 
-- **Auth = magic link / passwordless.** A user taps one emailed link on their phone → logged in.
+- ⚠️ **SUPERSEDED 2026-09-23 (W31/W33) — auth is now email + password.** The magic-link design
+  below is kept as the historical record of what was built first. It failed in practice:
+  Supabase's built-in sender is rate-limited and uses a shared, spam-prone domain, and a real
+  client never received his link. Current behaviour is in `ARCHITECTURE.md` § Auth & Supabase
+  backend. The session claim still holds — sessions persist and auto-refresh however you sign in.
+- ~~**Auth = magic link / passwordless.** A user taps one emailed link on their phone → logged in.
   **PWA sessions persist** (token auto-refreshes) — they log in ONCE, ever, not per open. No
-  password management.
+  password management.~~
 - **Public signup DISABLED.** Only invited accounts exist → no unwanted users from the public URL.
 - **Public LinkedIn demo = guest mode**, a separate environment with a dummy backend and no
   signup; touches no real data.
