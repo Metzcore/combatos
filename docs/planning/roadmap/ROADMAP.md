@@ -163,6 +163,26 @@ items at roughly 20 users, or if the app ever takes payments.
 
 ---
 
+## Phase 7 — Developer-reported improvements (ACTIVE since 2026-09-30)
+Improvements the developer noticed in daily use, scoped one item per PR.
+
+- [ ] W34 · **IMPL**, then **REVIEW** · **Log a workout for a past day**: a "Logging for: Today ·
+      Yesterday · Pick a date" control above FINISH on Today, so a forgotten workout lands on the
+      day it was done. Rulings (2026-09-30): chosen on Today, not in a separate Log-tab form (one
+      logger, not two); window is today plus the previous 14 days, no future dates; no payload
+      shape change — `date` carries the training day, `completedAt` stays the true entry time,
+      `startedAt` is omitted for a past date; `AGENTS.md` rule 2 lifted for **one clarifying
+      sentence** in `session-payload-schema.md` only. Three readers switch from entry order to
+      training-day order (next-day suggestion, last performance, History), which is provably a
+      no-op for existing rows. Cartridge sessions only; rest/recovery one-tap and the legacy HUD
+      stay today-only. → `prompts/W34-log-past-day.md`
+- [ ] W35 · **IMPL** · ⛔ gated on W34 · **Calendar shortcut into past-day logging**: tapping an
+      empty past day on the Log › Overview calendar offers "Log a workout for this day", opening
+      Today with that date already chosen. Prompt written after W34 lands, against W34's actual
+      control. Decide there whether rest/recovery days can be back-filled from this entry point.
+
+---
+
 ## Track A / Stage-2 — Train + Playbook cartridge rebuild (ACTIVE — main line since 2026-07-21)
 The Train tab (incl. Playbook) becomes a universal player over a **cartridge** — one person's
 program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` (v2, block-composable).
