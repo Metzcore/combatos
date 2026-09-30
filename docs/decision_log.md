@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-09-29 · Password auth verified on a real account; two defects the tests could not catch
+
+**Context:** W31/W33 had merged but nothing had been proven end to end. The developer ran the first
+real reset, which worked as far as the email and then failed — surfacing a defect CI had no way to
+catch, plus a second, older one found while measuring multi-device behaviour.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **A Supabase auth event fired during client initialisation can never be the only signal.** Read the intent from the URL at module scope instead | GoTrue initialises inside its own constructor, at import time, and emits `PASSWORD_RECOVERY` from a `setTimeout(…, 0)` — both before React mounts. The subscriber does not exist yet, so the event is missed on the first load, which for a recovery link is the only load there is |
+| 2 | **The offline cartridge fallback is suppressed on a recovery-link load** | Otherwise a dead link (expired, reused, rejected) hands the device a cached `user`, renders the app, and disguises failure as success for the one person who definitely has no working password |
+| 3 | **`signOut()` must always pass `scope: 'local'`** | Supabase's default is `global`, which terminated sessions on every device while ProfileScreen said "Sign out on this device?" — and the SIGNED_OUT handler then discards the workout draft and clears cartridge access on that other device |
+| 4 | **A password change revokes every other session, and that is accepted, not worked around** | Measured: a reset took one account from 8 live sessions to 1. It is the correct outcome for a credential change. The operational consequence is written into `OPERATIONS.md`: test resets on a spare account, never a daily driver |
+| 5 | **D14 gains concrete evidence.** The recovery race was caught by a human on a real device and could not have been caught by this suite | 1213 tests passed with the bug present, because nothing renders a component and nothing exercises a page load. That is D14 biting for the fourth time. Still not ruled — recorded as evidence, not silently defaulted |
+
+**Verified against live state, not inferred:** `main` at `856ed1a`; 63 test files / 1213 tests pass;
+PRs #94–#99 merged with no unmerged branches; custom SMTP delivered a real reset email through Zoho;
+five accounts exist, all with passwords set and confirmed; the first client is provisioned with
+exactly one cartridge, available and active.
+
+**Not done / deferred:** the Cloudflare production deployment of #98/#99 was **not verified this
+session** — merged is not deployed. On-device sign-out confirmation, `VITE_DEV_PASSWORD` refresh,
+and W32 all outstanding. One unused account (no workouts, no weights, no cartridges, an onboarding
+case abandoned at `intake_pending` with zero responses) is to be deleted by the developer.
+
+**Next:** scope the developer's new improvement requests.
+
+---
+
 ## 2026-09-23 (later) · Self-service password recovery; email becomes recovery-only
 
 **Context:** W31 shipped password sign-in but left the sign-in screen saying "contact your coach"
