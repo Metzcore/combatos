@@ -1,11 +1,12 @@
 # Cartridge Session Payload — Schema Reference (v2)
 
-_Frozen by the A7 payload lock (Stage 0, corrective pass — `AGENTS.md` rule 2a). This is the
-permanent contract for every cartridge-driven logged session — the object stored in the local
-Dexie `sessions` row, as the `payload` value inside the unchanged `{ action, sessionId, payload }`
-envelope, and in the existing Supabase `public.sessions.payload` JSONB column. Rule 2a's own text
-is field-agnostic — it points at this document rather than enumerating individual keys — so no
-change to `AGENTS.md` is required by this revision; only this document changes._
+_Frozen by the A7 payload lock (Stage 0, corrective pass), under `AGENTS.md` rule 2 ("never alter
+… the logging schema"). This is the permanent contract for every cartridge-driven logged session —
+the object stored in the local Dexie `sessions` row, as the `payload` value inside the unchanged
+`{ action, sessionId, payload }` envelope, and in the existing Supabase `public.sessions.payload`
+JSONB column. (Earlier revisions cited an `AGENTS.md` "rule 2a". That rule was drafted in the first
+A7 attempt, `b6fcd19`, which was never merged; it has never existed on `main`. Corrected
+2026-09-30 — the contract below is unchanged.)_
 
 **Legacy HUD sessions are unaffected and unversioned.** A row with no `payloadVersion` key is a
 legacy session, read exactly as `docs/reference/fight-log-schema.md` and `ARCHITECTURE.md` already

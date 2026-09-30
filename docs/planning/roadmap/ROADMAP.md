@@ -163,6 +163,45 @@ items at roughly 20 users, or if the app ever takes payments.
 
 ---
 
+## Phase 7 — Developer-reported improvements (ACTIVE since 2026-09-30)
+Improvements the developer noticed in daily use, scoped one item per PR.
+
+- [ ] W34 · **IMPL**, then **REVIEW** · **Log a workout for a past day**: a "Logging for: Today ·
+      Yesterday · Pick a date" control above FINISH on Today, so a forgotten workout lands on the
+      day it was done. Rulings (2026-09-30): chosen on Today, not in a separate Log-tab form (one
+      logger, not two); window is today plus the previous 14 days, no future dates; no payload
+      shape change — `date` carries the training day, `completedAt` stays the true entry time,
+      `startedAt` is omitted for a past date; `AGENTS.md` rule 2 lifted for **one clarifying
+      sentence** in `session-payload-schema.md` only. Three readers switch from entry order to
+      training-day order (next-day suggestion, last performance, History), which is provably a
+      no-op for existing rows. Cartridge sessions only; rest/recovery one-tap and the legacy HUD
+      stay today-only. → `prompts/W34-log-past-day.md`
+- [ ] W35 · **IMPL** · ⛔ gated on W34 · **Calendar shortcut into past-day logging**: tapping an
+      empty past day on the Log › Overview calendar offers "Log a workout for this day", opening
+      Today with that date already chosen. Prompt written after W34 lands, against W34's actual
+      control. Decide there whether rest/recovery days can be back-filled from this entry point.
+- [ ] W36 · **IMPL** · **Runs BEFORE W34** · **Plan load survives a brand-new sign-in token**:
+      right after a fresh password sign-in the app can show "Couldn't load your plan" until the user
+      taps Retry. Measured 2026-09-30 in the Supabase edge logs: the `profiles` read returns 401
+      `PGRST303` with a 79-byte body — exactly PostgREST's `"JWT issued at future"` — while the
+      parallel `user_cartridges` read with the same token passed 6 ms earlier. Supabase's Auth and
+      PostgREST clocks disagree by ≥0.93 s, so a token used within its first second can be rejected.
+      Seen twice (2026-09-29, 2026-09-30), both on a fresh sign-in; no real-user hit in the
+      retained logs, but a client's first sign-in on a device is exactly when it can happen. Fix:
+      `fetchCartridgeAccess` retries the read up to twice (1 s, then 2 s) on `code === 'PGRST303'`
+      only; every other error still surfaces immediately. No UI, schema or auth-setting change.
+- [ ] W37 · **IMPL** · before the next client is onboarded · **No-programme accounts stop falling
+      back to the legacy HUD**: `TodayRouter` sends an account with no cartridge access to the
+      pre-cartridge HUD, which runs the developer's own original programme — what Track B's test
+      account saw on 2026-08-10 (logged there as a suspected cache bug; it is not). Measured
+      2026-09-30: 1 of 5 accounts has no cartridge (the unused account slated for deletion, zero
+      sessions) and no legacy-kind session has been logged in 30 days, so nobody is affected today.
+      Direction agreed with the developer: show a "no programme yet — your coach will assign one"
+      state instead. Diagnostic must first establish whether anything else still depends on the
+      legacy route (a live legacy draft always wins in `resolveTodaySurface` — keep that).
+
+---
+
 ## Track A / Stage-2 — Train + Playbook cartridge rebuild (ACTIVE — main line since 2026-07-21)
 The Train tab (incl. Playbook) becomes a universal player over a **cartridge** — one person's
 program as JSON, per `docs/planning/rebuild/PROGRAM-CARTRIDGE-SPEC.md` (v2, block-composable).
@@ -250,8 +289,9 @@ order are in `docs/planning/rebuild/TRAIN-EXPERIENCE-PLAN.md`.
       needed for the payload-critical questions. Contract:
       `docs/reference/session-payload-schema.md` (`payloadVersion: 2` — bumped from a first
       attempt's `v1` because one real `v1` test row already reached production Supabase and its
-      removal isn't confirmed), frozen under the existing `AGENTS.md` rule 2a (unmodified — its
-      exception already points at this document generically). One canonical structured `blocks[]`
+      removal isn't confirmed), frozen under `AGENTS.md` rule 2 ("the logging schema").
+      _Corrected 2026-09-30: this line previously cited a "rule 2a", which was drafted in the
+      unmerged first A7 attempt (`b6fcd19`) and has never existed on `main`._ One canonical structured `blocks[]`
       record per cartridge session; completeness counts only strength/core (+ PAP/pair);
       `sessionActivities` makes sessions analytics-ready for a future W26 without any new table.
       Legacy sessions are completely unchanged; no migration or rewrite of any existing row, local
