@@ -75,8 +75,8 @@ that this is a zero-change for existing data:** every existing cartridge row's `
 so explicitly. "Today", "Yesterday", the 14-day bound and the picker's `max` must all come from that
 same convention, via one pure helper. Do not introduce local-time dates alongside UTC ones: a
 mixture puts a workout on the wrong heatmap cell. (The convention means a session logged between
-midnight and 1 a.m. Irish summer time is dated the previous day. That is pre-existing and **out of
-scope** — note it in the diagnostic, do not change it.)
+midnight and 1 a.m. Irish summer time is dated the previous day. That is pre-existing, and the
+developer ruled on 2026-09-30 to **leave it as known behaviour** — do not change it.)
 
 **7. Structure for testability.** There is no component-test infrastructure (D14, still open). So
 put every decision in pure code: a new `utils/logDate.js` (today string, allowed range, "is this
