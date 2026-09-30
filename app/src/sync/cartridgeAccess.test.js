@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchCartridgeAccess, setActiveCartridge } from './cartridgeAccess.js'
+import { fetchCartridgeAccess, isTokenNotYetValidError, setActiveCartridge } from './cartridgeAccess.js'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -67,6 +67,67 @@ describe('fetchCartridgeAccess', () => {
 
         await expect(fetchCartridgeAccess(client, USER_ID))
             .rejects.toThrow('Invalid cartridge access snapshot')
+    })
+})
+
+describe('fetchCartridgeAccess with a token newer than the server clock (W36)', () => {
+    // The exact body PostgREST returned in the 2026-09-30 edge log (79 bytes).
+    const issuedAtFuture = { code: 'PGRST303', details: null, hint: null, message: 'JWT issued at future' }
+    const availabilityOk = { data: [{ cartridge_id: 'program-one' }], error: null }
+    const profileOk = { data: { assigned_cartridge: 'program-one' }, error: null }
+    const profileRejected = { data: null, error: issuedAtFuture }
+
+    // Availability always succeeds; the profile read returns each result in turn.
+    function sequencedClient(profileResults) {
+        const single = vi.fn()
+        for (const result of profileResults) single.mockResolvedValueOnce(result)
+        const order = vi.fn().mockResolvedValue(availabilityOk)
+        const client = {
+            from: vi.fn((table) => table === 'user_cartridges'
+                ? { select: () => ({ eq: () => ({ order }) }) }
+                : { select: () => ({ eq: () => ({ single }) }) }),
+        }
+        return { client, single }
+    }
+
+    it('retries after a wait and returns the snapshot once the clocks agree', async () => {
+        const { client, single } = sequencedClient([profileRejected, profileOk])
+        const delay = vi.fn().mockResolvedValue()
+
+        const result = await fetchCartridgeAccess(client, USER_ID, { delay })
+
+        expect(result).toMatchObject({ availableIds: ['program-one'], activeId: 'program-one' })
+        expect(single).toHaveBeenCalledTimes(2)
+        expect(delay).toHaveBeenCalledTimes(1)
+        expect(delay).toHaveBeenCalledWith(1000)
+    })
+
+    it('backs off 1s then 2s, and gives up after the second retry', async () => {
+        const { client, single } = sequencedClient([profileRejected, profileRejected, profileRejected])
+        const delay = vi.fn().mockResolvedValue()
+
+        await expect(fetchCartridgeAccess(client, USER_ID, { delay }))
+            .rejects.toBe(issuedAtFuture)
+        expect(single).toHaveBeenCalledTimes(3)
+        expect(delay.mock.calls).toEqual([[1000], [2000]])
+    })
+
+    it('never retries any other server error', async () => {
+        const permissionDenied = { code: '42501', details: null, hint: null, message: 'permission denied' }
+        const { client, single } = sequencedClient([{ data: null, error: permissionDenied }, profileOk])
+        const delay = vi.fn().mockResolvedValue()
+
+        await expect(fetchCartridgeAccess(client, USER_ID, { delay }))
+            .rejects.toBe(permissionDenied)
+        expect(single).toHaveBeenCalledTimes(1)
+        expect(delay).not.toHaveBeenCalled()
+    })
+
+    it('matches on the published code, not the message text', () => {
+        expect(isTokenNotYetValidError(issuedAtFuture)).toBe(true)
+        expect(isTokenNotYetValidError({ code: 'PGRST303', message: 'JWT expired' })).toBe(true)
+        expect(isTokenNotYetValidError({ message: 'JWT issued at future' })).toBe(false)
+        expect(isTokenNotYetValidError(null)).toBe(false)
     })
 })
 
