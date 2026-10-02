@@ -15,16 +15,31 @@ needs a network response.
 
 ## The update flow (and its number-one trap)
 
-`vite-plugin-pwa` runs with `registerType: 'autoUpdate'` and no in-app update UI. New code
-reaches the phone only after: PR merged → Cloudflare deploys → the installed app is next
-opened and the service worker swaps in the new build (sometimes only on the launch *after*
-that). Consequences:
+`vite-plugin-pwa` runs with `registerType: 'prompt'` and `injectRegister: false` (W40).
+Registration is hand-written in `app/src/swUpdate.js` (imported from `main.jsx`, outside
+AuthGate/DBProvider), not the plugin's `useRegisterSW`, whose `register.js` reloads every window on a
+controller change. The generated `sw.js` has **no** `skipWaiting`/`clientsClaim` — only a `message`
+listener that skips waiting on `{type:'SKIP_WAITING'}`. Do not set `workbox.skipWaiting` or
+`clientsClaim`. Consequences:
 
-- **A merged PR is not "on the phone."** When the developer verifies on-device, stale-SW
-  confusion is the first suspect for "my change isn't there" — close/reopen the app (or
-  reinstall) before debugging it as a code bug.
-- Don't add an update-prompt flow or switch `registerType` casually — the zero-interaction
-  update model is a deliberate fit for a single-user app.
+- **A merged PR is not "on the phone."** New code reaches the phone like this: PR merged → Cloudflare
+  deploys → the app checks for an update (on launch, on resume from the background, hourly while
+  open) → the new worker installs in the background and **waits** → a banner says "A new version of
+  Combat OS is ready" → Restart (or a full close and reopen) activates it. When a developer verifies
+  on-device and "my change isn't there", the first suspects are: the banner was never tapped, the
+  banner was hidden by an active workout/timer, or the app was never fully closed. The build stamp in
+  More › About › Version (date · commit) says which build is actually running.
+- **Pull-to-refresh never activates a waiting worker — permanently, not just during a transition.**
+  A reload is served by the still-active old worker. Only Restart or a full close and reopen swaps it.
+- The banner never appears during a live workout or timer (`isWorkoutActive` in
+  `utils/updateBanner.js`: meaningful live draft, draft hydrating, stopwatch/countdown/rounds timer
+  not idle), and nothing ever reloads a window except that window's own Restart tap. "Later" lasts
+  the session only.
+- The state machine is unit-tested against fakes (`swUpdate.test.js`); the real service-worker
+  lifecycle on iOS/Android cannot be (D14) and is covered by the W40 device checklist. Any change to
+  `swUpdate.js`, `registerType` or the `sw.js` activation behaviour is a PWA risk gate (AI-WORKFLOW §8).
+- `public/_headers` still has a `/registerSW.js` rule; the file is no longer generated, so the rule
+  is inert and harmless.
 
 ## Cache judgment
 

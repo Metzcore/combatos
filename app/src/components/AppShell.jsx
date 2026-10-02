@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDB } from '../db/index.jsx'
 import TrainHub from './TrainHub.jsx'
 import Timer from './Timer.jsx'
 import Calendar from './Calendar.jsx'
@@ -7,7 +8,12 @@ import MoreHub from './MoreHub.jsx'
 import BottomNav from './BottomNav.jsx'
 import WeightDueRail from './WeightDueRail.jsx'
 import InstallGuidance from './InstallGuidance.jsx'
+import UpdateBanner from './UpdateBanner.jsx'
 import { useWeightDue } from '../hooks/useWeightDue.js'
+import { useAppUpdate } from '../hooks/useAppUpdate.js'
+import { useInstallState } from '../hooks/useInstallState.js'
+import { hasGuidance } from '../utils/installState.js'
+import { isWorkoutActive, resolveBanner } from '../utils/updateBanner.js'
 import { DEFAULT_HUB, initialTopTabs, setHubTab } from '../utils/navState.js'
 
 export default function AppShell() {
@@ -17,6 +23,28 @@ export default function AppShell() {
     // same signal maintained in two components; and a user who never opens the
     // More hub would otherwise never see it at all.
     const weightDue = useWeightDue()
+
+    // W40: which top banner shows. The update banner is hidden while a workout
+    // or timer is active (isWorkoutActive reuses the live-draft predicate that
+    // HUD/CartridgeViewer already use) and "Later" lasts this session only.
+    // One banner at a time, update first; W38's install banner yields.
+    const { status: updateStatus, restart } = useAppUpdate()
+    const [updateDismissed, setUpdateDismissed] = useState(false)
+    const {
+        getLiveDraftRow, draftPhase, swRunning, swTime, cdRunning, cdTime, roundsTimer,
+    } = useDB()
+    const install = useInstallState()
+    const banner = resolveBanner({
+        status: updateStatus,
+        workoutActive: isWorkoutActive({
+            liveRow: getLiveDraftRow(),
+            draftPhase,
+            swRunning, swTime, cdRunning, cdTime,
+            roundsStatus: roundsTimer.status,
+        }),
+        dismissed: updateDismissed,
+        installBannerMayShow: hasGuidance(install.state) && install.bannerMayShow,
+    })
     // Seeds MoreHub's initial screen for one mount only, so "Log it" lands on
     // Profile instead of the menu. Cleared as soon as the user leaves More, so
     // a later tap on the More tab opens the menu normally.
@@ -42,13 +70,20 @@ export default function AppShell() {
 
     return (
         <div className="app-shell">
-            {/* W38 — in flow at the very top, never fixed: it reserves its own
-                space, scrolls away with the page, and so cannot cover Today's
-                Finish bar, the weight rail or the bottom nav. There is no cheap
-                active-workout signal outside DBProvider's internals, so
-                placement (not suppression) is what protects a live workout.
-                Renders nothing in the installed app. */}
-            <InstallGuidance variant="banner" />
+            {/* W38/W40 — one banner at a time, in flow at the very top, never
+                fixed: it reserves its own space, scrolls away with the page, and
+                so cannot cover Today's Finish bar, the weight rail or the bottom
+                nav. The update banner (W40) wins and is withheld during a live
+                workout or timer (see isWorkoutActive); the install banner (W38)
+                renders nothing in the installed app. */}
+            {banner === 'update' && (
+                <UpdateBanner
+                    status={updateStatus}
+                    onRestart={restart}
+                    onLater={() => setUpdateDismissed(true)}
+                />
+            )}
+            {banner === 'install' && <InstallGuidance variant="banner" />}
 
             {activeHub === 'train' && (
                 <TrainHub
