@@ -10,6 +10,7 @@ import { HUB_TOP_TABS } from '../utils/navState.js'
 import { categoryBadge, sessionBucket } from '../utils/sessionCategory.js'
 import { isReadableCartridgeRow } from '../utils/cartridgeSessionPayload.js'
 import { parseDateParts, toEpochMs } from '../utils/dateMath.js'
+import { compareNewestFirst } from '../utils/sessionOrder.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -43,8 +44,9 @@ export default function Calendar({ view, onViewChange }) {
     useEffect(() => {
         const load = async () => {
             const data = await db.sessions.toArray()
-            // Sort by most recent first
-            data.sort((a, b) => b.id - a.id)
+            // Newest TRAINING DAY first (W34) — not entry order, so a workout
+            // logged for a past day sits where it belongs, not at the top.
+            data.sort(compareNewestFirst)
             setSessions(data)
 
             if (ownerUserId) {

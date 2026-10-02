@@ -121,3 +121,16 @@ describe('resolveUseLastValues', () => {
         expect(result).toEqual([{ kg: 100, reps: 4 }])
     })
 })
+
+describe('findLastPerformance — training-day ordering (W34)', () => {
+    it('shows the most recent training day, not the most recently entered session', () => {
+        const sessions = [
+            cartridgeSession({ sessionId: 'on-time', date: '2026-09-29', completedAt: '2026-09-29T10:00:00.000Z', items: [item('d1-str-1', { performedSets: [{ kg: 100, reps: 4 }] })] }),
+            // Done on the 28th, entered on the 30th with older numbers.
+            cartridgeSession({ sessionId: 'backfilled', date: '2026-09-28', completedAt: '2026-09-30T08:00:00.000Z', items: [item('d1-str-1', { performedSets: [{ kg: 90, reps: 4 }] })] }),
+        ]
+        const result = findLastPerformance(sessions, { cartridgeId: 'combatos-operator-2026', itemId: 'd1-str-1' })
+        expect(result.date).toBe('2026-09-29')
+        expect(result.sets).toEqual([{ kg: 100, reps: 4 }])
+    })
+})

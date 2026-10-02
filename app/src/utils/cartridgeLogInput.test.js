@@ -143,3 +143,62 @@ describe('buildRestOrRecoveryLogInput', () => {
         expect(validateCartridgeSessionPayload(payload)).toEqual([])
     })
 })
+
+describe('buildTrainingOrCustomLogInput — logDate (W34)', () => {
+    const base = {
+        startedAt: '2026-08-02T17:04:11.902Z',
+        cartridgeId: 'combatos-operator-2026', cartridgeVersion: '1.0.1', cartridgeSchemaVersion: 3,
+        cartridgeDay: 1, day: TRAINING_DAY, cartridgePhaseId: null,
+        itemStateById: { 'd1-str-1': { sets: [{ kg: 100, reps: 4 }] } },
+        substitutions: {}, itemNotes: {}, cartridgeNotes: '',
+        sessionActivities: [], otherActivity: '', sessionDuration: '', customSessionContent: '',
+        dayType: 'training', category: 'strength-conditioning', now: FIXED_NOW,
+    }
+
+    it('is unchanged when no logDate is given or it equals today', () => {
+        const none = buildTrainingOrCustomLogInput(base)
+        const explicitNull = buildTrainingOrCustomLogInput({ ...base, logDate: null })
+        const sameDay = buildTrainingOrCustomLogInput({ ...base, logDate: '2026-08-02' })
+        for (const raw of [none, explicitNull, sameDay]) {
+            expect(raw.date).toBe('2026-08-02')
+            expect(raw.startedAt).toBe('2026-08-02T17:04:11.902Z')
+            expect(raw.completedAt).toBe('2026-08-02T18:21:40.115Z')
+        }
+        expect(explicitNull).toEqual(none)
+    })
+
+    it('uses the chosen day as date, keeps the real completedAt and drops startedAt for a past day', () => {
+        const raw = buildTrainingOrCustomLogInput({ ...base, logDate: '2026-07-31' })
+        expect(raw.date).toBe('2026-07-31')
+        expect(raw.completedAt).toBe('2026-08-02T18:21:40.115Z')
+        expect(raw.startedAt).toBeUndefined()
+    })
+
+    it('produces a payload that passes validation unchanged, with no extra keys and no startedAt', () => {
+        const raw = buildTrainingOrCustomLogInput({ ...base, logDate: '2026-07-31' })
+        const payload = buildCartridgeSessionPayload({ ...raw, sessionId: 'uuid-past' })
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+        expect('startedAt' in payload).toBe(false)
+        const today = buildCartridgeSessionPayload({
+            ...buildTrainingOrCustomLogInput(base), sessionId: 'uuid-today',
+        })
+        expect(Object.keys(payload).sort()).toEqual(Object.keys(today).filter(k => k !== 'startedAt').sort())
+    })
+
+    it('works for a custom day', () => {
+        const raw = buildTrainingOrCustomLogInput({
+            ...base, dayType: 'custom', category: 'combat', day: { label: 'Day 2 — Fight' },
+            sessionDuration: 60, customSessionContent: 'pads', logDate: '2026-08-01',
+        })
+        const payload = buildCartridgeSessionPayload({ ...raw, sessionId: 'uuid-custom' })
+        expect(validateCartridgeSessionPayload(payload)).toEqual([])
+        expect(payload.date).toBe('2026-08-01')
+    })
+
+    it('refuses a date outside the window rather than writing it', () => {
+        expect(() => buildTrainingOrCustomLogInput({ ...base, logDate: '2026-08-03' })).toThrow(RangeError)
+        expect(() => buildTrainingOrCustomLogInput({ ...base, logDate: '2026-07-18' })).toThrow(RangeError)
+        expect(() => buildTrainingOrCustomLogInput({ ...base, logDate: '' })).toThrow(RangeError)
+        expect(() => buildTrainingOrCustomLogInput({ ...base, logDate: '2026-07-19' })).not.toThrow()
+    })
+})

@@ -221,6 +221,13 @@ const WORKOUT_DEFAULTS = {
     // fabricated (schema §4). No legacy equivalent.
     startedAt: null,
 
+    // W34 — the training day chosen for the next log (Today's "Logging for"
+    // control). null = no override (Today, resolved at FINISH). In-memory
+    // ONLY: deliberately not in CARTRIDGE_STATE_FIELD_KEYS, the draft or Dexie
+    // (the A6.5 draft shape is closed). Lives here so it survives hub switches
+    // (Today unmounts); an app kill resets it to Today, accepted.
+    logDate: null,
+
     // A7b — the frozen authored day DEFINITION (not a logged session), set
     // the instant a cartridge workout starts or a cartridge draft is
     // resumed. Lives HERE, not as CartridgeToday local state: Today
@@ -357,6 +364,7 @@ export function DBProvider({ children }) {
     const [cartridgeDay, setCartridgeDay] = useState(WORKOUT_DEFAULTS.cartridgeDay)
     const [cartridgePhaseId, setCartridgePhaseId] = useState(WORKOUT_DEFAULTS.cartridgePhaseId)
     const [startedAt, setStartedAt] = useState(WORKOUT_DEFAULTS.startedAt)
+    const [logDate, setLogDate] = useState(WORKOUT_DEFAULTS.logDate)
     const [cartridgeFrozenDay, setCartridgeFrozenDay] = useState(WORKOUT_DEFAULTS.cartridgeFrozenDay)
     const [itemStateById, setItemStateById] = useState(WORKOUT_DEFAULTS.itemStateById)
     const [substitutions, setSubstitutions] = useState(WORKOUT_DEFAULTS.substitutions)
@@ -635,6 +643,7 @@ export function DBProvider({ children }) {
         setCartridgeDay(WORKOUT_DEFAULTS.cartridgeDay)
         setCartridgePhaseId(WORKOUT_DEFAULTS.cartridgePhaseId)
         setStartedAt(WORKOUT_DEFAULTS.startedAt)
+        setLogDate(WORKOUT_DEFAULTS.logDate)
         setCartridgeFrozenDay(WORKOUT_DEFAULTS.cartridgeFrozenDay)
         setItemStateById(WORKOUT_DEFAULTS.itemStateById)
         setSubstitutions(WORKOUT_DEFAULTS.substitutions)
@@ -1188,6 +1197,7 @@ export function DBProvider({ children }) {
             cartridgeDay, setCartridgeDay,
             cartridgePhaseId, setCartridgePhaseId,
             startedAt, setStartedAt,
+            logDate, setLogDate,
             cartridgeFrozenDay, setCartridgeFrozenDay,
             itemStateById, setItemStateById,
             substitutions, setSubstitutions,

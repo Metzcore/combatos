@@ -10,18 +10,18 @@
 
 import { parseCartridgeDay } from './workoutDraftState.js'
 import { isReadableCartridgeRow } from './cartridgeSessionPayload.js'
+import { compareSessionOrder } from './sessionOrder.js'
 
-function sessionSortKey(session) {
-    return session?.completedAt || session?.date || ''
-}
-
-/** Newest cartridge-kind session (either tolerated payloadVersion) matching `predicate`, or null. */
+/**
+ * Newest cartridge-kind session (either tolerated payloadVersion) matching `predicate`, or null.
+ * "Newest" is by training day (W34 — a back-filled entry must not count as the newest), see sessionOrder.js.
+ */
 function findNewestMatchingSession(sessions, predicate) {
     let newest = null
     for (const session of sessions || []) {
         if (!isReadableCartridgeRow(session)) continue
         if (!predicate(session)) continue
-        if (!newest || sessionSortKey(session) > sessionSortKey(newest)) newest = session
+        if (!newest || compareSessionOrder(session, newest) > 0) newest = session
     }
     return newest
 }

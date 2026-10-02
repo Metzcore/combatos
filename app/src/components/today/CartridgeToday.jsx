@@ -20,12 +20,14 @@ import { removeExtraSetAtIndex } from '../../utils/extraSetState.js'
 import { fixedCategoryForDayType } from '../../utils/sessionCategory.js'
 import { suggestNextDayTemplate, listSelectableDays, defaultCategoryFor } from '../../utils/cartridgeDaySelection.js'
 import { findLastPerformance } from '../../utils/lastPerformance.js'
+import { resolveLogDate, describeLogDateProblem, formatLogDateLabel } from '../../utils/logDate.js'
 import { mapSaveStatusToLabel } from '../../utils/saveStatusLabel.js'
 import BottomSheet from '../BottomSheet.jsx'
 import CompletenessBar from '../CompletenessBar.jsx'
 import TodayHeader from './TodayHeader.jsx'
 import TodayBlock from './TodayBlock.jsx'
 import SessionSummary from './SessionSummary.jsx'
+import LogDateControl from './LogDateControl.jsx'
 import EffortGuideSheet from './EffortGuideSheet.jsx'
 import DaySelectSheet from './DaySelectSheet.jsx'
 import CategorySheet from './CategorySheet.jsx'
@@ -65,6 +67,7 @@ export default function CartridgeToday() {
         cartridgeSchemaVersion, setCartridgeSchemaVersion,
         cartridgeDay, setCartridgeDay, cartridgePhaseId, setCartridgePhaseId,
         startedAt, setStartedAt, cartridgeFrozenDay, setCartridgeFrozenDay,
+        logDate, setLogDate,
         itemStateById, setItemStateById, substitutions, setSubstitutions, itemNotes, setItemNotes,
         cartridgeNotes, setCartridgeNotes, customSessionContent, setCustomSessionContent,
         sessionDuration, setSessionDuration, sessionActivities, setSessionActivities,
@@ -420,6 +423,16 @@ export default function CartridgeToday() {
     // draft stays intact.
     const finishWithCategory = useCallback(async (category) => {
         setLogError(null)
+        // W34: resolve the chosen training day against the clock NOW, before
+        // anything is flushed or built — a cleared input, a date that fell
+        // out of the 14-day window overnight, or a future date stops here
+        // with a specific message. The same instant feeds the builder.
+        const nowDate = new Date()
+        const resolvedLogDate = resolveLogDate(logDate, nowDate)
+        if (!resolvedLogDate.ok) {
+            setLogError(describeLogDateProblem(resolvedLogDate.reason))
+            return
+        }
         setLogPending(true)
         try {
             const flushed = await flushCartridgeDraftNow()
@@ -429,7 +442,7 @@ export default function CartridgeToday() {
                 startedAt, cartridgeId, cartridgeVersion, cartridgeSchemaVersion, cartridgeDay,
                 day, dayType, cartridgePhaseId, itemStateById, substitutions, itemNotes,
                 cartridgeNotes, sessionActivities, otherActivity, sessionDuration, customSessionContent,
-                category,
+                category, logDate, now: () => nowDate,
             })
 
             await logCartridgeSession(rawInput)
@@ -445,7 +458,7 @@ export default function CartridgeToday() {
         }
     }, [flushCartridgeDraftNow, startedAt, cartridgeId, cartridgeVersion, cartridgeSchemaVersion,
         cartridgeDay, day, dayType, cartridgePhaseId, itemStateById, substitutions, itemNotes,
-        cartridgeNotes, sessionActivities, otherActivity, sessionDuration, customSessionContent, logCartridgeSession])
+        cartridgeNotes, sessionActivities, otherActivity, sessionDuration, customSessionContent, logDate, logCartridgeSession])
 
     const handleFinish = useCallback(() => {
         if (!day || !cartridgeActive) return
@@ -504,6 +517,12 @@ export default function CartridgeToday() {
             setResetPending(false)
         }
     }, [discardAndResetActiveWorkout])
+
+    // W34: a past day must be unmistakable at the moment of pressing FINISH.
+    const finishDate = resolveLogDate(logDate)
+    const finishLabel = finishDate.ok && !finishDate.isToday
+        ? `▶ FINISH — LOG FOR ${formatLogDateLabel(finishDate.date)}`
+        : '▶ FINISH'
 
     if (multiPhaseUnsupported) {
         return (
@@ -660,11 +679,14 @@ export default function CartridgeToday() {
                     Discard this workout
                 </button>
 
+                {/* W34: the chosen training day sits just above the fixed FINISH bar. */}
+                <LogDateControl value={logDate} onChange={setLogDate} />
+
                 {/* Spacer so content isn't hidden behind the fixed safe-actions bar below */}
                 <div className="today-safe-actions-spacer" aria-hidden="true" />
                 <div className="today-safe-actions">
                     <button type="button" className="btn-primary" onClick={handleFinish} disabled={logPending}>
-                        {logPending ? 'LOGGING…' : '▶ FINISH'}
+                        {logPending ? 'LOGGING…' : finishLabel}
                     </button>
                 </div>
 
