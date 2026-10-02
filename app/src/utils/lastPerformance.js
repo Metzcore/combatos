@@ -9,6 +9,7 @@
  */
 
 import { isReadableCartridgeRow } from './cartridgeSessionPayload.js'
+import { compareNewestFirst } from './sessionOrder.js'
 
 function isPlainObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -21,12 +22,6 @@ function hasMeaningfulSet(sets) {
         return (typeof entry.kg === 'number' && Number.isFinite(entry.kg))
             || (typeof entry.reps === 'number' && Number.isFinite(entry.reps))
     })
-}
-
-function sessionSortKey(session) {
-    // completedAt is always present on a well-formed cartridge row; date is
-    // the fallback for anything unusual. Newest first.
-    return session.completedAt || session.date || ''
 }
 
 function findItem(session, itemId) {
@@ -54,7 +49,7 @@ export function findLastPerformance(sessions, { cartridgeId, itemId }) {
 
     const candidates = sessions
         .filter(s => isReadableCartridgeRow(s) && s.cartridgeId === cartridgeId)
-        .sort((a, b) => (sessionSortKey(b) < sessionSortKey(a) ? -1 : sessionSortKey(b) > sessionSortKey(a) ? 1 : 0))
+        .sort(compareNewestFirst) // by training day, not entry order (W34)
 
     for (const session of candidates) {
         const item = findItem(session, itemId)

@@ -11,6 +11,8 @@
  * real Date, overridable by tests for deterministic timestamps).
  */
 
+import { resolveLogDate, describeLogDateProblem } from './logDate.js'
+
 /** Shared by both raw-input builders below — was duplicated across
  *  CartridgeToday's Finish and one-tap paths before this extraction
  *  (corrective-pass finding J10). */
@@ -36,17 +38,26 @@ export function buildBlockInputs(dayBlocks, itemStateById, substitutions, itemNo
 /**
  * buildTrainingOrCustomLogInput — the raw input for the training/custom
  * Finish path (after the pre-log flush has already succeeded).
+ *
+ * W34 `logDate`: null/undefined = Today (the original behaviour). A past
+ * `YYYY-MM-DD` becomes the payload `date`; `completedAt` stays the real
+ * instant FINISH was pressed (never fabricated onto the chosen day), and
+ * `startedAt` is omitted because it would only be when data entry began.
+ * A date outside today..14 days ago throws RangeError — the caller
+ * (CartridgeToday) pre-checks with resolveLogDate and shows a message.
  */
 export function buildTrainingOrCustomLogInput({
     startedAt, cartridgeId, cartridgeVersion, cartridgeSchemaVersion, cartridgeDay,
     day, dayType, cartridgePhaseId, itemStateById, substitutions, itemNotes,
     cartridgeNotes, sessionActivities, otherActivity, sessionDuration, customSessionContent,
-    category, now = () => new Date(),
+    category, logDate = null, now = () => new Date(),
 }) {
     const nowDate = now()
+    const resolved = resolveLogDate(logDate, nowDate)
+    if (!resolved.ok) throw new RangeError(describeLogDateProblem(resolved.reason))
     return {
-        date: nowDate.toISOString().slice(0, 10),
-        startedAt: startedAt || undefined,
+        date: resolved.date,
+        startedAt: resolved.isToday ? (startedAt || undefined) : undefined,
         completedAt: nowDate.toISOString(),
         sessionCategory: category,
         cartridgeId, cartridgeVersion, cartridgeSchemaVersion,

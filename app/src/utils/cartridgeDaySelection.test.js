@@ -81,3 +81,34 @@ describe('defaultCategoryFor', () => {
         expect(defaultCategoryFor({ sessions, cartridgeId: 'test-cartridge', dayTemplateKey: 'day:2' })).toBe('custom')
     })
 })
+
+describe('training-day ordering (W34)', () => {
+    function row({ day, date, completedAt }) {
+        return { ...cartridgeSession({ day, completedAt }), date }
+    }
+
+    it('does not let a back-filled entry become the newest session', () => {
+        const sessions = [
+            row({ day: 2, date: '2026-09-29', completedAt: '2026-09-29T18:00:00.000Z' }),
+            // Day 1 was done on the 28th but only logged on the 30th.
+            row({ day: 1, date: '2026-09-28', completedAt: '2026-09-30T08:00:00.000Z' }),
+        ]
+        expect(suggestNextDayTemplate(cartridge, sessions)).toBe(3)
+    })
+
+    it('lets a back-filled entry be newest when its training day really is the latest', () => {
+        const sessions = [
+            row({ day: 1, date: '2026-09-28', completedAt: '2026-09-28T18:00:00.000Z' }),
+            row({ day: 2, date: '2026-09-29', completedAt: '2026-09-30T08:00:00.000Z' }),
+        ]
+        expect(suggestNextDayTemplate(cartridge, sessions)).toBe(3)
+    })
+
+    it('takes the category default from the newest training day, not the newest entry', () => {
+        const sessions = [
+            row({ day: 2, date: '2026-09-29', completedAt: '2026-09-29T18:00:00.000Z' }),
+            { ...row({ day: 2, date: '2026-09-28', completedAt: '2026-09-30T08:00:00.000Z' }), sessionCategory: 'custom' },
+        ]
+        expect(defaultCategoryFor({ sessions, cartridgeId: 'test-cartridge', dayTemplateKey: 'day:2' })).toBe('strength-conditioning')
+    })
+})

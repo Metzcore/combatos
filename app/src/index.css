@@ -4893,3 +4893,45 @@ button.cartridge-block__head {
   stroke: color-mix(in srgb, var(--accent) 35%, transparent);
   stroke-width: 1.5;
 }
+
+/* ── W34 — "Logging for" control (Today, above the fixed FINISH bar).
+   Reuses .today-chip and the session-summary eyebrow; tokens only. ── */
+.today-log-date {
+  padding: 14px;
+}
+
+.today-log-date__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.today-log-date__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.today-log-date__picker input[type="date"] {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 1rem;
+  color-scheme: dark;
+}
+
+.today-log-date__note {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--dim);
+}

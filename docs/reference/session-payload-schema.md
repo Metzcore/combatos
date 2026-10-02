@@ -200,6 +200,7 @@ exercise, just a fact about the session.
 - `phaseId`, `prescribed.pair`, and `prescribed.superset` may be `null` when explicit absence is
   part of the frozen prescription (a cartridge item with no PAP pair, a cartridge with no phases).
 - `completedAt` is always present.
+- `date` is the training day and `completedAt` is when the session was recorded; for a session logged after the fact they fall on different days, and `startedAt` is omitted.
 - `startedAt` is optional and is never fabricated — captured only when Start was actually pressed;
   never substituted with the draft's `createdAt` (the first meaningful *save*, not the workout
   start).
