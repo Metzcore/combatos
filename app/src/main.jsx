@@ -1,3 +1,6 @@
+// Must stay first: registers the install-event listener before anything else
+// runs (see installCapture.js).
+import './installCapture.js'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
