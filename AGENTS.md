@@ -22,13 +22,17 @@ is the hard-rule authority; where the two overlap, this file wins.
 2. **Never alter webhook payload shapes, the logging schema, or the Google Sheets integration —
    unless the task explicitly lifts this restriction.** As of this writing, only roadmap item
    **W17** does (see `docs/planning/roadmap/ROADMAP.md` and
-   `docs/planning/roadmap/OPEN-DECISIONS.md`, decision D1). That means: do not change the shape
-   of the JSON envelope sent to `scripts/webhook.gs` (`{ action, sessionId, payload }`), do not
-   change the row-column layout it writes to the `FightLog` Google Sheet tab (documented in
-   `docs/reference/fight-log-schema.md`), and do not touch `scripts/webhook.gs`'s logic outside
-   of an explicitly scoped task. `webhook.gs` is manually deployed through the Google Apps
-   Script editor — a code change in this repo does not take effect until someone redeploys it by
-   hand, so any change here has a real, separate deployment step attached.
+   `docs/planning/roadmap/OPEN-DECISIONS.md`, decision D1), plus **W34**, narrowly: it may add one
+   clarifying sentence to `session-payload-schema.md` and nothing else. That means: do not change
+   the shape of the JSON envelope sent to `scripts/webhook.gs` (`{ action, sessionId, payload }`),
+   do not change the row-column layout it writes to the `FightLog` Google Sheet tab (documented in
+   `docs/reference/fight-log-schema.md`), do not change the cartridge-session payload — the
+   logging schema for every cartridge workout, stored in Dexie and in Supabase `sessions.payload`,
+   frozen in `docs/reference/session-payload-schema.md` (`payloadVersion: 2`) — and do not touch
+   `scripts/webhook.gs`'s logic outside of an explicitly scoped task. `webhook.gs` is manually
+   deployed through the Google Apps Script editor — a code change in this repo does not take
+   effect until someone redeploys it by hand, so any change here has a real, separate deployment
+   step attached.
 
 3. **Never leak Apex-specific UI or features into Combat OS.** Apex Protocol is a program for a
    different user (referenced as "Project B" in `archive/CHECKLIST.md`). Do not bring an Apex
