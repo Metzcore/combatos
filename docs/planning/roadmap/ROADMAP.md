@@ -180,7 +180,7 @@ Improvements the developer noticed in daily use, scoped one item per PR.
       empty past day on the Log › Overview calendar offers "Log a workout for this day", opening
       Today with that date already chosen. Prompt written after W34 lands, against W34's actual
       control. Decide there whether rest/recovery days can be back-filled from this entry point.
-- [ ] W36 · **IMPL** · **Runs BEFORE W34** · **Plan load survives a brand-new sign-in token**:
+- [x] W36 · **IMPL** · **Runs BEFORE W34** · **Plan load survives a brand-new sign-in token**:
       right after a fresh password sign-in the app can show "Couldn't load your plan" until the user
       taps Retry. Measured 2026-09-30 in the Supabase edge logs: the `profiles` read returns 401
       `PGRST303` with a 79-byte body — exactly PostgREST's `"JWT issued at future"` — while the
@@ -190,6 +190,9 @@ Improvements the developer noticed in daily use, scoped one item per PR.
       retained logs, but a client's first sign-in on a device is exactly when it can happen. Fix:
       `fetchCartridgeAccess` retries the read up to twice (1 s, then 2 s) on `code === 'PGRST303'`
       only; every other error still surfaces immediately. No UI, schema or auth-setting change.
+      _Merged in PR #101 (`db3e1d2`), 2026-09-30 — 63 files / 1217 tests. Not observed live: 31
+      fresh tokens that session were all accepted first time, so the retry path is proven by unit
+      tests against the exact logged response body, not by a reproduction._
 - [ ] W37 · **IMPL** · before the next client is onboarded · **No-programme accounts stop falling
       back to the legacy HUD**: `TodayRouter` sends an account with no cartridge access to the
       pre-cartridge HUD, which runs the developer's own original programme — what Track B's test
@@ -199,6 +202,19 @@ Improvements the developer noticed in daily use, scoped one item per PR.
       Direction agreed with the developer: show a "no programme yet — your coach will assign one"
       state instead. Diagnostic must first establish whether anything else still depends on the
       legacy route (a live legacy draft always wins in `resolveTodaySurface` — keep that).
+- [ ] W38 · **IMPL**, then **REVIEW** · **Runs BEFORE W34** · **Install guidance**: the app is
+      installable (live manifest, icons and service worker verified 2026-10-02) but never asks
+      anyone to install, and iPhone has no automatic prompt at all. Adds a pure `installState`
+      module and guidance shown only in browser tabs: an **Install app** button on Android (the
+      held `beforeinstallprompt`, captured at module scope before React mounts — the W33 lesson),
+      illustrated Share → Add to Home Screen steps on iPhone, "you already have it" where Chromium
+      can tell, and "open in your browser" inside in-app browsers. Rulings (2026-10-02): shown on
+      the **sign-in screen always** — on iOS the installed app keeps storage separate from Safari,
+      so it starts signed out and the install must come before sign-in — plus a dismissible banner
+      after sign-in (hidden 7 days) and More › About; home-screen name becomes **"Combat OS"**
+      (Android installs said "FighterOS"); manifest gains `id: "/"` (must equal Chrome's derived id
+      so existing installs survive) and a self-referencing `related_applications`. Blocking
+      browser use was ruled out. → `prompts/W38-install-guidance.md`
 
 ---
 
