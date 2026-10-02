@@ -215,6 +215,23 @@ Improvements the developer noticed in daily use, scoped one item per PR.
       (Android installs said "FighterOS"); manifest gains `id: "/"` (must equal Chrome's derived id
       so existing installs survive) and a self-referencing `related_applications`. Blocking
       browser use was ruled out. → `prompts/W38-install-guidance.md`
+- [ ] W39 · **IMPL**, then **REVIEW** · after W38 and W34 · **In-app Guide (More › Guide)**: a
+      bundled, offline, searchable guide — Start here · the app hub by hub · "How do I…" task
+      articles · Troubleshooting · What's new. Research basis (2026-10-02): Nielsen Norman Group
+      found swipe-through onboarding tours are skipped and do not improve task performance, and
+      favours help the user pulls when needed; Hevy's help centre follows that model. Rulings
+      (2026-10-02): a new **Guide** entry first in More ("About & Help" becomes "About"); one
+      dismissible "New here?" card on Today, gone forever once tapped or dismissed, no tour; content
+      derived from shipped code only. **Standing rule, lands in this PR:** any PR changing something
+      a user can see updates its guide article and What's new in the same PR (`AGENTS.md` + PR
+      template). → `prompts/W39-in-app-guide.md`
+- [ ] W40 · **IMPL**, then **REVIEW** · PWA risk gate (`AI-WORKFLOW.md` §8) · **"New version ready —
+      Restart" banner**: updates already reach installed apps with no reinstall (verified
+      2026-10-02 — production served the W36 fix after #101 merged), but silently, and only after
+      a full close and reopen. Switches to prompt-style updating: a banner offers Restart, never
+      during an active workout, never a forced reload; long-open apps re-check on resume. The
+      load-bearing risk is the transition from today's `autoUpdate` worker on every installed
+      phone — the diagnostic must prove no device gets stuck. → `prompts/W40-update-ready-banner.md`
 
 ---
 
