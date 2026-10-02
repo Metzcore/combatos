@@ -14,15 +14,24 @@ export default defineConfig({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
             manifest: {
-                name: "Fighter's OS",
-                short_name: 'FighterOS',
-                description: 'Combat Performance Training System',
+                name: 'Combat OS',
+                short_name: 'Combat OS',
+                description: 'Combat OS — Combat Performance Training System',
+                // Explicit id equal to the one browsers derive from start_url
+                // ("/" resolves to the same origin URL), so existing installs
+                // keep their identity. Changing it would orphan them (W38).
+                id: '/',
                 theme_color: '#0a0a14',
                 background_color: '#0a0a14',
                 display: 'standalone',
                 orientation: 'portrait',
                 start_url: '/',
                 scope: '/',
+                // Lets a browser tab ask whether this app is already installed
+                // (navigator.getInstalledRelatedApps). Self-referencing (W38).
+                related_applications: [
+                    { platform: 'webapp', url: 'https://train.metzcore.com/manifest.webmanifest' }
+                ],
                 icons: [
                     {
                         src: 'icon-192.png',

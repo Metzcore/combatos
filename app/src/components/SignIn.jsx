@@ -21,6 +21,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { describeSignInError } from '../auth/authErrors.js'
+import InstallGuidance from './InstallGuidance.jsx'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -126,7 +127,11 @@ export default function SignIn() {
                 inset: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center',
+                // flex-start + `margin: auto 0` on the inner column centres it when
+                // there is room but top-aligns when it overflows. `justifyContent:
+                // center` clipped the top of the screen once W38's iPhone install
+                // steps made the content taller than a small phone.
+                justifyContent: 'flex-start',
                 alignItems: 'center',
                 padding: '2rem',
                 paddingTop: 'calc(2rem + var(--safe-top))',
@@ -136,14 +141,19 @@ export default function SignIn() {
                 overflowY: 'auto',
             }}
         >
-            <div style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}>
+            <div style={{ width: '100%', maxWidth: 360, textAlign: 'center', margin: 'auto 0' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>⚔️</div>
                 <h1 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 4px' }}>
-                    Fighter&apos;s OS
+                    Combat OS
                 </h1>
                 <p style={{ color: 'var(--dim)', margin: '0 0 2rem', fontSize: '0.9rem' }}>
                     Sign in to your account
                 </p>
+
+                {/* W38 — before the form on purpose: an iPhone user has to add the
+                    app to the home screen BEFORE signing in. Renders nothing in
+                    the installed app. */}
+                <InstallGuidance variant="signin" />
 
                 <form onSubmit={handleSubmit}>
                     <input

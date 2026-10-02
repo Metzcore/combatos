@@ -1134,7 +1134,7 @@ export function DBProvider({ children }) {
             <div className="app" style={{ justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
                 <div style={{ textAlign: 'center', color: 'var(--dim)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: 8 }}>⚔️</div>
-                    <div>Loading Fighter's OS…</div>
+                    <div>Loading Combat OS…</div>
                 </div>
             </div>
         )

@@ -6,6 +6,7 @@ import ChecklistHub from './ChecklistHub.jsx'
 import MoreHub from './MoreHub.jsx'
 import BottomNav from './BottomNav.jsx'
 import WeightDueRail from './WeightDueRail.jsx'
+import InstallGuidance from './InstallGuidance.jsx'
 import { useWeightDue } from '../hooks/useWeightDue.js'
 import { DEFAULT_HUB, initialTopTabs, setHubTab } from '../utils/navState.js'
 
@@ -41,6 +42,14 @@ export default function AppShell() {
 
     return (
         <div className="app-shell">
+            {/* W38 — in flow at the very top, never fixed: it reserves its own
+                space, scrolls away with the page, and so cannot cover Today's
+                Finish bar, the weight rail or the bottom nav. There is no cheap
+                active-workout signal outside DBProvider's internals, so
+                placement (not suppression) is what protects a live workout.
+                Renders nothing in the installed app. */}
+            <InstallGuidance variant="banner" />
+
             {activeHub === 'train' && (
                 <TrainHub
                     activeTab={topTabs.train}
