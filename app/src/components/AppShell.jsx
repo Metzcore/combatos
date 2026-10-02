@@ -32,6 +32,13 @@ export default function AppShell() {
         setActiveHub('more')
     }
 
+    // W39: the first-run "New here?" card opens More on the Guide, the same
+    // entry-screen mechanism as goLogWeight.
+    const goGuide = () => {
+        setMoreEntryScreen('guide')
+        setActiveHub('more')
+    }
+
     // Layer-2 selection per hub (W20). Lives here — above the hubs, which
     // fully unmount on hub switch — so e.g. Train→Timer→Train returns to the
     // top tab you were on. Resets on full reload by design, same lifetime as
@@ -54,6 +61,7 @@ export default function AppShell() {
                 <TrainHub
                     activeTab={topTabs.train}
                     onTabChange={t => selectHubTab('train', t)}
+                    onOpenGuide={goGuide}
                 />
             )}
             {activeHub === 'timer' && (

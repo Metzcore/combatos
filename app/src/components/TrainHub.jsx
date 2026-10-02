@@ -16,7 +16,7 @@ import CartridgeViewer from './CartridgeViewer.jsx'
 import TopTabs from './TopTabs.jsx'
 import { HUB_TOP_TABS } from '../utils/navState.js'
 
-export default function TrainHub({ activeTab, onTabChange }) {
+export default function TrainHub({ activeTab, onTabChange, onOpenGuide }) {
     return (
         <>
             {/* hub-tabs-bar--train: additive presentation hook (A11) scoping
@@ -28,7 +28,7 @@ export default function TrainHub({ activeTab, onTabChange }) {
                     onChange={onTabChange}
                 />
             </div>
-            {activeTab === 'today' && <TodayRouter onOpenLibrary={() => onTabChange('library')} />}
+            {activeTab === 'today' && <TodayRouter onOpenLibrary={() => onTabChange('library')} onOpenGuide={onOpenGuide} />}
             {activeTab === 'plan' && <PlanViewer onOpenLibrary={() => onTabChange('library')} />}
             {activeTab === 'library' && <CartridgeViewer />}
         </>
