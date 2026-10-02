@@ -146,9 +146,13 @@ before they merge:
   test assertion.
 - **The permanent logged-session payload / webhook / Sheets contract** — frozen (`AGENTS.md`
   rule 2). A temporary/draft store must never be built from, or feed into, that payload's shape.
-- **PWA update behaviour** — the service worker auto-updates; any state that must survive a reload
-  needs a durable store plus bounded-loss flushing (`visibilitychange` + `pagehide` + unmount),
-  never a zero-loss promise.
+- **PWA update behaviour** — since W40 the service worker is in `prompt` mode: a new version installs
+  in the background and waits, and the user activates it from the "new version ready" banner (or by
+  fully closing and reopening the app); pull-to-refresh never does. Nothing may reload a window
+  except that window's own Restart tap, and the banner stays hidden during a live workout or timer.
+  Any state that must survive a reload still needs a durable store plus bounded-loss flushing
+  (`visibilitychange` + `pagehide` + unmount), never a zero-loss promise. Changes to the
+  registration (`app/src/swUpdate.js`) or to `registerType` need device testing.
 - **Supabase** — live, not hypothetical. Auth, RLS, and assignment changes need an explicit design
   and an RLS review before any migration is applied.
 

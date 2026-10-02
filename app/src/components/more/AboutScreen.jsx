@@ -13,6 +13,7 @@
  */
 import { db, useDB } from '../../db/index.jsx'
 import { isStandalone } from '../../utils/installState.js'
+import { currentBuildLabel } from '../../utils/buildLabel.js'
 import InstallGuidance from '../InstallGuidance.jsx'
 
 export default function AboutScreen() {
@@ -24,6 +25,7 @@ export default function AboutScreen() {
             <div className="card">
                 <div className="section-header blue">ℹ️ About</div>
                 <div className="more-body">
+                    <Row label="Version" value={currentBuildLabel()} />
                     <Row label="Data version" value={`v${db.verno}`} />
                     <Row label="Installed" value={installed ? 'Yes — home screen app' : 'No — running in a browser tab'} />
                     <Row
