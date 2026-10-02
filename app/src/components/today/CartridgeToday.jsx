@@ -32,6 +32,7 @@ import EffortGuideSheet from './EffortGuideSheet.jsx'
 import DaySelectSheet from './DaySelectSheet.jsx'
 import CategorySheet from './CategorySheet.jsx'
 import FocusedNoteEditor from '../FocusedNoteEditor.jsx'
+import GuideCard from './GuideCard.jsx'
 
 const SCROLL_THROTTLE_MS = 200
 
@@ -59,7 +60,7 @@ function firstIncompleteBlockIndex(dayBlocks, itemStateById) {
     return 0
 }
 
-export default function CartridgeToday() {
+export default function CartridgeToday({ onOpenGuide }) {
     const {
         ownerUserId, autosaveEnabled, immediateTick, draftCreatedAt, draftLifecycleKey,
         activeDraftKind, setActiveDraftKind,
@@ -544,6 +545,9 @@ export default function CartridgeToday() {
             <div className="app">
                 <header className="page-header"><h1>⚔️ Today</h1><div className="subtitle">{activeCartridge.label}</div></header>
                 <main className="content">
+                    {/* W39: first-run pointer to More › Guide. Idle surface only —
+                        the active-workout view below never renders it. */}
+                    <GuideCard onOpenGuide={onOpenGuide} workoutActive={cartridgeActive} />
                     {phaseBlock && <div className="badge badge-dim" style={{ alignSelf: 'flex-start' }}>{phaseBlock.label}</div>}
                     {selectedDayDef && (
                         <div className="today-suggestion">

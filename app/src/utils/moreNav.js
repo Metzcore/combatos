@@ -23,12 +23,13 @@ export const MENU_SCREEN = 'menu'
  * `icon` is presentational only — screen readers get the label.
  */
 export const MORE_SCREENS = [
+    { key: 'guide', icon: '📖', label: 'Guide', blurb: 'How to use Combat OS' },
     { key: 'profile', icon: '👤', label: 'Profile', blurb: 'Account and check-ins' },
     { key: 'settings', icon: '🎨', label: 'Settings', blurb: 'App name and splash' },
     { key: 'ignition', icon: '🔖', label: 'Ignition', blurb: 'Saved and custom quotes' },
     { key: 'backup', icon: '💾', label: 'Backup & Data', blurb: 'Where your data lives' },
     { key: 'agent', icon: '🔌', label: 'Agent', blurb: 'Automated backup' },
-    { key: 'about', icon: 'ℹ️', label: 'About & Help', blurb: 'Version and how this works' }
+    { key: 'about', icon: 'ℹ️', label: 'About', blurb: 'Version and install' }
 ]
 
 /** Every valid screen key, including the menu itself. */

@@ -1,5 +1,6 @@
 /**
- * AboutScreen.jsx — More › About & Help (W29).
+ * AboutScreen.jsx — More › About (W29; "& Help" and the data explanation
+ * moved into the Guide, W39).
  *
  * Practical support information, and the plain-language answer to "what does
  * this app do with my data" for someone onboarded to it who does not know or
@@ -34,28 +35,19 @@ export default function AboutScreen() {
                 </div>
             </div>
 
-            <div className="card">
-                <div className="section-header green">📖 How this works</div>
-                <div className="more-body">
-                    <p className="more-note">
-                        Your workouts are saved on this device first, so the app keeps working with
-                        no signal at the gym. When you have a connection they sync to your account.
-                    </p>
-                    <p className="more-note">
-                        Your checklist and notes stay on this device only. They are never uploaded,
-                        which also means a full backup from <strong>Backup &amp; Data</strong> is
-                        the only copy of them.
-                    </p>
-                    {!installed && <InstallGuidance variant="about" />}
-                    {!installed && (
+            {!installed && (
+                <div className="card">
+                    <div className="section-header green">📲 Add to home screen</div>
+                    <div className="more-body">
+                        <InstallGuidance variant="about" />
                         <p className="more-note more-note--warn">
                             You are running in a browser tab. Adding the app to your home screen
                             protects its data from being cleared automatically — and until you do,
                             export a backup regularly.
                         </p>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
         </>
     )
 }

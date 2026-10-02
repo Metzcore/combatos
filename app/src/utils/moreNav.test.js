@@ -17,9 +17,9 @@ import {
 } from './moreNav.js'
 
 describe('More hub screen definitions', () => {
-    it('lists the six W29 rows in order', () => {
+    it('lists the Guide row first, then the six W29 rows in order', () => {
         expect(MORE_SCREENS.map(s => s.key)).toEqual([
-            'profile', 'settings', 'ignition', 'backup', 'agent', 'about'
+            'guide', 'profile', 'settings', 'ignition', 'backup', 'agent', 'about'
         ])
     })
 
@@ -75,6 +75,11 @@ describe('isMoreScreen', () => {
 describe('moreScreenMeta', () => {
     it('returns the row definition for a screen key', () => {
         expect(moreScreenMeta('backup')).toMatchObject({ key: 'backup', label: 'Backup & Data' })
+    })
+
+    it('knows the Guide row (W39)', () => {
+        expect(moreScreenMeta('guide')).toMatchObject({ key: 'guide', label: 'Guide', blurb: 'How to use Combat OS' })
+        expect(isMoreScreen('guide')).toBe(true)
     })
 
     it('returns undefined for the menu and for unknown keys', () => {

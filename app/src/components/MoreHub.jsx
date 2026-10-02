@@ -2,8 +2,8 @@
  * MoreHub.jsx — slot-5 hub wrapper (W29), replacing the flat Settings screen.
  *
  * Unlike the other four hubs, More does NOT use the shared TopTabs bar. Its
- * six destinations are a hierarchical menu (row → screen → Back), not peer
- * tabs: six tab labels would not fit a 360px portrait bar, and a menu list
+ * seven destinations are a hierarchical menu (row → screen → Back), not peer
+ * tabs: seven tab labels would not fit a 360px portrait bar, and a menu list
  * scales as the hub accumulates the odds and ends a "More" hub always does.
  * The row idiom follows the TRW reference recorded in
  * archive/Snippets-for-review/trw-app-more-tab.jpeg.
@@ -28,6 +28,7 @@
 import { useCallback, useState } from 'react'
 import { MENU_SCREEN, MORE_SCREENS, moreScreenMeta } from '../utils/moreNav.js'
 import { useMoreBackNavigation } from '../hooks/useMoreBackNavigation.js'
+import GuideScreen from './more/GuideScreen.jsx'
 import ProfileScreen from './more/ProfileScreen.jsx'
 import SettingsScreen from './more/SettingsScreen.jsx'
 import IgnitionScreen from './more/IgnitionScreen.jsx'
@@ -36,6 +37,7 @@ import AgentScreen from './more/AgentScreen.jsx'
 import AboutScreen from './more/AboutScreen.jsx'
 
 const SCREENS = {
+    guide: GuideScreen,
     profile: ProfileScreen,
     settings: SettingsScreen,
     ignition: IgnitionScreen,

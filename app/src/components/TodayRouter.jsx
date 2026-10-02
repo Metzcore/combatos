@@ -29,7 +29,7 @@ import HUD from './HUD.jsx'
 import CartridgeToday from './today/CartridgeToday.jsx'
 import { ProgramStatusPanel } from './ProgramAccessState.jsx'
 
-export default function TodayRouter({ onOpenLibrary }) {
+export default function TodayRouter({ onOpenLibrary, onOpenGuide }) {
     const { loading, snapshot, offline, error, activeCartridge, availableCartridges, refresh } = useCartridgeAccess()
     const {
         draftPhase, continueDraft, draftIssue, resumeDraft, discardCurrentDraft, retryHydration,
@@ -139,7 +139,7 @@ export default function TodayRouter({ onOpenLibrary }) {
     // activeCartridge once a workout is genuinely active (it only reads
     // activeCartridge for the pre-Start idle surface and the optional phase
     // label) — no separate "recovery mode" prop is needed.
-    if (surface === 'frozen-cartridge-recovery' || surface === 'cartridge') return <CartridgeToday />
+    if (surface === 'frozen-cartridge-recovery' || surface === 'cartridge') return <CartridgeToday onOpenGuide={onOpenGuide} />
 
     if (surface === 'loading') {
         return <div className="app"><main className="content"><ProgramStatusPanel title="Loading your workout…" /></main></div>

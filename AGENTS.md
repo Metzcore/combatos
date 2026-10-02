@@ -132,6 +132,10 @@ is the hard-rule authority; where the two overlap, this file wins.
   supersedes the 2026-07-31 (late) entry, which listed it as deferred work). **Anything beyond
   these six is a finding, not noise** — do not silently add a seventh without checking why it
   appeared.
+- **Keep the in-app Guide in step with the app (developer ruling, 2026-10-02).** Any PR that
+  changes something a user can see updates the matching article in
+  `app/src/data/guide/guideContent.js`, and adds a dated What's new entry, in the same PR, or
+  states in its description why none applies. Write only what the shipped code does.
 - `archive/CHECKLIST.md` is an older, longer-arc tracking document (Project A / Project B
   framing) that predates `ROADMAP.md` and was moved into `archive/` on 2026-07-22. `ROADMAP.md`
   supersedes it for sequencing; `CHECKLIST.md` remains a historical record and is not touched by

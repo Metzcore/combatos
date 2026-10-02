@@ -5047,3 +5047,191 @@ button.cartridge-block__head {
   background: none;
   border: 1px solid var(--divider);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   W39 — In-app Guide (More › Guide) and the first-run "New here?" card.
+   One contiguous block. Existing tokens only. Articles mount conditionally
+   (no max-height ceiling), so a long article can never clip.
+   ═══════════════════════════════════════════════════════════════════════ */
+.guide-search {
+  margin-bottom: 12px;
+}
+
+.guide-search .notes-search {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+.guide-section,
+.guide-results,
+.guide-empty {
+  margin-bottom: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.guide-empty {
+  padding: 14px 16px;
+}
+
+.guide-section__head,
+.guide-article__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.guide-section__text,
+.guide-article__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guide-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.guide-section__blurb,
+.guide-article__summary {
+  font-size: 0.8rem;
+  color: var(--dim);
+  line-height: 1.35;
+}
+
+.guide-section__count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--label);
+}
+
+.guide-article__chevron {
+  color: var(--dim);
+  font-size: 1.1rem;
+}
+
+.guide-article {
+  border-top: 1px solid var(--divider);
+}
+
+.guide-article__title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.guide-article__section {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.guide-article--open .guide-article__title {
+  color: var(--accent);
+}
+
+.guide-article__body {
+  padding: 2px 16px 16px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.guide-article__body p {
+  margin: 0 0 10px;
+}
+
+.guide-article__body ul,
+.guide-article__body ol {
+  margin: 0 0 10px;
+  padding-left: 1.3rem;
+}
+
+.guide-article__body li {
+  margin-bottom: 6px;
+}
+
+.guide-article__date {
+  font-size: 0.75rem;
+  color: var(--dim);
+  margin-bottom: 8px;
+}
+
+.guide-article__related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.guide-article__related span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.guide-article__related button {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.guide-card {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent);
+  background: rgba(232, 160, 32, 0.1);
+}
+
+.guide-card__main {
+  flex: 1;
+  min-height: 56px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.guide-card__title {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.guide-card__dismiss {
+  min-width: 56px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 1rem;
+  cursor: pointer;
+}
