@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "1.0.0",
+  "catalogueVersion": "1.1.0",
   "exercises": [
     {
       "exerciseId": "45-degree-leg-press",
@@ -67,6 +67,12 @@
       "resources": [
         {
           "type": "video",
+          "provider": "Beyond Measure Fitness Training",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/5aZ0IhJS8O8"
+        },
+        {
+          "type": "video",
           "provider": "Hawkes Physiotherapy",
           "label": "Watch demo",
           "url": "https://hawkesphysiotherapy.co.uk/exercise/cable-exercise-band-pallof-press/"
@@ -82,6 +88,336 @@
           "provider": "Runna",
           "label": "Watch demo",
           "url": "https://support.runna.com/en/articles/6382767-farmer-s-carry-exercise-tutorial"
+        }
+      ]
+    },
+    {
+      "exerciseId": "hip-ankle-mobility-flow",
+      "name": "Hip & Ankle Mobility Flow",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "EDR Fitness",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/watch?v=ITpdwS-rFD0"
+        }
+      ]
+    },
+    {
+      "exerciseId": "glute-core-activation",
+      "name": "Glute & Core Activation",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Squat University",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/watch?v=RWF8baFGdFI"
+        }
+      ]
+    },
+    {
+      "exerciseId": "goblet-squat",
+      "name": "Goblet Squat",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "SquatCouple",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/lRYBbchqxtI"
+        }
+      ]
+    },
+    {
+      "exerciseId": "seated-dumbbell-shoulder-press",
+      "name": "Seated Dumbbell Shoulder Press",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Andrew Kwong (DeltaBolic)",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/k6tzKisR3NY"
+        }
+      ]
+    },
+    {
+      "exerciseId": "single-arm-cable-row",
+      "name": "Single-Arm Cable Row",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Andrew Kwong (DeltaBolic)",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/yIvvQc2Z6uM"
+        }
+      ]
+    },
+    {
+      "exerciseId": "kettlebell-swing",
+      "name": "Kettlebell Swing",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Monroe Miller",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/SR_4kUbkEaw"
+        }
+      ]
+    },
+    {
+      "exerciseId": "lat-chest-doorway-stretch",
+      "name": "Lat & Chest Doorway Stretch",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "PostureFlow",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/CiIshHzAkQQ"
+        }
+      ]
+    },
+    {
+      "exerciseId": "thoracic-extension-rotation",
+      "name": "Thoracic Extension & Rotation",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "KB Fitness - Kurtis Ackerman",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/Lfn-Fv_xmmQ"
+        }
+      ]
+    },
+    {
+      "exerciseId": "half-kneeling-hip-flexor-stretch",
+      "name": "Half-Kneeling Hip Flexor Stretch",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Gerardi Performance",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/ktgtEWGhFd8"
+        }
+      ]
+    },
+    {
+      "exerciseId": "90-90-hip-switches",
+      "name": "90/90 Hip Switches",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "JSWFitness Personal Training",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/GC7YJ217uoU"
+        }
+      ]
+    },
+    {
+      "exerciseId": "full-body-static-stretch-flow",
+      "name": "Full-Body Static Stretch Flow",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Squat University",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/2G6SIRN8e04"
+        }
+      ]
+    },
+    {
+      "exerciseId": "glute-bridge-cat-cow-flow",
+      "name": "Glute Bridge + Cat-Cow Flow",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Fit Family Physical Therapy",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/mSuDY5J0Fwo"
+        },
+        {
+          "type": "video",
+          "provider": "Posture Guy",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/FyCuSE3mDcc"
+        }
+      ]
+    },
+    {
+      "exerciseId": "trap-bar-deadlift",
+      "name": "Trap Bar Deadlift",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Motiv8 Fitness",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/ZJPZQklCSLs"
+        }
+      ]
+    },
+    {
+      "exerciseId": "flat-dumbbell-bench-press",
+      "name": "Flat Dumbbell Bench Press",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Andrew Kwong (DeltaBolic)",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/mTaiQemkEpU"
+        }
+      ]
+    },
+    {
+      "exerciseId": "bulgarian-split-squat",
+      "name": "Bulgarian Split Squat (Rear Foot Elevated)",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Andrew Kwong (DeltaBolic)",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/or1frhkjBDc"
+        }
+      ]
+    },
+    {
+      "exerciseId": "kettlebell-suitcase-carry",
+      "name": "Kettlebell Suitcase Carry",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Charlie Howick",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/w76_JnzMfXM"
+        }
+      ]
+    },
+    {
+      "exerciseId": "broad-jump",
+      "name": "Broad Jump",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "High Performance Content for AFL Staff & Athletes",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/VzszXamvue4"
+        }
+      ]
+    },
+    {
+      "exerciseId": "hip-flexor-hamstring-stretch",
+      "name": "Hip Flexor & Hamstring Stretch",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Coach PJ Nestler",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/dQcU_njLkOs"
+        }
+      ]
+    },
+    {
+      "exerciseId": "shoulder-circles-scap-push-ups",
+      "name": "Shoulder Circles + Scap Push-Ups",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Revo Physiotherapy and Sports Performance",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/hTbo2QcQK7E"
+        }
+      ]
+    },
+    {
+      "exerciseId": "pull-up",
+      "name": "Pull-Up",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "SaturnoMovement",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/OEXosPwzFdc"
+        }
+      ]
+    },
+    {
+      "exerciseId": "leg-press",
+      "name": "Leg Press",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Andrew Kwong (DeltaBolic)",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/BnacvXdaxq8"
+        }
+      ]
+    },
+    {
+      "exerciseId": "hanging-knee-raise",
+      "name": "Hanging Knee Raise",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "ScottHermanFitness",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/UqmbxvOgnX4"
+        }
+      ]
+    },
+    {
+      "exerciseId": "box-jump",
+      "name": "Box Jump",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Gerardi Performance",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/HJZh-12p6vg"
+        }
+      ]
+    },
+    {
+      "exerciseId": "lat-chest-hip-flexor-stretch-flow",
+      "name": "Lat, Chest & Hip Flexor Stretch Flow",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Dr. Caleb Burgess, DPT",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/Kkc1RQVGFgE"
+        }
+      ]
+    },
+    {
+      "exerciseId": "dynamic-full-body-warm-up",
+      "name": "Dynamic Full-Body Warm-Up",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Tom Peto Training",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/watch?v=9eydA0oKJa0"
+        }
+      ]
+    },
+    {
+      "exerciseId": "plank",
+      "name": "Plank",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Jeremy Ethier",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/shorts/v25dawSzRTM"
+        }
+      ]
+    },
+    {
+      "exerciseId": "easy-walk-full-body-stretch",
+      "name": "Easy Walk + Full-Body Stretch",
+      "resources": [
+        {
+          "type": "video",
+          "provider": "Tone and Tighten",
+          "label": "Watch demo",
+          "url": "https://www.youtube.com/watch?v=COO2S7lPBzA"
         }
       ]
     }
