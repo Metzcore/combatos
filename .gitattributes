@@ -5,7 +5,8 @@
 # SHA-256) without changing anything Git tracks. Pin these paths to LF so the
 # approved hash survives checkout, clone and rebase on every platform.
 #
-# Deliberately scoped to the cartridge paths only -- not a repo-wide JSON
-# policy.
+# Deliberately scoped to cartridge paths and the approved authoring candidate
+# below -- not a repo-wide JSON policy.
 cartridges/*.json text eol=lf
 app/src/data/cartridges/*.json text eol=lf
+docs/authoring/programs/candidates/fighter-strength-power-2026.json text eol=lf
