@@ -1,0 +1,546 @@
+{
+  "schemaVersion": 3,
+  "cartridgeVersion": "1.0.0",
+  "cartridgeId": "fighter-strength-power-2026",
+  "type": "training",
+  "label": "Fighter Strength & Power - Four-Week Base",
+  "summary": "Build relative strength and explosive capacity around fight practice, with focused chest, calf and arm development.",
+  "outcomes": [
+    "Build strength without grinding repetitions",
+    "Practise explosive efforts while fresh",
+    "Develop chest, calves and biceps alongside fight training",
+    "Keep course-led bag practice flexible and easy to record"
+  ],
+  "tags": [
+    "relative-strength",
+    "combat-support",
+    "full-body",
+    "power",
+    "four-week",
+    "targeted-hypertrophy"
+  ],
+  "requirements": {
+    "equipment": [
+      "Barbell, weight plates and squat rack",
+      "Adjustable bench",
+      "Dumbbells",
+      "Pull-up bar",
+      "Plate-loaded lat pulldown machine",
+      "Plate-loaded seated row machine",
+      "Chest press machine",
+      "Shoulder press machine",
+      "Single-leg glute kickback machine",
+      "Leg press machine",
+      "Leg curl machine",
+      "Standing calf raise machine",
+      "Seated calf raise machine",
+      "Cable station with handles",
+      "Rear-delt machine",
+      "Slam ball",
+      "Clear turf or floor space for low-volume jumps and slams",
+      "Upright exercise bike",
+      "Heavy bag and normal boxing equipment"
+    ]
+  },
+  "description": "Four weeks of strength-led preparation around striking, grappling and technical bag practice. Two main lifting sessions and a shorter Saturday session include focused chest, calf and biceps work.\n\nStart with the shown two-set base and leave 3-4 clean reps available. In weeks 2-3, add a third set only where marked if recovery allows; leave about three reps available. Rest fully, keep power crisp and add load only after cleanly reaching the top of the rep range.\n\nIn week 4, hold the recovered week-3 dose or return to the two-set base when tired. Review after four weeks from your start; no automatic phase change. Keep lifting days within 90 min, Sunday optional and record chosen classes and course lessons.",
+  "cycle": {
+    "dayCount": 7,
+    "weeksPerBlock": 4,
+    "blocks": [
+      {
+        "id": "phase1",
+        "label": "Four-week strength and power base"
+      }
+    ]
+  },
+  "days": [
+    {
+      "day": 1,
+      "label": "Monday - MMA striking class",
+      "type": "custom",
+      "focus": "Attend the scheduled class. Log duration, drills, pads and sparring as performed; build consistency without treating every live round as maximal."
+    },
+    {
+      "day": 2,
+      "label": "Tuesday - Strength A",
+      "type": "training",
+      "focus": "Squat, upper chest and vertical pull; 90-min cap. Two-set base. Weeks 2-3: add a third set to power, squat, incline press, pulldown and standing calves only if recovered.",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up - 10 min total",
+          "items": [
+            {
+              "id": "d2-warm",
+              "name": "Easy cardio, dynamic preparation and lift warm-up sets",
+              "dose": "10 min total: 2 min easy bike, 3 min dynamic ankle/hip/shoulder movement, 5 min gradual preparation sets. Count lift preparation within this allowance.",
+              "cue": "Prepare the movements you will train without turning the warm-up into conditioning."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Power - about 5 min",
+          "items": [
+            {
+              "id": "d2-jump",
+              "name": "Countermovement Jump",
+              "sets": 2,
+              "reps": "3",
+              "prescription": {
+                "note": "Rest 90s. Reset each rep; stop before speed or landing quality drops. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Use a clear, permitted area. Jump from the floor, land quietly and reset; crisp repetitions train rapid force production without a box. Skip if there is no safe space."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Main strength - about 35 min",
+          "items": [
+            {
+              "id": "d2-squat",
+              "name": "Barbell Back Squat",
+              "target": "Quads / Glutes",
+              "sets": 2,
+              "reps": "4-6",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 150-180s. First session: try 60-65 kg total only if warm-up sets feel easy; adjust down as needed. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Use a repeatable comfortable depth and a controlled descent. Drive up with intent; keeping clean reps in reserve supports strength work alongside classes."
+            },
+            {
+              "id": "d2-incline",
+              "name": "Incline Barbell Bench Press",
+              "target": "Upper chest / Triceps",
+              "sets": 2,
+              "reps": "6-8",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 120-180s. First session: try 40 kg total if comfortable; no forced repetitions. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Use a comfortable low-to-moderate incline and controlled lowering. Stable pressing gives a repeatable upper-chest stimulus."
+            },
+            {
+              "id": "d2-pulldown",
+              "name": "Plate-Loaded Lat Pulldown",
+              "target": "Lats / Upper back",
+              "sets": 2,
+              "reps": "6-8",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 120s. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Pull without swinging and control the return. This is the loadable vertical-pull strength anchor without needing a dip belt."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Calves and biceps - about 12 min",
+          "items": [
+            {
+              "id": "d2-calf",
+              "name": "Standing Calf Raise Machine",
+              "target": "Gastrocnemius / Soleus",
+              "sets": 2,
+              "reps": "10-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60-90s. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Keep knees softly straight, lower under control and pause briefly at the bottom without bouncing. Progress load only while preserving the same ankle range."
+            },
+            {
+              "id": "d2-curl",
+              "name": "Standing Dumbbell Curl",
+              "target": "Biceps",
+              "sets": 2,
+              "reps": "8-12",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60-90s."
+              },
+              "cue": "Keep the upper arms steady and control the descent; direct elbow-flexion work gives the biceps a consistent growth stimulus."
+            }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Core - about 5 min",
+          "items": [
+            {
+              "id": "d2-core",
+              "name": "Dead Bug",
+              "target": "Anti-extension trunk control",
+              "sets": 2,
+              "reps": "6-8 each side",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 45-60s."
+              },
+              "cue": "Exhale and extend only as far as you can without arching; this trains trunk control without adding heavy spinal loading."
+            }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Optional easy aerobic finish - 10 min",
+          "items": [
+            {
+              "id": "d2-bike",
+              "name": "Easy upright bike",
+              "rounds": 1,
+              "roundLength": "10 min",
+              "rest": "0s",
+              "cue": "Keep a full-sentence conversational pace. Omit after an unusually demanding class or if it would exceed 90 min; record the change in notes."
+            }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown - 5 min",
+          "items": [
+            {
+              "id": "d2-cool",
+              "name": "Easy walk and comfortable mobility",
+              "dose": "5 min: easy walking, relaxed breathing and comfortable calf, hip and chest mobility.",
+              "cue": "Let breathing settle; stretch gently without forcing range."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "label": "Wednesday - Grappling or conditioning class",
+      "type": "custom",
+      "focus": "Choose ONE scheduled class. Log which class, duration, live rounds and perceived difficulty. A hard class counts toward the week's conditioning; do not add extra finishers."
+    },
+    {
+      "day": 4,
+      "label": "Thursday - Strength B",
+      "type": "training",
+      "focus": "Hip extension, single-leg strength, rowing and shoulder support; 90-min cap. Weeks 2-3: add a third set to slams and rows only if recovered.",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up - 10 min total",
+          "items": [
+            {
+              "id": "d4-warm",
+              "name": "Easy cardio, dynamic preparation and lift warm-up sets",
+              "dose": "10 min total: 2 min easy bike, 3 min dynamic ankle/hip/shoulder movement, 5 min gradual preparation sets. Count lift preparation within this allowance.",
+              "cue": "Prepare the movements you will train without turning the warm-up into conditioning."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Power - about 5 min",
+          "items": [
+            {
+              "id": "d4-slam",
+              "name": "Overhead Slam-Ball Slam",
+              "sets": 2,
+              "reps": "3",
+              "prescription": {
+                "note": "Rest 90s. Reset each rep; stop before speed or landing quality drops. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Use a light, non-bouncing slam ball in a clear permitted area. Reset before each fast slam; stop when output slows. No wall throws or heavy grinding."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Main strength - about 35 min",
+          "items": [
+            {
+              "id": "d4-glute",
+              "name": "Single-Leg Glute Kickback Machine",
+              "target": "Glutes / Hip extension",
+              "sets": 2,
+              "reps": "8-12 each side",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90s after both sides."
+              },
+              "cue": "Keep the pelvis stable and move through the hip rather than arching the lower back. This supplies direct hip-extension work without deadlifts."
+            },
+            {
+              "id": "d4-split",
+              "name": "Dumbbell Split Squat (rear foot on floor)",
+              "target": "Quads / Glutes / Single-leg control",
+              "sets": 2,
+              "reps": "6-8 each side",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 120s after both sides."
+              },
+              "cue": "Use a stable stance and controlled depth. Single-leg loading develops force and balance without needing a box or rear-foot elevation."
+            },
+            {
+              "id": "d4-row",
+              "name": "Plate-Loaded Seated Row",
+              "target": "Mid-back / Lats",
+              "sets": 2,
+              "reps": "6-8",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 120s. Weeks 2-3: add a third set if recovered."
+              },
+              "cue": "Keep the torso still and let the shoulders move comfortably; a controlled row balances the week's pressing and striking."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Chest, calves and rear shoulders - about 17 min",
+          "items": [
+            {
+              "id": "d4-chest",
+              "name": "Chest Press Machine",
+              "target": "Chest / Triceps",
+              "sets": 2,
+              "reps": "8-12",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90s."
+              },
+              "cue": "Use a comfortable grip and controlled range. This adds chest volume with a stable setup after the main work."
+            },
+            {
+              "id": "d4-calf",
+              "name": "Seated Calf Raise",
+              "target": "Soleus / Calves",
+              "sets": 2,
+              "reps": "12-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60-90s."
+              },
+              "cue": "Move through a consistent ankle range without bouncing. Select the load for clean repetitions, not for the machine's displayed number."
+            },
+            {
+              "id": "d4-face",
+              "name": "Rear-Delt Machine",
+              "target": "Rear delts / Upper back",
+              "sets": 2,
+              "reps": "12-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60s."
+              },
+              "cue": "Keep the chest supported and move without shrugging. This adds light rear-shoulder work alongside the week's pressing."
+            }
+          ]
+        },
+        {
+          "kind": "core",
+          "label": "Core - about 3 min",
+          "items": [
+            {
+              "id": "d4-core",
+              "name": "Standing Cable Pallof Press",
+              "target": "Anti-rotation trunk control",
+              "sets": 2,
+              "reps": "8 each side",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 45-60s."
+              },
+              "cue": "Stand side-on to the cable and resist turning as you press out; use a light load that lets the trunk stay still."
+            }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Optional easy aerobic finish - 10 min",
+          "items": [
+            {
+              "id": "d4-bike",
+              "name": "Easy upright bike",
+              "rounds": 1,
+              "roundLength": "10 min",
+              "rest": "0s",
+              "cue": "Keep a full-sentence conversational pace. Omit after an unusually demanding class or if it would exceed 90 min; record the change in notes."
+            }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown - 5 min",
+          "items": [
+            {
+              "id": "d4-cool",
+              "name": "Easy walk and comfortable mobility",
+              "dose": "5 min: easy walking, relaxed breathing and comfortable calf, hip and chest mobility.",
+              "cue": "Let breathing settle; stretch gently without forcing range."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "label": "Friday - Course-led bag practice",
+      "type": "custom",
+      "focus": "10-min shadowboxing/footwork warm-up; chosen Varga or Jeff Chan lesson, usually 6-8 x 2-3 min with 60s rest; 5-min cooldown. Log the actual lesson and rounds. Technical quality leads; 90 min is a ceiling, not a duration to fill."
+    },
+    {
+      "day": 6,
+      "label": "Saturday - Strength C and technical bag",
+      "type": "training",
+      "focus": "Shorter full-body lifting, chest/calves/biceps and chosen technical bag lesson. About 40 min lifting; stay within 90 min total.",
+      "blocks": [
+        {
+          "kind": "mobility",
+          "label": "Warm-up - 10 min total",
+          "items": [
+            {
+              "id": "d6-warm",
+              "name": "Easy cardio, dynamic preparation and lift warm-up sets",
+              "dose": "10 min total: 2 min easy bike, 3 min dynamic ankle/hip/shoulder movement, 5 min gradual preparation sets. Count lift preparation within this allowance.",
+              "cue": "Prepare the movements you will train without turning the warm-up into conditioning."
+            }
+          ]
+        },
+        {
+          "kind": "strength",
+          "label": "Full-body strength and accessories - about 40 min",
+          "items": [
+            {
+              "id": "d6-legpress",
+              "name": "Leg Press Machine",
+              "target": "Quads / Glutes",
+              "sets": 2,
+              "reps": "8-10",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90s."
+              },
+              "cue": "Use a controlled depth without the pelvis rolling off the pad. Keep this a moderate third leg exposure rather than another heavy squat day."
+            },
+            {
+              "id": "d6-incline",
+              "name": "Incline Dumbbell Bench Press",
+              "target": "Upper chest / Triceps",
+              "sets": 2,
+              "reps": "8-12",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90s."
+              },
+              "cue": "Use a comfortable incline and controlled lowering. This is the second weekly incline exposure for upper-chest development."
+            },
+            {
+              "id": "d6-pullup",
+              "name": "Strict Bodyweight Pull-Up",
+              "target": "Lats / Bodyweight strength",
+              "sets": 2,
+              "reps": "8-12",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90-120s."
+              },
+              "cue": "Use strict repetitions and stop with at least three clean reps available. Practise the movement; do not chase a max-repetition test. No improvised dumbbell loading."
+            },
+            {
+              "id": "d6-shoulder",
+              "name": "Shoulder Press Machine",
+              "target": "Vertical pushing / Shoulders",
+              "sets": 2,
+              "reps": "8-10",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 90s."
+              },
+              "cue": "Use a comfortable path without arching. A small vertical-press dose completes the week's pushing patterns."
+            },
+            {
+              "id": "d6-legcurl",
+              "name": "Leg Curl Machine",
+              "target": "Hamstrings / Knee flexion",
+              "sets": 2,
+              "reps": "10-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60-90s."
+              },
+              "cue": "Keep the hips supported and control the return. This complements hip-extension work with direct hamstring knee-flexion loading."
+            },
+            {
+              "id": "d6-calf",
+              "name": "Standing Calf Raise Machine",
+              "target": "Gastrocnemius / Soleus",
+              "sets": 2,
+              "reps": "10-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60-90s."
+              },
+              "cue": "Repeat Tuesday's controlled ankle range and avoid bouncing. Reduce load if it would change your footwork afterward."
+            },
+            {
+              "id": "d6-curl",
+              "name": "Standing Dumbbell Curl",
+              "target": "Biceps",
+              "sets": 2,
+              "reps": "10-15",
+              "prescription": {
+                "rir": 3,
+                "note": "Rest 60s."
+              },
+              "cue": "Keep the elbows quiet and finish with clean reps available. The second direct arm exposure keeps the weekly dose manageable."
+            }
+          ]
+        },
+        {
+          "kind": "conditioning",
+          "label": "Chosen technical bag lesson - 17-31 min including rest",
+          "items": [
+            {
+              "id": "d6-bag",
+              "name": "Course-led Technical Bag Rounds",
+              "rounds": 6,
+              "roundLength": "2 min",
+              "rest": "60s",
+              "perRound": [
+                "R1: Practise a combination from the chosen lesson.",
+                "R2: Continue the lesson with balanced stance and footwork.",
+                "R3: Follow the selected lesson's next drill.",
+                "R4: Repeat the lesson's combinations with controlled execution.",
+                "R5: Keep the chosen technical focus; stop forcing speed.",
+                "R6: Finish with clean technique; record the lesson and any changes."
+              ],
+              "cue": "Default: 6 x 2 min. Follow the actual course; up to 8 x 2 min or 6 x 3 min only while quality and the 90-min cap allow. Keep technical intent and record lesson, round length and actual rounds in notes."
+            }
+          ]
+        },
+        {
+          "kind": "cooldown",
+          "label": "Cooldown - 5 min",
+          "items": [
+            {
+              "id": "d6-cool",
+              "name": "Easy walk and comfortable mobility",
+              "dose": "5 min: easy walking, relaxed breathing and comfortable calf, hip and chest mobility.",
+              "cue": "Let breathing settle; stretch gently without forcing range."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "label": "Sunday - Optional recovery or day off",
+      "type": "custom",
+      "focus": "Rest by default. Optional easy mobility, sauna or cryotherapy if desired; record what you actually did. No requirement to add a workout or make up missed sessions."
+    }
+  ],
+  "features": {
+    "hipScoreRouting": false,
+    "bagWork": true
+  }
+}
